@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.4 - 2026-07-27
+
+### Adicionado
+- Criada gestão de referências oficiais do ciclo de folgas por equipa.
+- Adicionado modelo `TeamCycleReference`.
+- Adicionado serviço central `app/services/cycle_calculator.py`.
+- Criadas páginas para consulta geral do ciclo, configuração, histórico e pré-visualização.
+- Integradas ligações do ciclo nas páginas de equipas e na ficha de militares com equipa.
+- Adicionada explicação do cálculo com referência, semanas normalizadas, diferença de semanas, fase e código resultante.
+
+### Regras
+- Cada fase corresponde a uma semana operacional de segunda-feira a domingo.
+- A data de referência é interpretada pela semana que a contém.
+- O cálculo usa a segunda-feira da semana de referência e da semana consultada.
+- A fase é calculada por diferença inteira de semanas e circulação entre `1` e `6`.
+- `DS` e `DC` são calculados apenas pelo serviço central do ciclo.
+- Não existe `DC` isolado nem inversão de `DS` e `DC`.
+- Referências futuras preservam histórico e encerram a referência anterior no dia imediatamente anterior.
+- Períodos sobrepostos por equipa são bloqueados.
+
+### Migração
+- Criada e aplicada a migração `6706124b423b_create_team_cycle_references.py`.
+- Criada apenas a tabela `team_cycle_references`.
+- Não foram inseridas referências de ciclo.
+- Não foram alteradas migrações anteriores.
+- Criada cópia de segurança prévia da base real em `instance/backups/escala_20260727_163936.db`.
+
+### Testes
+- Adicionados testes de fases, continuidade mensal/anual, ano bissexto, normalização semanal, DS/DC, referências históricas, determinismo, rotas e caso real prioritário.
+- Suite completa validada com `89 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` pertenças.
+- A base real ficou com `0` referências do ciclo.
+- Não foram criados dados fictícios ou demonstrativos.
+
+### Limitações
+- Sem geração de escala, grelha mensal, AT, PO, PT, indisponibilidades, restrições, FF, FC, remunerados, exportações, autenticação completa e auditoria funcional genérica.
+
 ## v0.3 - 2026-07-27
 
 ### Adicionado

@@ -40,6 +40,11 @@ class Team(db.Model):
         back_populates="team",
         order_by="MilitaryTeamHistory.start_date.asc()",
     )
+    cycle_references = db.relationship(
+        "TeamCycleReference",
+        back_populates="team",
+        order_by="TeamCycleReference.valid_from.asc()",
+    )
 
     @property
     def current_memberships(self):

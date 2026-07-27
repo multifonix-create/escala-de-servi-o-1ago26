@@ -6,7 +6,7 @@ from flask import Flask, render_template
 
 from app.config import config_by_name
 from app.extensions import db, migrate
-from app.routes import main_bp, militaries_bp, military_teams_bp, teams_bp
+from app.routes import cycle_bp, main_bp, militaries_bp, military_teams_bp, team_cycle_bp, teams_bp
 
 
 def create_app(config_name: str | None = None) -> Flask:
@@ -40,6 +40,8 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(militaries_bp)
     app.register_blueprint(teams_bp)
     app.register_blueprint(military_teams_bp)
+    app.register_blueprint(cycle_bp)
+    app.register_blueprint(team_cycle_bp)
 
 
 def _register_error_handlers(app: Flask) -> None:

@@ -17,11 +17,12 @@
       </div>
     </dl>
     <p class="notice">
-      A gestão do efetivo inclui militares e equipas oficiais. A geração de escala será implementada numa versão seguinte.
+      A gestão do efetivo inclui militares, equipas oficiais e referências do ciclo de folgas. A geração de escala será implementada numa versão seguinte.
     </p>
     <p class="actions">
       <a class="button" href="{{ url_for('militaries.list_militaries') }}">Abrir militares</a>
       <a class="button button--secondary" href="{{ url_for('teams.list_teams') }}">Abrir equipas</a>
+      <a class="button button--secondary" href="{{ url_for('cycle.overview') }}">Abrir ciclo</a>
     </p>
   </section>
 {% endblock %}

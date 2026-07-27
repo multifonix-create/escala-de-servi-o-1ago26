@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Ciclo de folgas{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Ciclo de folgas</p>
+      <h1>Referências e cálculo</h1>
+      <p class="notice">Semana operacional de {{ week_start.isoformat() }} a {{ week_end.isoformat() }}.</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('cycle.configure') }}">Configurar</a>
+  </section>
+
+  <form class="filters" method="get" action="{{ url_for('cycle.overview') }}">
+    <label>
+      <span>Data</span>
+      <input type="date" name="date" value="{{ selected_date.isoformat() }}" required>
+    </label>
+    <button class="button button--secondary" type="submit">Consultar</button>
+  </form>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Equipa</th>
+          <th>Estado</th>
+          <th>Fase na data</th>
+          <th>Folgas da semana</th>
+          <th>Explicação</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>Equipa {{ row.team.code }}</td>
+            <td>
+              {% if row.configured %}
+                <span class="status status--active">Configurada</span>
+              {% else %}
+                <span class="status status--inactive">Sem referência</span>
+              {% endif %}
+            </td>
+            <td>{{ "Fase " ~ row.selected_day.phase if row.selected_day else "-" }}</td>
+            <td>
+              {% if row.week_days %}
+                {% for day in row.week_days if day.code %}
+                  <span class="status">{{ day.day.isoformat() }} {{ day.code }}</span>
+                {% else %}
+                  Sem folgas do ciclo nesta semana
+                {% endfor %}
+              {% else %}
+                Não calculado
+              {% endif %}
+            </td>
+            <td>
+              {% if row.selected_day %}
+                Referência {{ row.selected_day.explanation.reference_date.isoformat() }};
+                diferença {{ row.selected_day.explanation.week_offset }} semanas.
+              {% else %}
+                Configure uma referência para calcular.
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('team_cycle.team_cycle', team_id=row.team.id) }}">Consultar</a>
+              <span class="muted"><a href="{{ url_for('team_cycle.new_reference_form', team_id=row.team.id) }}">Configurar</a></span>
+              <span class="muted"><a href="{{ url_for('team_cycle.reference_history', team_id=row.team.id) }}">Histórico</a></span>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

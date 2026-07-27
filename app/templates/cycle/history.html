@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico do ciclo{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Equipa {{ team.code }}</p>
+      <h1>Histórico de referências</h1>
+      <p class="notice">As referências antigas são preservadas.</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('team_cycle.team_cycle', team_id=team.id) }}">Voltar</a>
+  </section>
+
+  {% if references %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Referência</th>
+            <th>Fase</th>
+            <th>Validade</th>
+            <th>Observações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for reference in references %}
+            <tr>
+              <td>{{ reference.reference_date.isoformat() }}</td>
+              <td>Fase {{ reference.reference_phase }}</td>
+              <td>{{ reference.valid_from.isoformat() }} a {{ reference.valid_until.isoformat() if reference.valid_until else "atual" }}</td>
+              <td>{{ reference.notes or "-" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <section class="empty-state">
+      <h2>Sem referências</h2>
+      <p>Esta equipa ainda não possui referências do ciclo configuradas.</p>
+      <a class="button" href="{{ url_for('team_cycle.new_reference_form', team_id=team.id) }}">Criar referência</a>
+    </section>
+  {% endif %}
+{% endblock %}

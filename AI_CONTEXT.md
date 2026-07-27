@@ -16,9 +16,9 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v0.3 - Gestão de Equipas e Histórico de Pertença`.
+Versão atual: `v0.4 - Referências e Cálculo do Ciclo de Folgas`.
 
-Não existe repositório Git inicializado nesta pasta. Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
+Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
 ## Infraestrutura Existente
 
@@ -56,40 +56,71 @@ A v0.3 está concluída com:
 * modelo `MilitaryTeamHistory`;
 * equipas oficiais estruturais `A`, `B`, `C`, `D` e `E`;
 * migração `6a09479ecf71_create_teams_and_memberships.py`;
-* inserção controlada das cinco equipas oficiais na migração;
 * uma pertença atual por militar;
 * histórico de pertença preservado por datas;
-* semântica de datas inclusiva: se uma nova equipa começa em `2026-03-10`, a anterior termina em `2026-03-09`;
 * associação e mudança permitidas apenas para militares `PATRULHEIRO`;
-* bloqueio de alteração para `SEC`, `SI` ou `CMD` quando existir pertença atual;
-* rotas e templates para listagem/detalhe de equipas, associação, mudança e histórico;
-* testes automatizados de modelos, serviços, rotas, regras e rollback.
+* bloqueio de alteração para `SEC`, `SI` ou `CMD` quando existir pertença atual.
 
-Rotas principais da v0.3:
+## v0.4 - Referências e Ciclo de Folgas
 
-* `GET /equipas`;
-* `GET /equipas/<id>`;
-* `GET /militares/<id>/equipa`;
-* `POST /militares/<id>/equipa/associar`;
-* `GET /militares/<id>/equipa/mudar`;
-* `POST /militares/<id>/equipa/mudar`;
-* `GET /militares/<id>/historico-equipas`;
-* `GET /militares/<id>/historico-equipas/<membership_id>/editar`;
-* `POST /militares/<id>/historico-equipas/<membership_id>/editar`.
+A v0.4 está concluída com:
+
+* modelo `TeamCycleReference`;
+* tabela `team_cycle_references`;
+* migração `6706124b423b_create_team_cycle_references.py`;
+* serviço central `app/services/cycle_calculator.py`;
+* referências históricas por equipa;
+* criação controlada de nova referência sem alterar retroativamente períodos anteriores;
+* uma referência válida por equipa e data;
+* bloqueio de períodos sobrepostos;
+* fases permitidas apenas entre `1` e `6`;
+* cálculo determinístico para datas futuras e anteriores;
+* normalização semanal por segunda-feira;
+* cálculo de `DS`, `DC` ou ausência de folga;
+* explicação do cálculo com referência usada, semanas normalizadas, diferença de semanas e fase calculada;
+* pré-visualização do ciclo sem gravação de escala.
+
+Semântica semanal:
+
+* cada fase corresponde a uma semana operacional civil, de segunda-feira a domingo;
+* a data de referência é interpretada como pertencendo à semana que a contém;
+* a segunda-feira dessa semana é usada como base de cálculo;
+* a diferença inteira de semanas determina a fase;
+* o ciclo circula sempre de `1` a `6`;
+* se a nova referência começa numa data futura, a referência anterior é encerrada no dia imediatamente anterior.
+
+Rotas principais da v0.4:
+
+* `GET /ciclo`;
+* `GET /ciclo/configurar`;
+* `GET /ciclo/pre-visualizar`;
+* `GET /equipas/<id>/ciclo`;
+* `GET /equipas/<id>/ciclo/nova-referencia`;
+* `POST /equipas/<id>/ciclo/nova-referencia`;
+* `GET /equipas/<id>/ciclo/historico`.
+
+Adaptação ao `DATA_MODEL.md`:
+
+* o pedido v0.4 usa `notes`; o `DATA_MODEL.md` menciona `reason`;
+* a v0.4 implementa `notes`, mantendo a intenção funcional de observações/motivo sem criar utilizadores ou `created_by` antes da fase de autenticação.
 
 ## Ainda Não Existe
 
 Ainda não existem:
 
-* motor de ciclo;
-* DS ou DC;
 * geração da escala;
-* escala mensal;
+* grelha mensal;
+* atribuição de AT;
+* atribuição de PO;
+* atribuição de PT;
+* atribuição de DS/DC por militar;
+* registos diários;
+* motor de geração;
 * indisponibilidades;
 * restrições horárias;
 * autenticação completa;
 * auditoria funcional genérica;
-* diagnósticos;
+* diagnósticos completos;
 * FF;
 * FC;
 * remunerados;
@@ -141,6 +172,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 * criar militares fictícios;
 * criar equipas fictícias;
+* criar referências fictícias do ciclo na base real;
 * criar escalas fictícias;
 * criar dados demonstrativos na base real;
 * apagar ou recriar a base de dados;
@@ -152,9 +184,10 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 ## Decisões e Limitações Atuais
 
-* A base real contém as tabelas `militaries`, `teams` e `military_team_history`.
+* A base real contém as tabelas `militaries`, `teams`, `military_team_history` e `team_cycle_references`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares nem pertenças de equipa após a v0.3.
+* A base real não contém militares, pertenças de equipa nem referências de ciclo após a v0.4.
+* As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
 * Não foi implementada autenticação completa.
@@ -169,11 +202,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-45 passed
+89 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v0.4 - Referências e Cálculo do Ciclo de Folgas`.
+`v0.5 - Restrições Individuais dos Militares`.

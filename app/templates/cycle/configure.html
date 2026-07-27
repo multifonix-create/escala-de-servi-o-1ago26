@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Configurar ciclo{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Configuração</p>
+      <h1>Configurar referências</h1>
+      <p class="notice">Cada equipa possui uma referência própria. Não são atribuídas fases automaticamente.</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('cycle.overview') }}">Voltar</a>
+  </section>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Equipa</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for team in teams %}
+          <tr>
+            <td>Equipa {{ team.code }}</td>
+            <td>
+              <a href="{{ url_for('team_cycle.new_reference_form', team_id=team.id) }}">Nova referência</a>
+              <span class="muted"><a href="{{ url_for('team_cycle.reference_history', team_id=team.id) }}">Histórico</a></span>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

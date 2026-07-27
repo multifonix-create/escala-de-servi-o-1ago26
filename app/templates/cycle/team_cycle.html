@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Ciclo da Equipa {{ team.code }}{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Equipa {{ team.code }}</p>
+      <h1>Ciclo de folgas</h1>
+      <p class="notice">A semana é sempre normalizada para segunda-feira a domingo.</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('teams.detail_team', team_id=team.id) }}">Voltar</a>
+  </section>
+
+  <section class="content-section">
+    <h2>Referência atual</h2>
+    {% if reference %}
+      <p>Fase {{ reference.reference_phase }} na semana que contém {{ reference.reference_date.isoformat() }}.</p>
+      <p class="muted">Válida desde {{ reference.valid_from.isoformat() }}{{ " até " ~ reference.valid_until.isoformat() if reference.valid_until else "" }}.</p>
+    {% else %}
+      <p>Esta equipa ainda não possui referência válida para hoje.</p>
+    {% endif %}
+    <div class="toolbar">
+      <a class="button" href="{{ url_for('team_cycle.new_reference_form', team_id=team.id) }}">Nova referência</a>
+      <a class="button button--secondary" href="{{ url_for('team_cycle.reference_history', team_id=team.id) }}">Histórico</a>
+      <a class="button button--secondary" href="{{ url_for('cycle.preview', team_id=team.id) }}">Pré-visualizar</a>
+    </div>
+  </section>
+
+  <section class="content-section">
+    <h2>Pré-visualização</h2>
+    {% if preview_days %}
+      {% include "cycle/_preview_table.html" %}
+    {% else %}
+      <p>Sem referência válida para pré-visualizar.</p>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,32 @@
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Dia</th>
+        <th>Fase</th>
+        <th>Código</th>
+        <th>Cálculo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for day in preview_days %}
+        <tr>
+          <td>{{ day.day.isoformat() }}</td>
+          <td>{{ day.weekday_name }}</td>
+          <td>Fase {{ day.phase }}</td>
+          <td>{{ day.code or "-" }}</td>
+          <td>
+            {% if day.explanation %}
+              Ref. {{ day.explanation.reference_date.isoformat() }};
+              semana {{ day.explanation.target_week_monday.isoformat() }};
+              {{ day.explanation.week_offset }} semanas.
+            {% else %}
+              Pré-visualização da nova referência.
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

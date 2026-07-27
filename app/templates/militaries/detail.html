@@ -57,6 +57,9 @@
           <a class="button" href="{{ url_for('military_teams.show_military_team', military_id=military.id) }}">Associar equipa</a>
         {% endif %}
         <a class="button button--secondary" href="{{ url_for('military_teams.military_team_history', military_id=military.id) }}">Histórico de equipas</a>
+        {% if military.current_team %}
+          <a class="button button--secondary" href="{{ url_for('team_cycle.team_cycle', team_id=military.current_team.id) }}">Ciclo da equipa</a>
+        {% endif %}
       </div>
     {% else %}
       <p>Este tipo funcional não tem pertença a equipa operacional nesta versão.</p>

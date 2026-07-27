@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Pré-visualizar ciclo{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Pré-visualização</p>
+      <h1>Pré-visualizar ciclo</h1>
+      <p class="notice">Resultado calculado, sem gravação de escala ou atribuições.</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('cycle.overview') }}">Voltar</a>
+  </section>
+
+  <form class="filters" method="get" action="{{ url_for('cycle.preview') }}">
+    <label>
+      <span>Equipa</span>
+      <select name="team_id" required>
+        <option value="">Selecionar</option>
+        {% for team in teams %}
+          <option value="{{ team.id }}" {% if form_data.team_id|string == team.id|string %}selected{% endif %}>Equipa {{ team.code }}</option>
+        {% endfor %}
+      </select>
+      {% if errors.team_id %}<small class="field-error">{{ errors.team_id }}</small>{% endif %}
+      {% if errors.team %}<small class="field-error">{{ errors.team }}</small>{% endif %}
+      {% if errors.reference %}<small class="field-error">{{ errors.reference }}</small>{% endif %}
+    </label>
+    <label>
+      <span>Data inicial</span>
+      <input type="date" name="start_date" value="{{ form_data.start_date }}" required>
+      {% if errors.start_date %}<small class="field-error">{{ errors.start_date }}</small>{% endif %}
+    </label>
+    <label>
+      <span>Data final</span>
+      <input type="date" name="end_date" value="{{ form_data.end_date }}" required>
+      {% if errors.end_date %}<small class="field-error">{{ errors.end_date }}</small>{% endif %}
+    </label>
+    <button class="button button--secondary" type="submit">Pré-visualizar</button>
+  </form>
+
+  {% if preview_days %}
+    {% include "cycle/_preview_table.html" %}
+  {% elif selected_team %}
+    <section class="empty-state">
+      <h2>Sem resultado</h2>
+      <p>Não foi possível calcular o intervalo indicado.</p>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -4,6 +4,14 @@ from app.models.military import utc_now
 
 class MilitaryTeamHistory(db.Model):
     __tablename__ = "military_team_history"
+    __table_args__ = (
+        db.Index(
+            "uq_military_team_history_current_military",
+            "military_id",
+            unique=True,
+            sqlite_where=db.text("end_date IS NULL"),
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     military_id = db.Column(

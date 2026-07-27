@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Nova referência{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Equipa {{ team.code }}</p>
+      <h1>Nova referência do ciclo</h1>
+      <p class="notice">A data de referência é interpretada pela semana operacional que a contém.</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('team_cycle.team_cycle', team_id=team.id) }}">Voltar</a>
+  </section>
+
+  <form class="form-panel" method="post" action="{{ url_for('team_cycle.create_reference', team_id=team.id) }}">
+    <div class="form-grid">
+      <label>
+        <span>Data de referência</span>
+        <input type="date" name="reference_date" value="{{ form_data.reference_date }}" required>
+        {% if errors.reference_date %}<small class="field-error">{{ errors.reference_date }}</small>{% endif %}
+      </label>
+      <label>
+        <span>Fase de referência</span>
+        <select name="reference_phase" required>
+          <option value="">Selecionar</option>
+          {% for phase in range(1, 7) %}
+            <option value="{{ phase }}" {% if form_data.reference_phase|string == phase|string %}selected{% endif %}>Fase {{ phase }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.reference_phase %}<small class="field-error">{{ errors.reference_phase }}</small>{% endif %}
+      </label>
+      <label>
+        <span>Início de validade</span>
+        <input type="date" name="valid_from" value="{{ form_data.valid_from }}" required>
+        {% if errors.valid_from %}<small class="field-error">{{ errors.valid_from }}</small>{% endif %}
+      </label>
+      <label class="full-width">
+        <span>Observações</span>
+        <textarea name="notes" rows="4">{{ form_data.notes }}</textarea>
+        {% if errors.notes %}<small class="field-error">{{ errors.notes }}</small>{% endif %}
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="button" type="submit">Guardar referência</button>
+    </div>
+  </form>
+
+  {% if preview_days %}
+    <section class="content-section">
+      <h2>Sequência esperada</h2>
+      {% include "cycle/_preview_table.html" %}
+    </section>
+  {% endif %}
+{% endblock %}

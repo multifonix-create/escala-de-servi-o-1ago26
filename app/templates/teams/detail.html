@@ -13,6 +13,16 @@
   </section>
 
   <section class="content-section">
+    <h2>Ciclo de folgas</h2>
+    <p>Consulte o estado da referência desta equipa e a pré-visualização calculada do ciclo.</p>
+    <div class="toolbar">
+      <a class="button" href="{{ url_for('team_cycle.team_cycle', team_id=team.id) }}">Consultar ciclo</a>
+      <a class="button button--secondary" href="{{ url_for('team_cycle.new_reference_form', team_id=team.id) }}">Configurar referência</a>
+      <a class="button button--secondary" href="{{ url_for('team_cycle.reference_history', team_id=team.id) }}">Histórico de referências</a>
+    </div>
+  </section>
+
+  <section class="content-section">
     <h2>Militares atuais</h2>
     {% if current_members %}
       <div class="table-wrap">
