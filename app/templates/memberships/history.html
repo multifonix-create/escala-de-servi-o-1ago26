@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico de equipas{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Histórico</p>
+      <h1>Histórico de equipas</h1>
+      <p class="notice">{{ military.name }} · {{ military.nim }}</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('militaries.detail_military', military_id=military.id) }}">Voltar</a>
+  </section>
+
+  {% if memberships %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Equipa</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Motivo</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for membership in memberships %}
+            <tr>
+              <td>Equipa {{ membership.team.code }}</td>
+              <td>{{ membership.start_date.isoformat() }}</td>
+              <td>{{ membership.end_date.isoformat() if membership.end_date else "Atual" }}</td>
+              <td>{{ membership.reason or "-" }}</td>
+              <td><a href="{{ url_for('military_teams.edit_membership_form', military_id=military.id, membership_id=membership.id) }}">Editar</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <section class="empty-state">
+      <h2>Sem histórico de equipas</h2>
+      <p>Não existe qualquer pertença registada para este militar.</p>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Novo militar{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Efetivo</p>
+    <h1>Novo militar</h1>
+    <p class="notice">Crie apenas registos reais. A aplicação não cria equipas, escalas ou dados associados nesta versão.</p>
+  </section>
+
+  <form class="form-panel" method="post" action="{{ url_for('militaries.create_military') }}" novalidate>
+    {% include "militaries/_form.html" %}
+    <div class="form-actions">
+      <a class="button button--secondary" href="{{ url_for('militaries.list_militaries') }}">Cancelar</a>
+      <button class="button" type="submit">Criar militar</button>
+    </div>
+  </form>
+{% endblock %}

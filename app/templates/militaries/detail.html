@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}{{ military.name }}{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Ficha individual</p>
+      <h1>{{ military.name }}</h1>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('militaries.list_militaries') }}">Voltar</a>
+      <a class="button" href="{{ url_for('militaries.edit_military_form', military_id=military.id) }}">Editar</a>
+    </div>
+  </section>
+
+  {% if military.has_inactive_date_warning() %}
+    <p class="message message--warning">Este militar está ativo, mas a data de fim já passou.</p>
+  {% endif %}
+
+  <section class="detail-grid">
+    <div><dt>NIM</dt><dd>{{ military.nim }}</dd></div>
+    <div><dt>Tipo funcional</dt><dd>{{ military.functional_type }}</dd></div>
+    <div><dt>Estado</dt><dd>{{ "Ativo" if military.is_active else "Inativo" }}</dd></div>
+    <div>
+      <dt>Equipa atual</dt>
+      <dd>
+        {% if military.functional_type != "PATRULHEIRO" %}
+          Não aplicável
+        {% elif military.current_team %}
+          Equipa {{ military.current_team.code }}
+          <span class="muted">Desde {{ military.current_team_membership.start_date.isoformat() }}</span>
+        {% else %}
+          Sem equipa
+        {% endif %}
+      </dd>
+    </div>
+    <div><dt>Data de início</dt><dd>{{ military.start_date.isoformat() }}</dd></div>
+    <div><dt>Data de fim</dt><dd>{{ military.end_date.isoformat() if military.end_date else "Sem data definida" }}</dd></div>
+    <div><dt>Criado em</dt><dd>{{ military.created_at.strftime("%Y-%m-%d %H:%M") }}</dd></div>
+    <div><dt>Atualizado em</dt><dd>{{ military.updated_at.strftime("%Y-%m-%d %H:%M") }}</dd></div>
+  </section>
+
+  <section class="content-section">
+    <h2>Notas</h2>
+    <p>{{ military.notes or "Sem notas registadas." }}</p>
+  </section>
+
+  <section class="content-section">
+    <h2>Equipa</h2>
+    {% if military.functional_type == "PATRULHEIRO" %}
+      <p>A pertença operacional a equipas e o respetivo histórico estão disponíveis nesta versão.</p>
+      <div class="toolbar">
+        {% if military.current_team %}
+          <a class="button" href="{{ url_for('military_teams.change_military_team_form', military_id=military.id) }}">Mudar equipa</a>
+        {% else %}
+          <a class="button" href="{{ url_for('military_teams.show_military_team', military_id=military.id) }}">Associar equipa</a>
+        {% endif %}
+        <a class="button button--secondary" href="{{ url_for('military_teams.military_team_history', military_id=military.id) }}">Histórico de equipas</a>
+      </div>
+    {% else %}
+      <p>Este tipo funcional não tem pertença a equipa operacional nesta versão.</p>
+    {% endif %}
+  </section>
+
+  <section class="content-section">
+    <h2>Funcionalidades futuras</h2>
+    <p>Restrições, indisponibilidades e geração de escala serão implementadas em versões posteriores.</p>
+  </section>
+
+  <section class="danger-zone">
+    <h2>Estado do registo</h2>
+    {% if military.is_active %}
+      <form method="post" action="{{ url_for('militaries.deactivate_military', military_id=military.id) }}" onsubmit="return confirm('Desativar este militar? O registo será preservado.');">
+        <button class="button button--danger" type="submit">Desativar militar</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('militaries.activate_military', military_id=military.id) }}">
+        <button class="button" type="submit">Ativar militar</button>
+      </form>
+    {% endif %}
+  </section>
+{% endblock %}

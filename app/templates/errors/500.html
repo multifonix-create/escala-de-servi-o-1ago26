@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Erro interno{% endblock %}
+
+{% block content %}
+  <section class="status-panel" aria-labelledby="error-title">
+    <p class="eyebrow">Erro 500</p>
+    <h1 id="error-title">Erro interno</h1>
+    <p class="notice">Ocorreu um erro técnico. Os detalhes foram registados nos logs.</p>
+  </section>
+{% endblock %}

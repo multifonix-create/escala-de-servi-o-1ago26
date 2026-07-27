@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app_name }} {{ app_version }}{% endblock %}
+
+{% block content %}
+  <section class="status-panel" aria-labelledby="app-title">
+    <p class="eyebrow">Aplicação local</p>
+    <h1 id="app-title">{{ app_name }}</h1>
+    <dl class="status-list">
+      <div>
+        <dt>Versão</dt>
+        <dd>{{ app_version }}</dd>
+      </div>
+      <div>
+        <dt>Estado</dt>
+        <dd>Infraestrutura base ativa</dd>
+      </div>
+    </dl>
+    <p class="notice">
+      A gestão do efetivo inclui militares e equipas oficiais. A geração de escala será implementada numa versão seguinte.
+    </p>
+    <p class="actions">
+      <a class="button" href="{{ url_for('militaries.list_militaries') }}">Abrir militares</a>
+      <a class="button button--secondary" href="{{ url_for('teams.list_teams') }}">Abrir equipas</a>
+    </p>
+  </section>
+{% endblock %}

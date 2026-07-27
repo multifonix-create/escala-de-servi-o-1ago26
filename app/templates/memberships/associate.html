@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Associar equipa{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Pertença a equipa</p>
+      <h1>Associar equipa</h1>
+      <p class="notice">{{ military.name }} · {{ military.nim }}</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('militaries.detail_military', military_id=military.id) }}">Voltar</a>
+  </section>
+
+  {% if military.functional_type != "PATRULHEIRO" %}
+    <section class="empty-state">
+      <h2>Não aplicável</h2>
+      <p>Apenas militares PATRULHEIRO podem pertencer a equipas.</p>
+    </section>
+  {% elif military.current_team %}
+    <section class="empty-state">
+      <h2>Equipa já associada</h2>
+      <p>Este militar pertence atualmente à Equipa {{ military.current_team.code }}.</p>
+      <a class="button" href="{{ url_for('military_teams.change_military_team_form', military_id=military.id) }}">Mudar equipa</a>
+    </section>
+  {% else %}
+    <form class="form-panel" method="post" action="{{ url_for('military_teams.associate_military_team', military_id=military.id) }}">
+      {% include "memberships/_form.html" %}
+      <div class="form-actions">
+        <button class="button" type="submit">Associar equipa</button>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

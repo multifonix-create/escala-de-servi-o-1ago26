@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Mudar equipa{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Pertença a equipa</p>
+      <h1>Mudar equipa</h1>
+      <p class="notice">{{ military.name }} · {{ military.nim }}</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('militaries.detail_military', military_id=military.id) }}">Voltar</a>
+  </section>
+
+  {% if military.functional_type != "PATRULHEIRO" %}
+    <section class="empty-state">
+      <h2>Não aplicável</h2>
+      <p>Apenas militares PATRULHEIRO podem pertencer a equipas.</p>
+    </section>
+  {% elif not military.current_team %}
+    <section class="empty-state">
+      <h2>Sem equipa atual</h2>
+      <p>Associe uma equipa antes de registar uma mudança.</p>
+      <a class="button" href="{{ url_for('military_teams.show_military_team', military_id=military.id) }}">Associar equipa</a>
+    </section>
+  {% else %}
+    <section class="content-section">
+      <h2>Equipa atual</h2>
+      <p>Equipa {{ military.current_team.code }} desde {{ military.current_team_membership.start_date.isoformat() }}.</p>
+    </section>
+    <form class="form-panel" method="post" action="{{ url_for('military_teams.change_military_team', military_id=military.id) }}">
+      {% include "memberships/_form.html" %}
+      <div class="form-actions">
+        <button class="button" type="submit">Mudar equipa</button>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

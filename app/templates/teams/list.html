@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Equipas{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Estrutura operacional</p>
+      <h1>Equipas</h1>
+      <p class="notice">Equipas oficiais A-E. Não existem equipas fictícias ou de demonstração.</p>
+    </div>
+  </section>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nome</th>
+          <th>Estado</th>
+          <th>Militares atuais</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for team in teams %}
+          <tr>
+            <td>{{ team.code }}</td>
+            <td>{{ team.name }}</td>
+            <td>
+              <span class="status status--active">{{ "Ativa" if team.is_active else "Inativa" }}</span>
+            </td>
+            <td>{{ member_counts[team.id] }}</td>
+            <td><a href="{{ url_for('teams.detail_team', team_id=team.id) }}">Ver equipa</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

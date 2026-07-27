@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Editar histórico de equipa{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Histórico</p>
+      <h1>Editar histórico de equipa</h1>
+      <p class="notice">{{ military.name }} · Equipa {{ membership.team.code }}</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('military_teams.military_team_history', military_id=military.id) }}">Voltar</a>
+  </section>
+
+  <form class="form-panel" method="post" action="{{ url_for('military_teams.edit_membership', military_id=military.id, membership_id=membership.id) }}">
+    <div class="form-grid">
+      <label>
+        <span>Data de início</span>
+        <input type="date" name="start_date" value="{{ form_data.start_date }}" required>
+        {% if errors.start_date %}<small class="field-error">{{ errors.start_date }}</small>{% endif %}
+      </label>
+      <label>
+        <span>Data de fim</span>
+        <input type="date" name="end_date" value="{{ form_data.end_date }}">
+        {% if errors.end_date %}<small class="field-error">{{ errors.end_date }}</small>{% endif %}
+      </label>
+      <label class="full-width">
+        <span>Motivo</span>
+        <textarea name="reason" rows="4">{{ form_data.reason }}</textarea>
+        {% if errors.reason %}<small class="field-error">{{ errors.reason }}</small>{% endif %}
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="button" type="submit">Guardar histórico</button>
+    </div>
+  </form>
+{% endblock %}

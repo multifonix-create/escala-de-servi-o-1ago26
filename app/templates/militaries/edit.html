@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Editar militar{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Efetivo</p>
+    <h1>Editar militar</h1>
+    <p class="notice">A edição preserva o identificador interno e não elimina histórico futuro.</p>
+  </section>
+
+  <form class="form-panel" method="post" action="{{ url_for('militaries.edit_military', military_id=military.id) }}" novalidate>
+    {% include "militaries/_form.html" %}
+    <div class="form-actions">
+      <a class="button button--secondary" href="{{ url_for('militaries.detail_military', military_id=military.id) }}">Cancelar</a>
+      <button class="button" type="submit">Guardar alterações</button>
+    </div>
+  </form>
+{% endblock %}

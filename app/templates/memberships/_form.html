@@ -1,0 +1,23 @@
+<div class="form-grid">
+  <label>
+    <span>Equipa</span>
+    <select name="team_id" required>
+      <option value="">Selecionar</option>
+      {% for team in teams %}
+        <option value="{{ team.id }}" {% if form_data.team_id|string == team.id|string %}selected{% endif %}>Equipa {{ team.code }}</option>
+      {% endfor %}
+    </select>
+    {% if errors.team_id %}<small class="field-error">{{ errors.team_id }}</small>{% endif %}
+    {% if errors.military %}<small class="field-error">{{ errors.military }}</small>{% endif %}
+  </label>
+  <label>
+    <span>Data de início</span>
+    <input type="date" name="start_date" value="{{ form_data.start_date }}" required>
+    {% if errors.start_date %}<small class="field-error">{{ errors.start_date }}</small>{% endif %}
+  </label>
+  <label class="full-width">
+    <span>Motivo</span>
+    <textarea name="reason" rows="4">{{ form_data.reason }}</textarea>
+    {% if errors.reason %}<small class="field-error">{{ errors.reason }}</small>{% endif %}
+  </label>
+</div>

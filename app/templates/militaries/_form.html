@@ -1,0 +1,59 @@
+<div class="form-grid">
+  <label>
+    <span>Nome</span>
+    <input type="text" name="name" value="{{ form_data.get('name', '') }}" maxlength="180" required autocomplete="off" aria-describedby="name-error">
+    {% if errors.get("name") %}
+      <small id="name-error" class="field-error">{{ errors["name"] }}</small>
+    {% endif %}
+  </label>
+
+  <label>
+    <span>NIM</span>
+    <input type="text" name="nim" value="{{ form_data.get('nim', '') }}" maxlength="30" required autocomplete="off" aria-describedby="nim-error">
+    {% if errors.get("nim") %}
+      <small id="nim-error" class="field-error">{{ errors["nim"] }}</small>
+    {% endif %}
+  </label>
+
+  <label>
+    <span>Tipo funcional</span>
+    <select name="functional_type" required aria-describedby="functional-type-error">
+      <option value="">Selecionar</option>
+      {% for item in functional_types %}
+        <option value="{{ item.value }}" {% if form_data.get('functional_type') == item.value %}selected{% endif %}>{{ item.value }}</option>
+      {% endfor %}
+    </select>
+    {% if errors.get("functional_type") %}
+      <small id="functional-type-error" class="field-error">{{ errors["functional_type"] }}</small>
+    {% endif %}
+  </label>
+
+  <label>
+    <span>Data de início</span>
+    <input type="date" name="start_date" value="{{ form_data.get('start_date', '') }}" required aria-describedby="start-date-error">
+    {% if errors.get("start_date") %}
+      <small id="start-date-error" class="field-error">{{ errors["start_date"] }}</small>
+    {% endif %}
+  </label>
+
+  <label>
+    <span>Data de fim</span>
+    <input type="date" name="end_date" value="{{ form_data.get('end_date', '') }}" aria-describedby="end-date-error">
+    {% if errors.get("end_date") %}
+      <small id="end-date-error" class="field-error">{{ errors["end_date"] }}</small>
+    {% endif %}
+  </label>
+
+  <label class="checkbox-field">
+    <input type="checkbox" name="is_active" value="1" {% if form_data.get('is_active') %}checked{% endif %}>
+    <span>Militar ativo</span>
+  </label>
+
+  <label class="full-width">
+    <span>Notas</span>
+    <textarea name="notes" rows="5" maxlength="2000" aria-describedby="notes-error">{{ form_data.get('notes', '') }}</textarea>
+    {% if errors.get("notes") %}
+      <small id="notes-error" class="field-error">{{ errors["notes"] }}</small>
+    {% endif %}
+  </label>
+</div>

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Equipa {{ team.code }}{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Equipa oficial</p>
+      <h1>Equipa {{ team.code }}</h1>
+      <p class="notice">{{ team.name }}</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('teams.list_teams') }}">Voltar</a>
+  </section>
+
+  <section class="content-section">
+    <h2>Militares atuais</h2>
+    {% if current_members %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>NIM</th>
+              <th>Desde</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for membership in current_members %}
+              <tr>
+                <td><a href="{{ url_for('militaries.detail_military', military_id=membership.military.id) }}">{{ membership.military.name }}</a></td>
+                <td>{{ membership.military.nim }}</td>
+                <td>{{ membership.start_date.isoformat() }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>Sem militares associados atualmente.</p>
+    {% endif %}
+  </section>
+
+  <section class="content-section">
+    <h2>Histórico</h2>
+    {% if history %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Militar</th>
+              <th>Início</th>
+              <th>Fim</th>
+              <th>Motivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for membership in history %}
+              <tr>
+                <td>{{ membership.military.name }}</td>
+                <td>{{ membership.start_date.isoformat() }}</td>
+                <td>{{ membership.end_date.isoformat() if membership.end_date else "Atual" }}</td>
+                <td>{{ membership.reason or "-" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>Sem histórico de pertença.</p>
+    {% endif %}
+  </section>
+{% endblock %}
