@@ -160,4 +160,5 @@ def test_schedule_routes_expose_safe_at_po_generation_controls(client):
 
     assert response.status_code == 200
     assert b"PT" not in response.data
-    assert b"Gerar AT e PO" in response.data
+    assert b"Completar celulas vazias" in response.data
+    assert b"Regenerar automaticos" in response.data

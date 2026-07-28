@@ -8,6 +8,7 @@ from app.models import (
     AssignmentChange,
     AssignmentSelectionDetail,
     FunctionalType,
+    GenerationMode,
     GenerationRun,
     Military,
     MilitaryRestriction,
@@ -21,13 +22,18 @@ from app.models import (
     Unavailability,
     UnavailabilityStatus,
 )
-from app.services.assignment_service import save_manual_assignment
+from app.services.assignment_service import clear_assignment, save_manual_assignment, unlock_assignment
 from app.services.schedule_generator import (
     CandidateSelector,
     ScheduleGenerationError,
     ScheduleGenerator,
     build_generation_context,
     latest_generation_run,
+)
+from app.services.schedule_regeneration import (
+    ScheduleRegenerationError,
+    ScheduleRegenerationService,
+    compare_versions,
 )
 
 
@@ -346,3 +352,194 @@ def test_priority_real_case_generation_with_five_teams_and_support_groups(app):
         assert run.total_unfilled > 0
         assert Assignment.query.filter(Assignment.code.in_(["PT", "FF", "FC"])).count() == 0
         assert run.diagnostic_run_id is not None
+
+
+def test_regeneration_creates_new_version_and_preserves_source(app):
+    with app.app_context():
+        schedule_month, version = _month()
+        patrols = _patrols(9)
+        manual, _ = save_manual_assignment(version, patrols[0], date(2026, 1, 1), "PO2")
+        first_run = ScheduleGenerator().generate_at_po(version)
+        original_assignment_ids = {item.id for item in version.assignments}
+
+        summary = ScheduleRegenerationService().regenerate_automatic_at_po(version)
+        result_version = db.session.get(ScheduleVersion, summary.result_version_id)
+
+        assert result_version.version_number == 2
+        assert result_version.parent_version_id == version.id
+        assert result_version.source == ScheduleVersionSource.SYSTEM.value
+        assert result_version.status == ScheduleMonthStatus.DRAFT.value
+        assert result_version.generation_mode == GenerationMode.REGENERATE_AUTOMATIC.value
+        assert {item.id for item in version.assignments} == original_assignment_ids
+        assert Assignment.query.filter_by(schedule_version_id=result_version.id, source="MANUAL").count() == 1
+        assert Assignment.query.filter_by(schedule_version_id=result_version.id, source="SYSTEM").count() > 0
+        assert first_run.result_version_id == version.id
+        assert manual.schedule_version_id == version.id
+
+
+def test_regeneration_does_not_copy_old_automatic_assignments(app):
+    with app.app_context():
+        _, version = _month()
+        _patrols(9)
+        ScheduleGenerator().generate_at_po(version)
+        old_system_ids = {item.id for item in Assignment.query.filter_by(schedule_version_id=version.id, source="SYSTEM").all()}
+
+        summary = ScheduleRegenerationService().regenerate_automatic_at_po(version)
+        result_system_ids = {item.id for item in Assignment.query.filter_by(schedule_version_id=summary.result_version_id, source="SYSTEM").all()}
+
+        assert old_system_ids
+        assert result_system_ids
+        assert old_system_ids.isdisjoint(result_system_ids)
+
+
+def test_regeneration_preserves_unlocked_manual_notes_override_and_ignores_cleared(app):
+    with app.app_context():
+        _, version = _month()
+        patrols = _patrols(9)
+        manual, _ = save_manual_assignment(version, patrols[0], date(2026, 1, 1), "PO2", notes="Nota manual")
+        unlock_assignment(manual, "Teste")
+        cleared, _ = save_manual_assignment(version, patrols[1], date(2026, 1, 2), "PO2")
+        unlock_assignment(cleared, "Teste")
+        clear_assignment(cleared, "Limpeza")
+        ScheduleGenerator().generate_at_po(version)
+
+        summary = ScheduleRegenerationService().regenerate_automatic_at_po(version)
+        copied = Assignment.query.filter_by(
+            schedule_version_id=summary.result_version_id,
+            military_id=manual.military_id,
+            assignment_date=manual.assignment_date,
+            source="MANUAL",
+        ).one()
+
+        assert copied.code == "PO2"
+        assert copied.is_locked is False
+        assert copied.notes == "Nota manual"
+        assert copied.changes[0].change_type == "CREATED"
+        assert "Copiada da versao" in copied.changes[0].reason
+        assert Assignment.query.filter_by(
+            schedule_version_id=summary.result_version_id,
+            military_id=cleared.military_id,
+            assignment_date=cleared.assignment_date,
+            source="MANUAL",
+        ).count() == 0
+
+
+def test_regeneration_blocks_published_and_closed_versions(app):
+    with app.app_context():
+        _, published = _month(status=ScheduleMonthStatus.PUBLISHED.value)
+        with pytest.raises(ScheduleRegenerationError):
+            ScheduleRegenerationService().regenerate_automatic_at_po(published)
+
+    with app.app_context():
+        _, closed = _month(year=2026, month=2, status=ScheduleMonthStatus.CLOSED.value)
+        with pytest.raises(ScheduleRegenerationError):
+            ScheduleRegenerationService().regenerate_automatic_at_po(closed)
+
+
+def test_regeneration_allows_validated_as_new_draft_version(app):
+    with app.app_context():
+        _, version = _month(status=ScheduleMonthStatus.VALIDATED.value)
+        _patrols(9)
+
+        summary = ScheduleRegenerationService().regenerate_automatic_at_po(version)
+        result_version = db.session.get(ScheduleVersion, summary.result_version_id)
+
+        assert result_version.status == ScheduleMonthStatus.DRAFT.value
+        assert result_version.parent_version_id == version.id
+
+
+def test_regeneration_rolls_back_new_version_on_failure(app):
+    class FailingGenerator:
+        def generate_into_version(self, schedule_version, run, commit=True):
+            raise RuntimeError("falha controlada")
+
+    with app.app_context():
+        _, version = _month()
+        patrols = _patrols(1)
+        save_manual_assignment(version, patrols[0], date(2026, 1, 1), "PO2")
+        before_versions = ScheduleVersion.query.count()
+        before_assignments = Assignment.query.count()
+
+        with pytest.raises(ScheduleRegenerationError):
+            ScheduleRegenerationService(generator=FailingGenerator()).regenerate_automatic_at_po(version)
+
+        assert ScheduleVersion.query.count() == before_versions
+        assert Assignment.query.count() == before_assignments
+        assert GenerationRun.query.count() == 0
+
+
+def test_version_comparison_reports_preserved_manual_and_automatic_changes(app):
+    with app.app_context():
+        _, version = _month()
+        patrols = _patrols(9)
+        save_manual_assignment(version, patrols[0], date(2026, 1, 1), "PO2")
+        ScheduleGenerator().generate_at_po(version)
+
+        summary = ScheduleRegenerationService().regenerate_automatic_at_po(version)
+        comparison = compare_versions(version, db.session.get(ScheduleVersion, summary.result_version_id))
+
+        assert comparison.preserved_manual == 1
+        assert comparison.removed_automatic > 0
+        assert comparison.created_automatic > 0
+        assert comparison.total_differences >= comparison.created_automatic
+
+
+def test_regeneration_routes_confirm_execute_and_compare(client, app):
+    with app.app_context():
+        _, version = _month()
+        _patrols(9)
+        ScheduleGenerator().generate_at_po(version)
+        version_id = version.id
+
+    confirm = client.get(f"/escala/2026/1/versoes/{version_id}/regenerar")
+    blocked = client.post(f"/escala/2026/1/versoes/{version_id}/regenerar", follow_redirects=True)
+    executed = client.post(
+        f"/escala/2026/1/versoes/{version_id}/regenerar",
+        data={"confirm_regeneration": "on"},
+        follow_redirects=True,
+    )
+
+    assert confirm.status_code == 200
+    assert blocked.status_code == 200
+    assert b"Confirme" in blocked.data
+    assert executed.status_code == 200
+    assert b"Comparacao" in executed.data
+
+
+def test_priority_real_case_regeneration_excludes_new_unavailability_and_preserves_version_one(app):
+    with app.app_context():
+        _, version = _month()
+        patrols = _patrols(12)
+        manual, _ = save_manual_assignment(version, patrols[0], date(2026, 1, 1), "PO2")
+        ScheduleGenerator().generate_at_po(version)
+        old_system = Assignment.query.filter_by(
+            schedule_version_id=version.id,
+            assignment_date=date(2026, 1, 1),
+            source="SYSTEM",
+        ).first()
+        db.session.add(
+            Unavailability(
+                military_id=old_system.military_id,
+                code="LF",
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 1, 1),
+                is_full_day=True,
+                status=UnavailabilityStatus.CONFIRMED.value,
+                reason="Posterior",
+            )
+        )
+        db.session.commit()
+
+        summary = ScheduleRegenerationService().regenerate_automatic_at_po(version)
+        result_version = db.session.get(ScheduleVersion, summary.result_version_id)
+        result_first_day_ids = {
+            item.military_id
+            for item in Assignment.query.filter_by(schedule_version_id=result_version.id, assignment_date=date(2026, 1, 1)).all()
+        }
+
+        assert old_system.military_id not in result_first_day_ids
+        assert Assignment.query.filter_by(schedule_version_id=version.id, id=old_system.id).count() == 1
+        assert Assignment.query.filter_by(schedule_version_id=result_version.id, source="MANUAL").count() == 1
+        assert manual.schedule_version_id == version.id
+        assert GenerationRun.query.filter_by(result_version_id=result_version.id).one().diagnostic_run_id is not None
+        assert Assignment.query.filter(Assignment.code.in_(["PT", "FF", "FC"])).count() == 0

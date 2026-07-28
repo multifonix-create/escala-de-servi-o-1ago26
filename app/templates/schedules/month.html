@@ -47,7 +47,8 @@
       <a class="button button--secondary" href="{{ url_for('schedules.versions', year=year, month=month) }}">Ver versoes</a>
       {% if grid.version %}
         <a class="button button--secondary" href="{{ url_for('schedules.diagnostic_index', year=year, month=month, version_id=grid.version.id) }}">Diagnostico</a>
-        <a class="button button--secondary" href="{{ url_for('schedules.generation_index', year=year, month=month, version_id=grid.version.id) }}">Gerar AT e PO</a>
+        <a class="button button--secondary" href="{{ url_for('schedules.generation_index', year=year, month=month, version_id=grid.version.id) }}">Completar celulas vazias</a>
+        <a class="button button--secondary" href="{{ url_for('schedules.regeneration_confirm', year=year, month=month, version_id=grid.version.id) }}">Regenerar automaticos</a>
       {% endif %}
     </div>
 

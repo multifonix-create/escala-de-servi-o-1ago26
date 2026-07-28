@@ -1906,6 +1906,36 @@ Decisões:
 * sem PT, FF, FC, Ronda, CR ou remunerados;
 * falta de cobertura é registada e explicada, não tratada como erro técnico.
 
+## 33-E. Estado implementado da regeneração na v1.1
+
+A v1.1 introduz a regeneração segura de automáticos AT/PO.
+
+Componentes:
+
+* `app/services/schedule_regeneration.py`;
+* `ScheduleRegenerationService`;
+* `compare_versions`;
+* campos opcionais de ligação entre versões e execuções.
+
+Fluxo:
+
+1. validar versão de origem;
+2. criar nova versão sequencial;
+3. copiar apenas manuais/importados visíveis;
+4. não copiar automáticos antigos;
+5. gerar AT/PO sobre a nova versão;
+6. executar diagnóstico final;
+7. apresentar comparação consultiva.
+
+Decisões:
+
+* a versão anterior nunca é alterada;
+* `DRAFT` e `VALIDATED` podem originar nova versão;
+* `PUBLISHED` e `CLOSED` ficam bloqueadas;
+* células limpas não reaparecem como código ativo;
+* rollback remove a nova versão se houver falha antes da conclusão;
+* não existe regeneração destrutiva na mesma versão.
+
 ---
 
 ## 33. Decisões que dependem de regras futuras

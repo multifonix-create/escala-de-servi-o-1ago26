@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v1.0 - Geração Automática Inicial de AT e PO`.
+Versão atual: `v1.1 - Regeneração Segura de Atribuições Automáticas AT/PO`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -327,6 +327,40 @@ Decisões de arquitetura da v1.0:
 * falta de cobertura não é falha técnica e fica explicada;
 * não existe correção automática de diagnósticos.
 
+## v1.1 - Regeneração Segura de Atribuições Automáticas AT/PO
+
+A v1.1 está concluída com:
+
+* campos opcionais `parent_version_id` e `generation_mode` em `ScheduleVersion`;
+* campos opcionais `generation_mode`, `source_version_id` e `result_version_id` em `GenerationRun`;
+* migração `a999dc4dceba_add_safe_regeneration_metadata.py`;
+* `GenerationMode` com `FILL_EMPTY` e `REGENERATE_AUTOMATIC`;
+* serviço central `app/services/schedule_regeneration.py`;
+* `ScheduleRegenerationService` para criar nova versão e regenerar automáticos;
+* comparação consultiva entre versões;
+* página de confirmação explícita antes de regenerar;
+* rota de comparação entre versão de origem e versão resultante;
+* preservação integral da versão anterior;
+* cópia apenas de atribuições manuais/importadas visíveis;
+* não cópia de automáticos antigos;
+* células limpas continuam sem código ativo;
+* diagnóstico final associado à nova versão.
+
+Rotas principais da v1.1:
+
+* `GET /escala/<year>/<month>/versoes/<version_id>/regenerar`;
+* `POST /escala/<year>/<month>/versoes/<version_id>/regenerar`;
+* `GET /escala/<year>/<month>/versoes/<version_id>/comparar/<other_version_id>`.
+
+Decisões de arquitetura da v1.1:
+
+* regeneração nunca atua diretamente sobre a versão anterior;
+* a versão resultante é sempre nova, `DRAFT`, `source=SYSTEM` e ligada à origem;
+* `DRAFT` e `VALIDATED` podem originar nova versão;
+* `PUBLISHED` e `CLOSED` ficam bloqueadas;
+* rollback remove a nova versão se a regeneração falhar antes do commit;
+* não há remoção destrutiva de automáticos na versão atual.
+
 ## Ainda Não Existe
 
 Ainda não existem:
@@ -400,7 +434,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 * A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs` e `assignment_selection_details`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração nem detalhes de seleção após a v1.0.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração nem detalhes de seleção após a v1.1.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
@@ -420,11 +454,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-191 passed
+200 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v1.0 - Geração Automática Inicial de AT e PO`.
+`v1.1 - Regeneração Segura de Atribuições Automáticas AT/PO`.

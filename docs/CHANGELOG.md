@@ -1,5 +1,57 @@
 # Changelog
 
+## v1.1 - 2026-07-28
+
+### Adicionado
+- Criada regeneração segura de atribuições automáticas AT/PO numa nova versão.
+- Adicionado serviço `app/services/schedule_regeneration.py`.
+- Adicionado modo `REGENERATE_AUTOMATIC`.
+- Adicionada comparação consultiva entre versão de origem e versão resultante.
+- Criadas páginas de confirmação de regeneração e comparação de versões.
+- Separadas na interface as ações `Completar celulas vazias` e `Regenerar automaticos`.
+
+### Regras
+- A regeneração cria sempre nova `ScheduleVersion`.
+- A versão anterior fica preservada.
+- A nova versão usa `source=SYSTEM`, estado `DRAFT` e `parent_version_id`.
+- Apenas atribuições manuais/importadas visíveis são copiadas.
+- Atribuições automáticas antigas não são copiadas.
+- Células limpas continuam sem código ativo.
+- `DRAFT` e `VALIDATED` podem originar nova versão.
+- `PUBLISHED` e `CLOSED` ficam bloqueadas nesta fase.
+- O diagnóstico final é executado sobre a nova versão.
+
+### Migração
+- Criada e aplicada a migração `a999dc4dceba_add_safe_regeneration_metadata.py`.
+- Adicionados campos opcionais `parent_version_id` e `generation_mode` em `schedule_versions`.
+- Adicionados campos opcionais `generation_mode`, `source_version_id` e `result_version_id` em `generation_runs`.
+- Não foram alteradas migrações anteriores.
+- Não foram criadas versões, gerações ou atribuições.
+- Criada cópia de segurança prévia da base real em `instance/backups/escala_20260728_134906_v11_pre_migration.db`.
+
+### Testes
+- Adicionados testes de nova versão, relação entre versões, preservação manual, células limpas, automáticos não copiados, estados, rollback, comparação, rotas e caso real prioritário.
+- Suite completa validada com `200 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` versões de escala.
+- A base real ficou com `0` atribuições.
+- A base real ficou com `0` alterações de atribuição.
+- A base real ficou com `0` execuções de diagnóstico.
+- A base real ficou com `0` problemas de diagnóstico.
+- A base real ficou com `0` execuções de geração.
+- A base real ficou com `0` detalhes de seleção.
+- Revisão Alembic atual: `a999dc4dceba`.
+- Não foram criados dados fictícios ou demonstrativos.
+
+### Limitações
+- Sem regeneração destrutiva na mesma versão.
+- Sem criação automática de nova versão no modo `FILL_EMPTY`.
+- Sem PT, FF, FC, Ronda, CR, remunerados, exportações, publicação automática ou correção automática.
+
 ## v1.0 - 2026-07-28
 
 ### Adicionado

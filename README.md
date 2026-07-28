@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.0 - Geração Automática Inicial de AT e PO
+v1.1 - Regeneração Segura de Atribuições Automáticas AT/PO
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial da escala e geração automática inicial limitada a AT e PO.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO e regeneração segura de automáticos numa nova versão.
 
 ## Requisitos
 
@@ -79,6 +79,8 @@ Rotas principais:
 /escala/<year>/<month>/versoes/<version_id>/gerar
 /escala/<year>/<month>/versoes/<version_id>/geracoes
 /escala/<year>/<month>/versoes/<version_id>/geracoes/<run_id>
+/escala/<year>/<month>/versoes/<version_id>/regenerar
+/escala/<year>/<month>/versoes/<version_id>/comparar/<other_version_id>
 /equipas/<id>/ciclo
 /equipas/<id>/ciclo/nova-referencia
 /equipas/<id>/ciclo/historico
@@ -99,7 +101,7 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v1.0
+## Estado da v1.1
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -131,6 +133,12 @@ pytest
 - CMD excluído de AT/PO.
 - SEC e SI usados apenas quando patrulheiros elegíveis não chegam.
 - Falta de cobertura registada como aviso/diagnóstico, sem inventar militares.
+- Regeneração segura de automáticos AT/PO numa nova versão.
+- Versões regeneradas ligadas à versão de origem.
+- Comparação consultiva entre versão de origem e versão resultante.
+- Células manuais/importadas preservadas na nova versão.
+- Automáticos antigos não são copiados.
+- Células limpas continuam sem código ativo.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.

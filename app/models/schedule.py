@@ -68,6 +68,11 @@ class GenerationRunStatus(StrEnum):
     FAILED = "FAILED"
 
 
+class GenerationMode(StrEnum):
+    FILL_EMPTY = "FILL_EMPTY"
+    REGENERATE_AUTOMATIC = "REGENERATE_AUTOMATIC"
+
+
 ALLOWED_SCHEDULE_MONTH_STATUSES = tuple(item.value for item in ScheduleMonthStatus)
 ALLOWED_SCHEDULE_VERSION_SOURCES = tuple(item.value for item in ScheduleVersionSource)
 ALLOWED_ASSIGNMENT_SOURCES = tuple(item.value for item in AssignmentSource)
@@ -76,6 +81,7 @@ ALLOWED_DIAGNOSTIC_LEVELS = tuple(item.value for item in DiagnosticLevel)
 ALLOWED_DIAGNOSTIC_CATEGORIES = tuple(item.value for item in DiagnosticCategory)
 ALLOWED_DIAGNOSTIC_RUN_STATUSES = tuple(item.value for item in DiagnosticRunStatus)
 ALLOWED_GENERATION_RUN_STATUSES = tuple(item.value for item in GenerationRunStatus)
+ALLOWED_GENERATION_MODES = tuple(item.value for item in GenerationMode)
 
 
 class ScheduleMonth(db.Model):
@@ -142,6 +148,10 @@ class ScheduleVersion(db.Model):
             "source in ('INITIAL', 'MANUAL', 'SYSTEM')",
             name="ck_schedule_versions_source",
         ),
+        db.CheckConstraint(
+            "generation_mode is null or generation_mode in ('FILL_EMPTY', 'REGENERATE_AUTOMATIC')",
+            name="ck_schedule_versions_generation_mode",
+        ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -164,6 +174,13 @@ class ScheduleVersion(db.Model):
         default=ScheduleVersionSource.INITIAL.value,
         index=True,
     )
+    parent_version_id = db.Column(
+        db.Integer,
+        db.ForeignKey("schedule_versions.id"),
+        nullable=True,
+        index=True,
+    )
+    generation_mode = db.Column(db.String(40), nullable=True, index=True)
     description = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(
@@ -174,6 +191,7 @@ class ScheduleVersion(db.Model):
     )
 
     schedule_month = db.relationship("ScheduleMonth", back_populates="versions")
+    parent_version = db.relationship("ScheduleVersion", remote_side=[id])
     assignments = db.relationship(
         "Assignment",
         back_populates="schedule_version",
@@ -314,7 +332,7 @@ class DiagnosticRun(db.Model):
     total_infos = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
 
-    schedule_version = db.relationship("ScheduleVersion")
+    schedule_version = db.relationship("ScheduleVersion", foreign_keys=[schedule_version_id])
     issues = db.relationship(
         "DiagnosticIssue",
         back_populates="diagnostic_run",
@@ -369,6 +387,10 @@ class GenerationRun(db.Model):
             "status in ('RUNNING', 'COMPLETED', 'COMPLETED_WITH_WARNINGS', 'FAILED')",
             name="ck_generation_runs_status",
         ),
+        db.CheckConstraint(
+            "generation_mode is null or generation_mode in ('FILL_EMPTY', 'REGENERATE_AUTOMATIC')",
+            name="ck_generation_runs_generation_mode",
+        ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -384,6 +406,19 @@ class GenerationRun(db.Model):
         nullable=True,
         index=True,
     )
+    source_version_id = db.Column(
+        db.Integer,
+        db.ForeignKey("schedule_versions.id"),
+        nullable=True,
+        index=True,
+    )
+    result_version_id = db.Column(
+        db.Integer,
+        db.ForeignKey("schedule_versions.id"),
+        nullable=True,
+        index=True,
+    )
+    generation_mode = db.Column(db.String(40), nullable=True, index=True)
     status = db.Column(
         db.String(40),
         nullable=False,
@@ -400,7 +435,9 @@ class GenerationRun(db.Model):
     summary_json = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
 
-    schedule_version = db.relationship("ScheduleVersion")
+    schedule_version = db.relationship("ScheduleVersion", foreign_keys=[schedule_version_id])
+    source_version = db.relationship("ScheduleVersion", foreign_keys=[source_version_id])
+    result_version = db.relationship("ScheduleVersion", foreign_keys=[result_version_id])
     diagnostic_run = db.relationship("DiagnosticRun")
     selection_details = db.relationship(
         "AssignmentSelectionDetail",

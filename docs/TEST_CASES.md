@@ -870,4 +870,35 @@ Não coberto por implementação nesta versão:
 
 ---
 
+## 39-C. Casos da Regeneração Segura v1.1
+
+Casos automatizados implementados na v1.1:
+
+| ID | Caso | Domínio | Resultado esperado |
+|---|---|---|---|
+| REGEN-101 | Nova versão sequencial | REGEN/STATE | Regenerar cria versão nova, `DRAFT`, `SYSTEM` e ligada à origem. |
+| REGEN-102 | Origem preservada | REGEN/MANUAL | A versão anterior e as suas atribuições permanecem intactas. |
+| REGEN-103 | Automáticos antigos | REGEN/GEN | Atribuições `SYSTEM` antigas não são copiadas. |
+| REGEN-104 | Manual desbloqueada | MANUAL | Manual desbloqueada é copiada com notas e estado. |
+| REGEN-105 | Célula limpa | MANUAL | Célula limpa não reaparece como código ativo na nova versão. |
+| REGEN-106 | Estados bloqueados | STATE | `PUBLISHED` e `CLOSED` não permitem regeneração. |
+| REGEN-107 | VALIDATED como origem | STATE | `VALIDATED` pode originar nova versão `DRAFT` sem alterar a origem. |
+| REGEN-108 | Rollback | REGEN | Falha antes do commit remove nova versão e cópias. |
+| REGEN-109 | Comparação | REGEN | Comparação apresenta manuais, automáticos e diferenças. |
+| REGEN-110 | Rotas | UI | Confirmação, POST e comparação respondem corretamente. |
+| REGEN-111 | Caso real prioritário | UNAV/RESTR/GEN | Nova indisponibilidade altera a escolha na versão regenerada e preserva a versão 1. |
+
+Não coberto por implementação nesta versão:
+
+* regeneração destrutiva na mesma versão;
+* PT;
+* FF;
+* FC;
+* Ronda;
+* CR;
+* remunerados;
+* exportações.
+
+---
+
 **Fim do documento — TEST_CASES.md**

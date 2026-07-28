@@ -7,7 +7,7 @@
     <div>
       <p class="eyebrow">Geracao automatica inicial</p>
       <h1>Gerar AT e PO</h1>
-      <p class="notice">Versao {{ version.version_number }} de {{ schedule_month.label }}. Esta operacao preserva atribuicoes manuais e completa apenas minimos AT/PO quando existirem candidatos elegiveis.</p>
+      <p class="notice">Versao {{ version.version_number }} de {{ schedule_month.label }}. Escolha completar celulas vazias na versao atual ou regenerar automaticos numa nova versao.</p>
     </div>
     <div class="toolbar">
       <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar a grelha</a>
@@ -15,21 +15,34 @@
   </header>
 
   <section class="content-section">
-    <h2>Confirmacao</h2>
+    <h2>Completar celulas vazias</h2>
     <ul class="compact-list">
       <li>Mes: {{ schedule_month.label }}</li>
       <li>Versao: {{ version.version_number }} ({{ version.status }})</li>
       <li>Apenas AT1, AT2, AT3, PO1, PO2 e PO3.</li>
-      <li>As alteracoes manuais, bloqueadas ou nao, sao preservadas.</li>
+      <li>Todas as atribuicoes existentes sao preservadas.</li>
       <li>A cobertura pode ficar incompleta se nao existirem militares elegiveis.</li>
     </ul>
     {% if can_generate %}
       <form class="form-actions" method="post" action="{{ url_for('schedules.run_generation', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">
-        <button class="button" type="submit">Gerar AT e PO</button>
+        <button class="button" type="submit">Completar celulas vazias</button>
       </form>
     {% else %}
       <p class="notice">Esta versao nao esta em DRAFT e nao permite geracao.</p>
     {% endif %}
+  </section>
+
+  <section class="content-section">
+    <h2>Regenerar automaticos numa nova versao</h2>
+    <ul class="compact-list">
+      <li>Manuais atuais: {{ manual_count }}</li>
+      <li>Automaticos atuais: {{ system_count }}</li>
+      <li>A versao anterior fica preservada.</li>
+      <li>Os automaticos antigos nao sao copiados para a nova versao.</li>
+    </ul>
+    <div class="form-actions">
+      <a class="button button--secondary" href="{{ url_for('schedules.regeneration_confirm', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Regenerar automaticos numa nova versao</a>
+    </div>
   </section>
 
   <section class="content-section">
@@ -44,6 +57,7 @@
             <th>Faltas</th>
             <th>Avisos</th>
             <th>Data</th>
+            <th>Modo</th>
             <th></th>
           </tr>
         </thead>
@@ -56,6 +70,7 @@
               <td>{{ run.total_unfilled }}</td>
               <td>{{ run.total_warnings }}</td>
               <td>{{ run.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+              <td>{{ run.generation_mode or "FILL_EMPTY" }}</td>
               <td><a href="{{ url_for('schedules.generation_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id, run_id=run.id) }}">Detalhe</a></td>
             </tr>
           {% endfor %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Comparar versoes{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Comparacao de versoes</p>
+      <h1>Versao {{ source_version.version_number }} para {{ result_version.version_number }}</h1>
+      <p class="notice">Mes {{ schedule_month.label }}. A comparacao e apenas consultiva e nao altera as versoes.</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=source_version.id) }}">Origem</a>
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=result_version.id) }}">Resultado</a>
+    </div>
+  </header>
+
+  <dl class="summary-grid">
+    <div>
+      <dt>Manuais preservadas</dt>
+      <dd>{{ comparison.preserved_manual }}</dd>
+    </div>
+    <div>
+      <dt>Automaticos antigos</dt>
+      <dd>{{ comparison.removed_automatic }}</dd>
+    </div>
+    <div>
+      <dt>Automaticos novos</dt>
+      <dd>{{ comparison.created_automatic }}</dd>
+    </div>
+    <div>
+      <dt>Diferencas</dt>
+      <dd>{{ comparison.total_differences }}</dd>
+    </div>
+  </dl>
+
+  <section class="content-section">
+    <h2>Cobertura</h2>
+    <p class="notice">Faltas anteriores: {{ comparison.source_unfilled }} · Faltas novas: {{ comparison.result_unfilled }}</p>
+  </section>
+
+  <section class="content-section">
+    <h2>Codigos alterados</h2>
+    {% if comparison.changed_codes %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Militar</th>
+            <th>Origem</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in comparison.changed_codes %}
+            <tr>
+              <td>{{ item.date.isoformat() }}</td>
+              <td>{{ item.military_id }}</td>
+              <td>{{ item.source_code }}</td>
+              <td>{{ item.result_code }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="notice">Nao existem codigos alterados na mesma celula militar/data.</p>
+    {% endif %}
+  </section>
+
+  <section class="content-section">
+    <h2>Militares alterados por turno</h2>
+    {% if comparison.changed_militaries %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Codigo</th>
+            <th>Origem</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in comparison.changed_militaries[:200] %}
+            <tr>
+              <td>{{ item.date.isoformat() }}</td>
+              <td>{{ item.code }}</td>
+              <td>{{ item.source_military_ids|join(", ") }}</td>
+              <td>{{ item.result_military_ids|join(", ") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="notice">Nao existem alteracoes de militares por turno.</p>
+    {% endif %}
+  </section>
+{% endblock %}

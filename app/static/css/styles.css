@@ -365,6 +365,14 @@ th {
   padding-left: 20px;
 }
 
+.checkbox-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 720px;
+  line-height: 1.4;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;

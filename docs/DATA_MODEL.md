@@ -2296,6 +2296,46 @@ PO3
 
 ---
 
+# PARTE XX-D — ESTADO IMPLEMENTADO NA v1.1
+
+## 53-D. Campos acrescentados em schedule_versions
+
+```text
+parent_version_id
+generation_mode
+```
+
+`parent_version_id` aponta para a versão de origem quando a versão resulta de regeneração.
+
+`generation_mode` aceita:
+
+```text
+FILL_EMPTY
+REGENERATE_AUTOMATIC
+```
+
+## 54-D. Campos acrescentados em generation_runs
+
+```text
+generation_mode
+source_version_id
+result_version_id
+```
+
+Estes campos permitem distinguir execuções de preenchimento de vazios e regenerações que criam nova versão.
+
+## 55-D. Decisões da v1.1
+
+* A regeneração cria sempre nova versão.
+* A versão anterior permanece intacta.
+* A nova versão é `DRAFT` e `source=SYSTEM`.
+* A nova versão copia apenas atribuições manuais/importadas visíveis.
+* A nova versão não copia atribuições automáticas antigas.
+* Células limpas não regressam como atribuições ativas.
+* A regeneração não cria PT, FF, FC, Ronda, CR ou remunerados.
+
+---
+
 # PARTE XXII — DECISÕES PENDENTES
 
 ## 49. Regras ainda por formalizar

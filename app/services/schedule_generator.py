@@ -13,6 +13,7 @@ from app.models import (
     AssignmentSelectionDetail,
     AssignmentSource,
     FunctionalType,
+    GenerationMode,
     GenerationRun,
     GenerationRunStatus,
     Military,
@@ -143,6 +144,10 @@ class GenerationContext:
     def all_current_assignments(self) -> list[Assignment]:
         return [item for item in self.assignments + self.planned_assignments if item.is_visible]
 
+    @property
+    def all_assignment_rows(self) -> list[Assignment]:
+        return self.assignments + self.planned_assignments
+
 
 class CandidateSelector:
     def select(
@@ -261,11 +266,22 @@ class ScheduleGenerator:
         validate_generation_target(schedule_version)
         run = GenerationRun(
             schedule_version_id=schedule_version.id,
+            source_version_id=schedule_version.id,
+            result_version_id=schedule_version.id,
+            generation_mode=GenerationMode.FILL_EMPTY.value,
             parameters_json=json.dumps(generation_parameters(), sort_keys=True),
         )
         db.session.add(run)
         db.session.commit()
 
+        return self.generate_into_version(schedule_version, run, commit=True)
+
+    def generate_into_version(
+        self,
+        schedule_version: ScheduleVersion,
+        run: GenerationRun,
+        commit: bool = True,
+    ) -> GenerationRun:
         summary = GenerationSummary()
         try:
             context = build_generation_context(schedule_version)
@@ -313,21 +329,25 @@ class ScheduleGenerator:
             run.total_unfilled = summary.total_unfilled
             run.total_warnings = summary.total_warnings
             run.summary_json = json.dumps(summary.as_dict(), sort_keys=True, default=str)
-            db.session.commit()
+            if commit:
+                db.session.commit()
         except Exception as exc:
             db.session.rollback()
             run = db.session.get(GenerationRun, run.id)
-            run.status = GenerationRunStatus.FAILED.value
-            run.completed_at = utc_now()
-            run.summary_json = json.dumps({"error": str(exc)}, sort_keys=True)
-            db.session.commit()
+            if run is not None:
+                run.status = GenerationRunStatus.FAILED.value
+                run.completed_at = utc_now()
+                run.summary_json = json.dumps({"error": str(exc)}, sort_keys=True)
+                if commit:
+                    db.session.commit()
             raise
 
-        diagnostic_run = ScheduleDiagnosticService().run_and_persist(schedule_version)
-        run.diagnostic_run_id = diagnostic_run.id
-        summary.diagnostic_run_id = diagnostic_run.id
-        run.summary_json = json.dumps(summary.as_dict(), sort_keys=True, default=str)
-        db.session.commit()
+        if commit:
+            diagnostic_run = ScheduleDiagnosticService().run_and_persist(schedule_version)
+            run.diagnostic_run_id = diagnostic_run.id
+            summary.diagnostic_run_id = diagnostic_run.id
+            run.summary_json = json.dumps(summary.as_dict(), sort_keys=True, default=str)
+            db.session.commit()
         return run
 
 
@@ -407,7 +427,7 @@ def exclusion_reason(
         return "Militar fora do periodo de efetividade."
     if any(
         item.military_id == military.id and item.assignment_date == assignment_date
-        for item in context.all_current_assignments
+        for item in context.all_assignment_rows
     ):
         return "Ja existe atribuicao nesta data."
     if military.functional_type == FunctionalType.PATRULHEIRO.value:

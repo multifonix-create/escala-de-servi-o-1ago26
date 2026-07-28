@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Regenerar versao {{ version.version_number }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Regeneracao segura</p>
+      <h1>Regenerar automaticos numa nova versao</h1>
+      <p class="notice">Mes {{ schedule_month.label }} · versao de origem {{ version.version_number }} ({{ version.status }}).</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.generation_index', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Geracoes</a>
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Grelha</a>
+    </div>
+  </header>
+
+  <section class="content-section">
+    <h2>Confirmacao obrigatoria</h2>
+    <ul class="compact-list">
+      <li>Mes: {{ schedule_month.label }}</li>
+      <li>Versao de origem: {{ version.version_number }}</li>
+      <li>Atribuicoes manuais: {{ manual_count }}</li>
+      <li>Atribuicoes importadas: {{ imported_count }}</li>
+      <li>Atribuicoes automaticas: {{ system_count }}</li>
+      <li>Modo: REGENERATE_AUTOMATIC.</li>
+      <li>Sera criada uma nova versao DRAFT.</li>
+      <li>A versao anterior ficara preservada.</li>
+      <li>Os automaticos podem mudar conforme o contexto operacional atual.</li>
+    </ul>
+
+    {% if can_regenerate %}
+      <form class="form-actions" method="post" action="{{ url_for('schedules.run_regeneration', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">
+        <label class="checkbox-line">
+          <input type="checkbox" name="confirm_regeneration">
+          Confirmo que pretendo criar uma nova versao e preservar integralmente a versao anterior.
+        </label>
+        <button class="button" type="submit">Regenerar automaticos numa nova versao</button>
+      </form>
+    {% else %}
+      <p class="notice">Esta versao nao permite regeneracao nesta fase.</p>
+    {% endif %}
+  </section>
+{% endblock %}

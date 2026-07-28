@@ -4,7 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 
 from app.extensions import db
 from app.services import ScheduleServiceError
-from app.models import DiagnosticIssue, DiagnosticRun, GenerationRun, Military, ScheduleMonthStatus
+from app.models import Assignment, AssignmentSource, DiagnosticIssue, DiagnosticRun, GenerationRun, Military, ScheduleMonthStatus
 from app.services.assignment_codes import ASSIGNMENT_CODE_DEFINITIONS
 from app.services.assignment_service import (
     AssignmentServiceError,
@@ -19,6 +19,11 @@ from app.services.assignment_service import (
 from app.services.diagnostic_service import ScheduleDiagnosticService, latest_run
 from app.services.monthly_grid_builder import build_monthly_grid
 from app.services.schedule_generator import ScheduleGenerationError, ScheduleGenerator, latest_generation_run
+from app.services.schedule_regeneration import (
+    ScheduleRegenerationError,
+    ScheduleRegenerationService,
+    compare_versions,
+)
 from app.services.schedule_service import (
     create_schedule_month,
     current_month,
@@ -154,6 +159,8 @@ def generation_index(year: int, month: int, version_id: int):
         version=version,
         runs=runs,
         can_generate=version.status == ScheduleMonthStatus.DRAFT.value,
+        manual_count=_assignment_count(version.id, AssignmentSource.MANUAL.value),
+        system_count=_assignment_count(version.id, AssignmentSource.SYSTEM.value),
     )
 
 
@@ -202,6 +209,67 @@ def generation_detail(year: int, month: int, version_id: int, run_id: int):
         selected_details=selected,
         excluded_details=excluded,
         incomplete_details=incomplete,
+    )
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/regenerar")
+def regeneration_confirm(year: int, month: int, version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    return render_template(
+        "schedules/regenerate.html",
+        schedule_month=schedule_month,
+        version=version,
+        manual_count=_assignment_count(version.id, AssignmentSource.MANUAL.value),
+        system_count=_assignment_count(version.id, AssignmentSource.SYSTEM.value),
+        imported_count=_assignment_count(version.id, AssignmentSource.IMPORTED.value),
+        can_regenerate=version.status in {ScheduleMonthStatus.DRAFT.value, ScheduleMonthStatus.VALIDATED.value},
+    )
+
+
+@schedules_bp.post("/<int:year>/<int:month>/versoes/<int:version_id>/regenerar")
+def run_regeneration(year: int, month: int, version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    if request.form.get("confirm_regeneration") != "on":
+        flash("Confirme explicitamente a criacao de nova versao antes de regenerar.", "warning")
+        return redirect(url_for("schedules.regeneration_confirm", year=year, month=month, version_id=version.id))
+    try:
+        summary = ScheduleRegenerationService().regenerate_automatic_at_po(version)
+    except ScheduleRegenerationError as exc:
+        for message in exc.errors.values() or [str(exc)]:
+            flash(message, "warning")
+        return redirect(url_for("schedules.regeneration_confirm", year=year, month=month, version_id=version.id))
+    flash("Regeneracao AT/PO concluida numa nova versao.", "success")
+    return redirect(
+        url_for(
+            "schedules.compare_versions_route",
+            year=year,
+            month=month,
+            version_id=summary.source_version_id,
+            other_version_id=summary.result_version_id,
+        )
+    )
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/comparar/<int:other_version_id>")
+def compare_versions_route(year: int, month: int, version_id: int, other_version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    source_version = get_version_for_month_or_404(schedule_month, version_id)
+    result_version = get_version_for_month_or_404(schedule_month, other_version_id)
+    comparison = compare_versions(source_version, result_version)
+    return render_template(
+        "schedules/version_compare.html",
+        schedule_month=schedule_month,
+        source_version=source_version,
+        result_version=result_version,
+        comparison=comparison,
     )
 
 
@@ -457,3 +525,11 @@ def _diagnostic_cells(diagnostic_run: DiagnosticRun | None) -> set[tuple[int, st
         for issue in diagnostic_run.issues
         if issue.military_id is not None and issue.assignment_date is not None
     }
+
+
+def _assignment_count(version_id: int, source: str) -> int:
+    return Assignment.query.filter_by(
+        schedule_version_id=version_id,
+        source=source,
+        is_cleared=False,
+    ).count()
