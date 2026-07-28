@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.7 - Exportacao Operacional da Escala para Excel
+v1.8 - Exportacao Operacional da Escala para PDF A3
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT, gestão funcional inicial de FF por trabalho em feriado, gestão funcional de FC e folgas reagendadas FR e exportacao operacional para Excel.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT, gestão funcional inicial de FF por trabalho em feriado, gestão funcional de FC e folgas reagendadas FR, exportacao operacional para Excel e exportacao operacional para PDF A3.
 
 ## Requisitos
 
@@ -88,6 +88,7 @@ Rotas principais:
 /escala/<year>/<month>/versoes/<version_id>/criar-correcao
 /escala/<year>/<month>/versoes/<version_id>/historico-estado
 /escala/<year>/<month>/versoes/<version_id>/exportar/excel
+/escala/<year>/<month>/versoes/<version_id>/exportar/pdf
 /escala/<year>/<month>/versoes/<version_id>/ff/processar
 /escala/<year>/<month>/versoes/<version_id>/compensacoes/processar
 /feriados
@@ -136,7 +137,7 @@ flask process-compensations
 flask process-compensations --date 2027-01-01
 ```
 
-## Estado da v1.7
+## Estado da v1.8
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -212,6 +213,9 @@ flask process-compensations --date 2027-01-01
 - Encerramento executa diagnostico final e torna a versao imutavel.
 - Versoes CLOSED so podem ser corrigidas por nova versao DRAFT de correcao.
 - Historico de estado registado em `schedule_version_state_events`.
+- Exportacao operacional Excel em memoria, sem persistir ficheiros.
+- Exportacao operacional PDF A3 em memoria, sem persistir ficheiros.
+- PDF com grelha mensal, legenda, resumo, diagnostico persistido e alteracoes manuais quando existirem.
 - Migração v1.6: `9a4e2b7c1d60_add_fc_fr_compensations_v1_6.py`.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
@@ -220,7 +224,6 @@ flask process-compensations --date 2027-01-01
 - Sem indisponibilidades fictícias.
 - Sem escalas fictícias.
 - Sem geracao automatica de Ronda ou CR.
-- Sem exportacao PDF.
 - Sem registo persistente/auditoria funcional de exportacoes.
 - Sem correção automática de problemas de diagnóstico.
 - Sem autenticação completa.

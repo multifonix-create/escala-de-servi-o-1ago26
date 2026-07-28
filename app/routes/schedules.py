@@ -18,7 +18,12 @@ from app.services.assignment_service import (
     validate_assignment,
 )
 from app.services.diagnostic_service import ScheduleDiagnosticService, latest_run
-from app.services.export_service import ScheduleExcelExportError, ScheduleExcelExportService
+from app.services.export_service import (
+    ScheduleExcelExportError,
+    ScheduleExcelExportService,
+    SchedulePdfExportError,
+    SchedulePdfExportService,
+)
 from app.services.compensation_service import CompensationMaintenanceService
 from app.services.monthly_grid_builder import build_monthly_grid
 from app.services.schedule_generator import PTGenerationOptions, ScheduleGenerationError, ScheduleGenerator, latest_generation_run
@@ -161,6 +166,25 @@ def export_version_excel(year: int, month: int, version_id: int):
     try:
         result = ScheduleExcelExportService().export_version(schedule_month, version)
     except ScheduleExcelExportError:
+        abort(404)
+    return send_file(
+        result.stream,
+        mimetype=result.mimetype,
+        as_attachment=True,
+        download_name=result.filename,
+        max_age=0,
+    )
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/exportar/pdf")
+def export_version_pdf(year: int, month: int, version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    try:
+        result = SchedulePdfExportService().export_version(schedule_month, version)
+    except SchedulePdfExportError:
         abort(404)
     return send_file(
         result.stream,

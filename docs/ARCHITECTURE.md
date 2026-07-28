@@ -2122,3 +2122,24 @@ Regras arquiteturais mantidas:
 * nao executa diagnostico, geracao, regeneracao ou manutencao de compensacoes;
 * nao persiste ficheiros nem cria `export_records` nesta fase;
 * `export_records` continua reservado para fase futura com auditoria/autenticacao funcional.
+
+## Nota de Implementacao v1.8 - Exportacao PDF A3
+
+A implementacao atual acrescenta exportacao operacional para PDF A3 sem recriar a aplicacao existente.
+
+Componentes adicionados:
+
+* `SchedulePdfExportService` em `app/services/export_service.py` para construir PDFs em memoria;
+* rota `GET /escala/<year>/<month>/versoes/<version_id>/exportar/pdf`;
+* botao `Exportar PDF A3` na vista mensal;
+* dependencia `reportlab==4.2.5`;
+* testes dedicados em `tests/test_pdf_export.py`.
+
+Regras arquiteturais mantidas:
+
+* a exportacao PDF recebe a grelha preparada por `MonthlyGridBuilder`;
+* a rota nao contem logica de composicao PDF;
+* a exportacao e uma operacao de leitura e nao altera dados;
+* nao executa diagnostico, geracao, regeneracao ou manutencao de compensacoes;
+* nao persiste ficheiros nem cria `export_records` nesta fase;
+* `export_records` continua reservado para fase futura com auditoria/autenticacao funcional.

@@ -1,5 +1,46 @@
 # Changelog
 
+## v1.8 - 2026-07-28
+
+### Adicionado
+- Criada exportacao operacional da escala mensal para PDF A3.
+- Adicionado `SchedulePdfExportService` em `app/services/export_service.py`.
+- Adicionada rota `GET /escala/<year>/<month>/versoes/<version_id>/exportar/pdf`.
+- Adicionado botao `Exportar PDF A3` na grelha mensal, mantendo a exportacao Excel.
+- Adicionada dependencia `reportlab==4.2.5`.
+- Adicionados testes em `tests/test_pdf_export.py`.
+
+### Regras
+- A exportacao PDF reutiliza `MonthlyGridBuilder` e representa a versao selecionada.
+- Estados exportaveis: `DRAFT`, `VALIDATED`, `PUBLISHED` e `CLOSED`.
+- O PDF inclui grelha mensal A3 landscape, legenda, resumo, diagnostico persistido e alteracoes manuais quando existirem.
+- A exportacao nao executa diagnostico, geracao, regeneracao ou manutencao de compensacoes.
+- A exportacao nao altera a base de dados, nao persiste ficheiros PDF e nao cria `export_records`.
+- Textos exportados recebem protecao contra formula injection e caracteres de controlo.
+
+### Migracao
+- Nao foi criada migracao na v1.8.
+- A revisao Alembic mantem-se em `9a4e2b7c1d60`.
+- Nao foram alteradas migracoes anteriores.
+
+### Testes
+- Suite nova v1.8 validada com `4 passed`.
+- Suite Excel/PDF validada com `7 passed`.
+- Suite completa validada com `250 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real permaneceu intacta.
+- Nao foram criados militares, equipas, escalas, atribuicoes, diagnosticos, creditos, ficheiros exportados persistentes ou dados ficticios.
+
+### Limitacoes
+- Sem registo persistente/auditoria funcional de exportacoes.
+- Sem geracao automatica de Ronda.
+- Sem geracao automatica de CR.
+- Sem remunerados.
+- Sem notificacoes.
+- Sem autenticacao completa.
+
 ## v1.7 - 2026-07-28
 
 ### Adicionado

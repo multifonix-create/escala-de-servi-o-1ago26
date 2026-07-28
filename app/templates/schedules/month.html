@@ -66,6 +66,7 @@
         <a class="button button--secondary" href="{{ url_for('schedules.state_history', year=year, month=month, version_id=grid.version.id) }}">Historico de estado</a>
         {% if version_permissions.export %}
           <a class="button button--secondary" href="{{ url_for('schedules.export_version_excel', year=year, month=month, version_id=grid.version.id) }}">Exportar Excel</a>
+          <a class="button button--secondary" href="{{ url_for('schedules.export_version_pdf', year=year, month=month, version_id=grid.version.id) }}">Exportar PDF A3</a>
         {% endif %}
         {% if version_permissions.generate %}
           <a class="button button--secondary" href="{{ url_for('schedules.generation_index', year=year, month=month, version_id=grid.version.id) }}">Completar celulas vazias</a>
@@ -124,6 +125,12 @@
             <li>{{ warning }}</li>
           {% endfor %}
         </ul>
+      </section>
+    {% endif %}
+
+    {% if grid.version and grid.version.status == "DRAFT" %}
+      <section class="content-section">
+        <p class="notice">Esta versao e um rascunho e nao constitui a escala oficial.</p>
       </section>
     {% endif %}
 

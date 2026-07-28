@@ -1035,4 +1035,28 @@ Continuam fora da v1.7:
 
 ---
 
+## 39-I. Casos da Exportacao Operacional PDF A3 v1.8
+
+Casos automatizados implementados na v1.8:
+
+| ID | Caso | Dominio | Resultado esperado |
+|---|---|---|---|
+| PDF-101 | PDF operacional | EXPORT/PDF | A exportacao cria PDF em memoria com grelha mensal A3 landscape, legenda, resumo, diagnostico e alteracoes manuais quando existirem. |
+| PDF-102 | Versao selecionada | EXPORT/STATE | A exportacao usa a versao pedida e indica estado, numero, revisao e selo operacional. |
+| PDF-103 | Rota PDF | EXPORT/UI | `GET /escala/<year>/<month>/versoes/<version_id>/exportar/pdf` devolve `application/pdf` com nome seguro. |
+| PDF-104 | Versao oficial | EXPORT/STATE | Versao publicada selecionada aparece como `VERSAO OFICIAL` e como versao oficial publicada. |
+| PDF-105 | Paginacao | EXPORT/PERFORMANCE | Exportacao com muitas linhas pagina sem cortar a geracao e preserva o conteudo esperado. |
+| PDF-106 | Base inalterada | EXPORT/DB | Exportar nao cria atribuicoes, diagnosticos, creditos, ficheiros persistentes ou dados ficticios. |
+
+Continuam fora da v1.8:
+
+* registo persistente/auditoria funcional de exportacoes;
+* geracao automatica de Ronda;
+* geracao automatica de CR;
+* remunerados;
+* notificacoes;
+* autenticacao completa.
+
+---
+
 **Fim do documento — TEST_CASES.md**
