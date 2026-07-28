@@ -14,6 +14,7 @@ from app.routes import (
     military_unavailabilities_bp,
     military_teams_bp,
     restrictions_bp,
+    schedules_bp,
     team_cycle_bp,
     teams_bp,
     unavailabilities_bp,
@@ -57,6 +58,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(military_restrictions_bp)
     app.register_blueprint(unavailabilities_bp)
     app.register_blueprint(military_unavailabilities_bp)
+    app.register_blueprint(schedules_bp)
 
 
 def _register_error_handlers(app: Flask) -> None:

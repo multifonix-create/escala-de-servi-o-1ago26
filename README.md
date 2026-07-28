@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v0.6 - Indisponibilidades dos Militares
+v0.7 - Grelha Mensal da Escala
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais e indisponibilidades dos militares.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares e consulta mensal da grelha.
 
 ## Requisitos
 
@@ -69,6 +69,9 @@ Rotas principais:
 /ciclo/pre-visualizar
 /restricoes
 /indisponibilidades
+/escala
+/escala/<year>/<month>
+/escala/<year>/<month>/versoes
 /equipas/<id>/ciclo
 /equipas/<id>/ciclo/nova-referencia
 /equipas/<id>/ciclo/historico
@@ -89,7 +92,7 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v0.6
+## Estado da v0.7
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -101,12 +104,16 @@ pytest
 - Códigos suportados: LF, LP, BM, LC, LN, DIL, TRIB, INQ, FORMACAO, TIRO e OUTRA.
 - Estados suportados: PLANNED, CONFIRMED e CANCELLED.
 - Compensação em DS/DC apenas registada, sem criação automática de FF ou FC.
+- Meses de escala criáveis manualmente em estado DRAFT.
+- Versão inicial criada por mês com origem INITIAL.
+- Grelha mensal calculada dinamicamente a partir de militares, histórico de equipas, ciclo, restrições e indisponibilidades.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.
 - Sem restrições fictícias.
 - Sem indisponibilidades fictícias.
-- Sem escalas.
+- Sem escalas fictícias.
 - Sem motor de geração.
-- Sem grelha mensal.
+- Sem atribuições AT/PO/PT.
+- Sem edição manual da grelha.
 - Sem autenticação completa.

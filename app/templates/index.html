@@ -17,7 +17,7 @@
       </div>
     </dl>
     <p class="notice">
-      A gestão do efetivo inclui militares, equipas oficiais, referências do ciclo, restrições individuais e indisponibilidades. A geração de escala será implementada numa versão seguinte.
+      A gestão do efetivo inclui militares, equipas oficiais, referências do ciclo, restrições individuais, indisponibilidades e consulta mensal da grelha. A geração operacional de escala será implementada numa versão seguinte.
     </p>
     <p class="actions">
       <a class="button" href="{{ url_for('militaries.list_militaries') }}">Abrir militares</a>
@@ -25,6 +25,7 @@
       <a class="button button--secondary" href="{{ url_for('cycle.overview') }}">Abrir ciclo</a>
       <a class="button button--secondary" href="{{ url_for('restrictions.list_restrictions') }}">Abrir restrições</a>
       <a class="button button--secondary" href="{{ url_for('unavailabilities.list_unavailabilities') }}">Abrir indisponibilidades</a>
+      <a class="button button--secondary" href="{{ url_for('schedules.index') }}">Abrir escala</a>
     </p>
   </section>
 {% endblock %}

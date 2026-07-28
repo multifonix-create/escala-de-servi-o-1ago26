@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Escala mensal{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Grelha mensal</p>
+      <h1>Escala mensal</h1>
+      <p class="notice">Consulta e criacao controlada de meses de escala, sem geracao automatica de servicos.</p>
+    </div>
+  </header>
+
+  <form class="filters" method="get" action="{{ url_for('schedules.index') }}">
+    <label>
+      Ano
+      <input type="number" name="year" value="{{ year }}" min="2000" max="2100" required>
+      {% if errors.year %}<span class="field-error">{{ errors.year }}</span>{% endif %}
+    </label>
+    <label>
+      Mes
+      <input type="number" name="month" value="{{ month }}" min="1" max="12" required>
+      {% if errors.month %}<span class="field-error">{{ errors.month }}</span>{% endif %}
+    </label>
+    <div class="form-actions">
+      <button class="button" type="submit">Abrir mes</button>
+    </div>
+  </form>
+
+  <section class="content-section">
+    <h2>Meses existentes</h2>
+    {% if schedule_months %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Mes</th>
+              <th>Estado</th>
+              <th>Versoes</th>
+              <th>Consulta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in schedule_months %}
+              <tr>
+                <td>{{ "%02d"|format(item.month) }}/{{ item.year }}</td>
+                <td>{{ item.status }}</td>
+                <td>{{ item.versions|length }}</td>
+                <td><a href="{{ url_for('schedules.month_detail', year=item.year, month=item.month) }}">Abrir</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="notice">Ainda nao existem meses de escala criados.</p>
+    {% endif %}
+  </section>
+{% endblock %}

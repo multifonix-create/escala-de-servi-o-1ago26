@@ -1807,6 +1807,29 @@ Nenhuma etapa deve remover ou reescrever desnecessariamente funcionalidades est�
 
 ---
 
+## 33-A. Estado implementado da grelha mensal na v0.7
+
+A v0.7 introduz o módulo de consulta mensal em `/escala`.
+
+Componentes implementados:
+
+* modelo `ScheduleMonth`;
+* modelo `ScheduleVersion`;
+* blueprint `schedules_bp`;
+* serviço `app/services/schedule_service.py`;
+* builder `app/services/monthly_grid_builder.py`;
+* templates em `app/templates/schedules/`.
+
+Decisão técnica da v0.7:
+
+* não existe tabela de células/atribuições da escala;
+* a grelha é calculada em leitura a partir de militares, histórico de equipas, referências de ciclo, restrições e indisponibilidades;
+* a criação de mês cria apenas estrutura em `DRAFT` e versão inicial;
+* a geração operacional de serviços fica fora da v0.7;
+* a edição manual e preservação de alterações ficam para a v0.8.
+
+---
+
 ## 33. Decisões que dependem de regras futuras
 
 Alguns comportamentos só podem ser implementados automaticamente depois de serem formalizados no `ESCALA_RULES.md`.

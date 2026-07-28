@@ -2014,6 +2014,57 @@ A ordem pode ser ajustada tecnicamente, desde que preserve relações e seguran�
 
 ---
 
+# PARTE XX-A — ESTADO IMPLEMENTADO NA v0.7
+
+## 47-A. Tabelas criadas na v0.7
+
+A v0.7 criou apenas as tabelas:
+
+* `schedule_months`;
+* `schedule_versions`.
+
+Campos principais de `schedule_months`:
+
+* `id`;
+* `year`;
+* `month`;
+* `status`;
+* `created_at`;
+* `updated_at`.
+
+Restrições:
+
+* combinação única `year` + `month`;
+* `month` entre 1 e 12;
+* `year` entre 2000 e 2100;
+* `status` limitado a `NOT_GENERATED`, `DRAFT`, `VALIDATED`, `PUBLISHED` e `CLOSED`.
+
+Campos principais de `schedule_versions`:
+
+* `id`;
+* `schedule_month_id`;
+* `version_number`;
+* `status`;
+* `source`;
+* `description`;
+* `created_at`;
+* `updated_at`.
+
+Restrições:
+
+* `schedule_month_id` referencia `schedule_months.id`;
+* `version_number` é único dentro do mês;
+* `version_number` deve ser maior ou igual a 1;
+* `source` limitado a `INITIAL`, `MANUAL` e `SYSTEM`.
+
+Decisão da v0.7:
+
+* não foi criada tabela de atribuições ou células persistidas;
+* a grelha é calculada dinamicamente a partir das fontes de verdade já existentes;
+* a tabela de células/atribuições só deve ser criada quando a edição manual ou geração operacional justificar persistência.
+
+---
+
 # PARTE XXI — TESTES DO MODELO
 
 ## 48. Testes obrigatórios

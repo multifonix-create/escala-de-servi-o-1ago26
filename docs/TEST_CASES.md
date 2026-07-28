@@ -711,6 +711,22 @@ Não são definidos limites rígidos de tempo sem aprovação funcional/técnica
 
 ---
 
+## 36-A. Casos da Grelha Mensal v0.7
+
+| ID | Título | Regra de origem | Tipo | Prioridade | Procedimento e resultado esperado |
+| --- | --- | --- | --- | --- | --- |
+| GRID-001 | Seletor mensal responde | ESCALA_RULES 179 | UI | Alta | `/escala` apresenta seleção de mês e ano sem criar dados automaticamente. |
+| GRID-002 | Mês vazio não é criado automaticamente | ESCALA_RULES 164, 188-190 | Funcional | Crítica | Abrir `/escala/<year>/<month>` mostra botão de criação controlada e não insere registos por GET. |
+| GRID-003 | Criação controlada de mês | DATA_MODEL ScheduleMonth | Funcional | Crítica | POST de criação cria `ScheduleMonth` em `DRAFT` e `ScheduleVersion` número 1 com origem `INITIAL`. |
+| GRID-004 | Unicidade de mês | DATA_MODEL ScheduleMonth | Modelo | Crítica | Não é possível criar dois meses com o mesmo ano e mês. |
+| GRID-005 | DS/DC dinâmico | ESCALA_RULES 9-18 | Integração | Crítica | Grelha usa `CycleCalculator` e histórico de equipa por dia, sem persistir DS/DC. |
+| GRID-006 | Indisponibilidade prevalece visualmente | ESCALA_RULES 32-41, 77-84 | Integração | Alta | Indisponibilidade confirmada aparece como código principal, preservando ciclo subjacente. |
+| GRID-007 | Restrições como indicador | ESCALA_RULES 42-45 | Integração | Alta | Restrição aplicável aparece como indicador/tooltip e não substitui código principal. |
+| GRID-008 | Sem geração operacional | Pedido v0.7 | Regressão | Crítica | Página da grelha não expõe geração AT/PO/PT, distribuição ou edição livre. |
+| GRID-009 | Sem tabela de atribuições | Pedido v0.7 | Base de dados | Crítica | v0.7 não cria `assignments` nem `schedule_assignments`. |
+
+---
+
 ## 37. Matriz de Rastreabilidade
 
 | Secção do ESCALA_RULES.md | Domínio | Casos | Estado |

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Versoes {{ schedule_month.label }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Historico de versoes</p>
+      <h1>Versoes {{ schedule_month.label }}</h1>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.month_detail', year=schedule_month.year, month=schedule_month.month) }}">Voltar a grelha</a>
+    </div>
+  </header>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Versao</th>
+          <th>Estado</th>
+          <th>Origem</th>
+          <th>Descricao</th>
+          <th>Criada em</th>
+          <th>Consulta</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for version in versions %}
+          <tr>
+            <td>{{ version.version_number }}</td>
+            <td>{{ version.status }}</td>
+            <td>{{ version.source }}</td>
+            <td>{{ version.description or "-" }}</td>
+            <td>{{ version.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+            <td>
+              <a href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Abrir</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

@@ -1,4 +1,12 @@
 from app.models.military import FunctionalType, Military
+from app.models.schedule import (
+    ALLOWED_SCHEDULE_MONTH_STATUSES,
+    ALLOWED_SCHEDULE_VERSION_SOURCES,
+    ScheduleMonth,
+    ScheduleMonthStatus,
+    ScheduleVersion,
+    ScheduleVersionSource,
+)
 from app.models.military_team_history import MilitaryTeamHistory
 from app.models.military_restriction import (
     ALLOWED_RESTRICTION_TYPES,
@@ -24,6 +32,8 @@ from app.models.unavailability import (
 
 __all__ = [
     "ALLOWED_RESTRICTION_TYPES",
+    "ALLOWED_SCHEDULE_MONTH_STATUSES",
+    "ALLOWED_SCHEDULE_VERSION_SOURCES",
     "ALLOWED_COMPENSATION_STATUSES",
     "ALLOWED_UNAVAILABILITY_CODES",
     "ALLOWED_UNAVAILABILITY_STATUSES",
@@ -34,6 +44,10 @@ __all__ = [
     "MilitaryTeamHistory",
     "OFFICIAL_TEAM_CODES",
     "RestrictionType",
+    "ScheduleMonth",
+    "ScheduleMonthStatus",
+    "ScheduleVersion",
+    "ScheduleVersionSource",
     "Team",
     "TeamCycleReference",
     "TeamCode",

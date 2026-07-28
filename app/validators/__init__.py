@@ -22,6 +22,11 @@ from app.validators.cycle_validator import (
     validate_cycle_reference_payload,
     validate_preview_payload,
 )
+from app.validators.schedule_validator import (
+    ScheduleMonthValidationResult,
+    validate_schedule_month_path,
+    validate_schedule_month_payload,
+)
 
 
 __all__ = [
@@ -30,6 +35,7 @@ __all__ = [
     "MembershipValidationResult",
     "MilitaryValidationResult",
     "RestrictionValidationResult",
+    "ScheduleMonthValidationResult",
     "UnavailabilityValidationResult",
     "validate_cycle_reference_payload",
     "validate_membership_payload",
@@ -37,6 +43,8 @@ __all__ = [
     "validate_preview_payload",
     "validate_restriction_payload",
     "validate_restriction_test_payload",
+    "validate_schedule_month_path",
+    "validate_schedule_month_payload",
     "validate_availability_test_payload",
     "validate_unavailability_payload",
 ]

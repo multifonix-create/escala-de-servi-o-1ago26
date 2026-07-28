@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Escala {{ "%02d"|format(month) }}/{{ year }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Grelha mensal</p>
+      <h1>Escala {{ "%02d"|format(month) }}/{{ year }}</h1>
+      <p class="notice">A grelha apresenta informacao calculada a partir do efetivo, historico de equipas, ciclo, restricoes e indisponibilidades.</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.month_detail', year=previous_year, month=previous_month) }}">Mes anterior</a>
+      <a class="button button--secondary" href="{{ url_for('schedules.index') }}">Selecionar</a>
+      <a class="button button--secondary" href="{{ url_for('schedules.month_detail', year=next_year, month=next_month) }}">Mes seguinte</a>
+    </div>
+  </header>
+
+  {% if not schedule_month %}
+    <section class="empty-state">
+      <h2>Mes ainda nao criado</h2>
+      <p class="notice">Este mes nao existe na base de dados. A criacao abre apenas a estrutura inicial em rascunho e uma versao inicial, sem gerar servicos.</p>
+      <form class="form-actions" method="post" action="{{ url_for('schedules.create_month', year=year, month=month) }}">
+        <button class="button" type="submit">Criar mes</button>
+      </form>
+    </section>
+  {% else %}
+    <dl class="summary-grid">
+      <div>
+        <dt>Estado</dt>
+        <dd>{{ schedule_month.status }}</dd>
+      </div>
+      <div>
+        <dt>Versao</dt>
+        <dd>
+          {% set version = selected_version if selected_version is defined else grid.version %}
+          {% if version %}{{ version.version_number }}{% else %}Sem versao{% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt>Criado em</dt>
+        <dd>{{ schedule_month.created_at.strftime("%Y-%m-%d %H:%M") }}</dd>
+      </div>
+    </dl>
+
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.versions', year=year, month=month) }}">Ver versoes</a>
+    </div>
+
+    {% if grid.warnings %}
+      <section class="content-section">
+        <h2>Avisos</h2>
+        <ul class="compact-list">
+          {% for warning in grid.warnings %}
+            <li>{{ warning }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% include "schedules/_grid.html" %}
+  {% endif %}
+{% endblock %}

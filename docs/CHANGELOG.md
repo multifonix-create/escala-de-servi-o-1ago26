@@ -1,5 +1,61 @@
 # Changelog
 
+## v0.7 - 2026-07-28
+
+### Adicionado
+- Criada grelha mensal da escala para consulta controlada.
+- Adicionados modelos `ScheduleMonth` e `ScheduleVersion`.
+- Adicionado serviço `app/services/schedule_service.py`.
+- Adicionado builder central `app/services/monthly_grid_builder.py`.
+- Adicionado validador `app/validators/schedule_validator.py`.
+- Criadas páginas para seletor mensal, mês vazio, grelha mensal e histórico simples de versões.
+- Integrada navegação principal para `/escala`.
+
+### Regras
+- A criação de mês é manual e controlada.
+- Um mês novo fica em estado `DRAFT`.
+- A primeira versão fica com número `1` e origem `INITIAL`.
+- A grelha usa militares relevantes para o período, incluindo histórico quando aplicável.
+- DS/DC são calculados dinamicamente pelo `CycleCalculator`.
+- A pertença à equipa é determinada por dia através do histórico.
+- Indisponibilidades canceladas não ocupam a grelha.
+- Indisponibilidades confirmadas prevalecem visualmente sobre DS/DC, preservando a informação do ciclo.
+- Restrições aparecem como indicadores e não como código principal.
+- Feriados permanecem pendentes; `is_holiday` fica sempre `False`.
+
+### Decisões
+- Não foi criada tabela de atribuições/células na v0.7.
+- A grelha é calculada em leitura a partir das fontes de verdade existentes.
+- Não foram implementadas geração AT/PO/PT, distribuição, descanso, FF, FC, Ronda, CR, remunerados, exportações, diagnóstico global ou edição livre.
+
+### Migração
+- Criada e aplicada a migração `91f6d17e963f_create_schedule_months_and_versions.py`.
+- Criadas apenas as tabelas `schedule_months` e `schedule_versions`.
+- Não foram alteradas migrações anteriores.
+- Não foram criados meses, versões, células, escalas ou dados fictícios.
+- Criada cópia de segurança prévia da base real em `instance/backups/escala_20260728_115352_v07_pre_migration.db`.
+
+### Testes
+- Adicionados testes de validação, serviço, criação controlada, grelha dinâmica, rotas e isolamento.
+- Suite completa validada com `158 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` pertenças.
+- A base real ficou com `0` referências do ciclo.
+- A base real ficou com `0` restrições individuais.
+- A base real ficou com `0` indisponibilidades.
+- A base real ficou com `0` eventos de indisponibilidade.
+- A base real ficou com `0` meses de escala.
+- A base real ficou com `0` versões de escala.
+- Revisão Alembic atual: `91f6d17e963f`.
+- Não foram criados dados fictícios ou demonstrativos.
+
+### Limitações
+- Sem geração de escala, atribuições AT/PO/PT, descanso entre serviços, diagnósticos globais, edição manual, preservação de alterações manuais, FF, FC, Ronda, CR, remunerados, exportações, autenticação completa e auditoria funcional genérica.
+
 ## v0.6 - 2026-07-28
 
 ### Adicionado

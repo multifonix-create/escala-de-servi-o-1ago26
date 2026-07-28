@@ -1,0 +1,59 @@
+<section class="content-section schedule-section">
+  <h2>Grelha</h2>
+
+  {% if grid.legend %}
+    <div class="legend" aria-label="Legenda">
+      {% for item in grid.legend %}
+        <span class="legend__item">{{ item }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="schedule-grid-wrap">
+    <table class="schedule-grid">
+      <thead>
+        <tr>
+          <th class="schedule-grid__person">Militar</th>
+          {% for day in grid.days %}
+            <th class="{% if day.is_weekend %}schedule-grid__weekend{% endif %}">
+              <span>{{ day.day_number }}</span>
+              <small>{{ day.weekday_label }}</small>
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% set current_group = namespace(value="") %}
+        {% for row in grid.rows %}
+          {% if row.group_label != current_group.value %}
+            {% set current_group.value = row.group_label %}
+            <tr class="schedule-grid__group">
+              <th colspan="{{ grid.days|length + 1 }}">{{ row.group_label }}</th>
+            </tr>
+          {% endif %}
+          <tr>
+            <th class="schedule-grid__person">
+              {{ row.military.name }}
+              <span class="muted">{{ row.military.nim }} - {{ row.military.functional_type }}</span>
+            </th>
+            {% for cell in row.cells %}
+              <td class="{{ cell.css_classes }}" title="{{ cell.tooltip }}">
+                {% if cell.primary_code %}
+                  <strong>{{ cell.primary_code }}</strong>
+                {% elif cell.team_code %}
+                  <span class="muted">{{ cell.team_code }}</span>
+                {% endif %}
+                {% if cell.restriction_count %}
+                  <span class="cell-marker">R</span>
+                {% endif %}
+                {% if cell.is_partial_unavailability %}
+                  <span class="cell-marker">P</span>
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>

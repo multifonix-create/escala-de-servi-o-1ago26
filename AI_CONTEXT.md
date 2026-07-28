@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v0.6 - Indisponibilidades dos Militares`.
+Versão atual: `v0.7 - Grelha Mensal da Escala`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -176,16 +176,55 @@ Rotas principais da v0.6:
 * `GET /militares/<id>/indisponibilidades/testar`;
 * `POST /militares/<id>/indisponibilidades/testar`.
 
+## v0.7 - Grelha Mensal da Escala
+
+A v0.7 está concluída com:
+
+* modelo `ScheduleMonth`;
+* modelo `ScheduleVersion`;
+* tabelas `schedule_months` e `schedule_versions`;
+* migração `91f6d17e963f_create_schedule_months_and_versions.py`;
+* estados `NOT_GENERATED`, `DRAFT`, `VALIDATED`, `PUBLISHED` e `CLOSED`;
+* origens de versão `INITIAL`, `MANUAL` e `SYSTEM`;
+* criação controlada de mês em estado `DRAFT`;
+* criação de versão inicial `1` com origem `INITIAL`;
+* blueprint `schedules_bp`;
+* seletor de mês e ano;
+* consulta de mês vazio sem criação automática;
+* grelha mensal com militares em linhas e dias em colunas;
+* serviço central `app/services/monthly_grid_builder.py`;
+* leitura dinâmica de DS/DC via `CycleCalculator`;
+* leitura dinâmica de pertença por dia via histórico de equipa;
+* apresentação visual de indisponibilidades planeadas e confirmadas;
+* apresentação de indicadores de restrições, sem as tornar código principal;
+* avisos para falta de militares, equipa ou referência de ciclo;
+* consulta simples de histórico de versões.
+
+Rotas principais da v0.7:
+
+* `GET /escala`;
+* `GET /escala/<year>/<month>`;
+* `POST /escala/<year>/<month>/criar`;
+* `GET /escala/<year>/<month>/versoes`;
+* `GET /escala/<year>/<month>/versoes/<version_id>`.
+
+Decisão de arquitetura da v0.7:
+
+* não foi criada tabela de atribuições/células da escala;
+* a grelha mensal é uma consulta calculada a partir das fontes de verdade existentes;
+* não foram criados meses, versões ou células na base real para demonstração;
+* feriados ainda não têm módulo próprio e são tratados como pendência.
+
 ## Ainda Não Existe
 
 Ainda não existem:
 
 * geração da escala;
-* grelha mensal;
 * atribuição de AT;
 * atribuição de PO;
 * atribuição de PT;
-* atribuição de DS/DC por militar;
+* atribuição persistida de DS/DC por militar;
+* células persistidas de escala;
 * registos diários;
 * motor de geração;
 * autenticação completa;
@@ -254,14 +293,15 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 ## Decisões e Limitações Atuais
 
-* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities` e `unavailability_events`.
+* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months` e `schedule_versions`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades nem eventos de indisponibilidade após a v0.6.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala nem versões de escala após a v0.7.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
 * Restrições individuais não são ainda usadas por um motor de geração de escala.
-* Indisponibilidades já são registáveis, mas ainda não alimentam geração automática de escala.
+* Indisponibilidades já são registáveis e visíveis na grelha mensal, mas ainda não alimentam geração automática de escala.
+* A grelha mensal consulta DS/DC, indisponibilidades e restrições dinamicamente; não preserva alterações manuais porque a edição manual fica para a v0.8.
 * A compensação por DS/DC é apenas registada; não cria FF nem FC.
 * Não foi implementada autenticação completa.
 * Não foi implementada CSRF; os formulários usam POST e estão preparados para integração futura.
@@ -275,11 +315,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-149 passed
+158 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v0.7 - Grelha Mensal da Escala`.
+`v0.8 - Edição Manual e Preservação de Alterações`.
