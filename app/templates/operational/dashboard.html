@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Controlo operacional{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">v1.9</p>
+      <h1>Controlo operacional</h1>
+      <p class="notice">Estado local dos dados reais antes de gerar ou testar uma escala.</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('operational.import_page') }}">Importacao CSV</a>
+      <a class="button button--secondary" href="{{ url_for('operational.cycle_conference') }}">Conferir ciclo</a>
+      <a class="button" href="{{ url_for('operational.create_test') }}">Criar teste operacional</a>
+    </div>
+  </header>
+
+  <dl class="summary-grid">
+    <div><dt>Prontidao</dt><dd>{{ report.status }}</dd></div>
+    <div><dt>Militares ativos</dt><dd>{{ report.counts.active_militaries }}</dd></div>
+    <div><dt>Equipas</dt><dd>{{ report.counts.teams }}</dd></div>
+    <div><dt>Referencias de ciclo</dt><dd>{{ report.counts.cycle_references }}</dd></div>
+    <div><dt>Restricoes</dt><dd>{{ report.counts.restrictions }}</dd></div>
+    <div><dt>Indisponibilidades</dt><dd>{{ report.counts.unavailabilities }}</dd></div>
+  </dl>
+
+  <section class="content-section">
+    <h2>Distribuicao ativa</h2>
+    <dl class="summary-grid">
+      {% for label, count in report.distribution.items() %}
+        <div><dt>{{ label }}</dt><dd>{{ count }}</dd></div>
+      {% endfor %}
+    </dl>
+  </section>
+
+  <section class="content-section">
+    <h2>Validacao de dados reais</h2>
+    {% if report.issues %}
+      <table class="data-table">
+        <thead><tr><th>Nivel</th><th>Codigo</th><th>Mensagem</th></tr></thead>
+        <tbody>
+          {% for issue in report.issues %}
+            <tr><td>{{ issue.level }}</td><td>{{ issue.code }}</td><td>{{ issue.message }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="notice">Sem bloqueios ou avisos na validacao operacional.</p>
+    {% endif %}
+  </section>
+
+  <section class="content-section">
+    <h2>Testes operacionais</h2>
+    {% if report.test_versions %}
+      <table class="data-table">
+        <thead><tr><th>Mes</th><th>Versao</th><th>Estado</th><th>Arquivo</th><th>Avaliacao</th><th>Acoes</th></tr></thead>
+        <tbody>
+          {% for version in report.test_versions %}
+            <tr>
+              <td>{{ version.schedule_month.label }}</td>
+              <td>V{{ version.version_number }}</td>
+              <td>{{ version.status }}</td>
+              <td>{% if version.is_archived %}Arquivado{% else %}-{% endif %}</td>
+              <td>{% if version.operational_evaluation %}{{ version.operational_evaluation.decision }}{% else %}-{% endif %}</td>
+              <td>
+                <a href="{{ url_for('schedules.version_detail', year=version.schedule_month.year, month=version.schedule_month.month, version_id=version.id) }}">Abrir</a>
+                {% if not version.is_archived %}
+                  <a href="{{ url_for('operational.evaluate_test', version_id=version.id) }}">Avaliar</a>
+                  <form method="post" action="{{ url_for('operational.archive_test', version_id=version.id) }}" class="inline-form">
+                    <input type="hidden" name="reason" value="Arquivo operacional local.">
+                    <button class="link-button" type="submit">Arquivar</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="notice">Ainda nao existem versoes de teste operacional.</p>
+    {% endif %}
+  </section>
+{% endblock %}

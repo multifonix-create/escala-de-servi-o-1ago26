@@ -12,6 +12,7 @@ from app.routes import (
     holidays_bp,
     main_bp,
     militaries_bp,
+    operational_bp,
     military_restrictions_bp,
     military_unavailabilities_bp,
     military_teams_bp,
@@ -52,6 +53,7 @@ def _initialize_extensions(app: Flask) -> None:
 def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(main_bp)
     app.register_blueprint(militaries_bp)
+    app.register_blueprint(operational_bp)
     app.register_blueprint(teams_bp)
     app.register_blueprint(military_teams_bp)
     app.register_blueprint(cycle_bp)
@@ -68,8 +70,10 @@ def _register_blueprints(app: Flask) -> None:
 
 def _register_cli(app: Flask) -> None:
     from app.routes.compensations import register_cli
+    from app.routes.operational import register_cli as register_operational_cli
 
     register_cli(app)
+    register_operational_cli(app)
 
 
 def _register_error_handlers(app: Flask) -> None:

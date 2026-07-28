@@ -59,6 +59,16 @@
       </div>
     </dl>
 
+    {% if version and version.is_operational_test %}
+      <section class="content-section">
+        <h2>TESTE OPERACIONAL - NAO PUBLICAR</h2>
+        <p class="notice">Esta versao serve apenas para afericao local. Nao pode ser publicada como escala oficial.</p>
+        {% if version.is_archived %}
+          <p class="notice">Teste arquivado em {{ version.archived_at.strftime("%Y-%m-%d %H:%M") if version.archived_at else "-" }}.</p>
+        {% endif %}
+      </section>
+    {% endif %}
+
     <div class="toolbar">
       <a class="button button--secondary" href="{{ url_for('schedules.versions', year=year, month=month) }}">Ver versoes</a>
       {% if grid.version %}
@@ -88,6 +98,9 @@
         {% endif %}
         {% if version_permissions.publish %}
           <a class="button button--secondary" href="{{ url_for('schedules.publish_version_confirm', year=year, month=month, version_id=grid.version.id) }}">Publicar</a>
+        {% endif %}
+        {% if version_permissions.evaluate_operational_test %}
+          <a class="button button--secondary" href="{{ url_for('operational.evaluate_test', version_id=grid.version.id) }}">Avaliar teste</a>
         {% endif %}
         {% if version_permissions.close %}
           <a class="button button--secondary" href="{{ url_for('schedules.close_version_confirm', year=year, month=month, version_id=grid.version.id) }}">Encerrar</a>

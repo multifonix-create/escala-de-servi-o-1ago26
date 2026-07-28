@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v1.8 - Exportacao Operacional da Escala para PDF A3`.
+Versão atual: `v1.9 - Teste Operacional com Dados Reais e Afinacao do Gerador`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -590,6 +590,39 @@ Decisoes da v1.8:
 * a exportacao PDF nao altera a base de dados, nao cria ficheiros persistentes e nao cria `export_records` nesta fase;
 * nao foi criada migracao na v1.8.
 
+## Complemento v1.9 - Teste Operacional com Dados Reais
+
+A v1.9 acrescenta uma camada local de controlo operacional sem recriar a aplicacao existente.
+
+Existe atualmente:
+
+* blueprint `operational_bp` em `/controlo-operacional`;
+* servico `app/services/backup_service.py` para backup SQLite validado;
+* servico `app/services/operational_import_service.py` para pre-visualizacao e importacao CSV assistida;
+* servico `app/services/operational_readiness_service.py` para validar prontidao dos dados reais;
+* servico `app/services/operational_test_service.py` para criar, arquivar e avaliar testes operacionais;
+* comandos `flask validate-real-data`, `flask preview-military-import` e `flask import-military-data --confirm`;
+* modelo CSV `templates/importacao_militares.csv`, apenas com cabecalho;
+* campos de teste operacional e arquivo em `schedule_versions`;
+* tabelas `operational_test_evaluations` e `operational_test_evaluation_events`;
+* selo `TESTE OPERACIONAL - NAO PUBLICAR` na grelha, diagnostico, Excel e PDF.
+
+Regras v1.9:
+
+* a pre-visualizacao CSV nao escreve na base de dados;
+* a importacao real exige confirmacao explicita e backup automatico;
+* a importacao e idempotente por NIM;
+* testes operacionais nao podem ser publicados;
+* arquivos de teste nao equivalem a `CLOSED`;
+* nao foram importados dados reais porque o utilizador ainda nao forneceu ficheiro operacional;
+* nao foram criados militares, equipas, escalas ou dados ficticios na base real.
+
+Migracao v1.9:
+
+* revisao Alembic `a78b8ff4bc33_add_operational_testing_support_v1_9.py`;
+* revisao atual esperada: `a78b8ff4bc33 (head)`;
+* migracoes anteriores nao devem ser alteradas.
+
 ## Ainda Não Existe
 
 Ainda não existem:
@@ -611,6 +644,8 @@ Existem atualmente:
 * `docs/CODING_STANDARDS.md`;
 * `docs/DATA_MODEL.md`;
 * `docs/TEST_CASES.md`;
+* `docs/OPERATIONAL_TEST_GUIDE.md`;
+* `docs/OPERATIONAL_TUNING.md`;
 * `docs/CHANGELOG.md`;
 * `README.md`.
 
@@ -662,7 +697,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 * A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs`, `assignment_selection_details`, `holidays`, `holiday_leave_credits`, `holiday_leave_credit_events`, `compensatory_leave_credits`, `compensatory_leave_credit_events`, `rescheduled_rest_credits` e `rescheduled_rest_credit_events`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração, detalhes de seleção, feriados, créditos FF, eventos FF, creditos FC, eventos FC, direitos FR, eventos FR nem registos de exportacao apos a v1.8.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, versões de teste operacional, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração, detalhes de seleção, feriados, créditos FF, eventos FF, creditos FC, eventos FC, direitos FR, eventos FR nem registos de exportacao apos a v1.9.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.

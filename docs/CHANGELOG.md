@@ -1,5 +1,46 @@
 # Changelog
 
+## v1.9 - 2026-07-28
+
+### Adicionado
+- Criado controlo operacional local em `GET /controlo-operacional`.
+- Criada pre-visualizacao/importacao assistida de militares por CSV, com backup obrigatorio antes de importacao confirmada.
+- Criados comandos `flask validate-real-data`, `flask preview-military-import` e `flask import-military-data --confirm`.
+- Criado modelo CSV sem linhas ficticias em `templates/importacao_militares.csv`.
+- Criado selo `TESTE OPERACIONAL - NAO PUBLICAR` para versoes de teste, grelha, diagnostico, Excel e PDF.
+- Adicionados campos de teste operacional e arquivo a `schedule_versions`.
+- Adicionadas tabelas `operational_test_evaluations` e `operational_test_evaluation_events`.
+- Criados guias `docs/OPERATIONAL_TEST_GUIDE.md` e `docs/OPERATIONAL_TUNING.md`.
+- Adicionados testes em `tests/test_operational_v19.py`.
+
+### Regras
+- Testes operacionais nao podem ser publicados.
+- Importacao real exige CSV valido, confirmacao explicita e backup SQLite validado.
+- Pre-visualizacao CSV nao escreve na base de dados.
+- O importador e idempotente por NIM.
+- A v1.9 nao importa dados reais sem ficheiro fornecido pelo utilizador.
+
+### Migracao
+- Criada migracao `a78b8ff4bc33_add_operational_testing_support_v1_9.py`.
+- Revisao Alembic atual: `a78b8ff4bc33 (head)`.
+- Migracoes anteriores nao foram alteradas.
+
+### Testes
+- Suite nova v1.9 validada com `9 passed`.
+- Suite completa validada com `259 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- Foi criado backup inicial antes da implementacao.
+- Foi criado backup imediatamente antes da migracao.
+- Nao foram criados militares, equipas, escalas, atribuicoes ou dados ficticios na base real.
+
+### Limitacoes
+- Sem autenticacao, perfis ou permissoes multiutilizador.
+- Sem importacao generica de Excel.
+- Sem geracao automatica de Ronda, CR ou remunerados.
+- Afinacao do gerador depende de dados reais e comparacao operacional fornecida pelo utilizador.
+
 ## v1.8 - 2026-07-28
 
 ### Adicionado

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Avaliar teste operacional{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Avaliacao local</p>
+      <h1>Avaliar teste operacional V{{ version.version_number }}</h1>
+      <p class="notice">{{ version.schedule_month.label }} - TESTE OPERACIONAL - NAO PUBLICAR</p>
+    </div>
+    <div class="toolbar"><a class="button button--secondary" href="{{ url_for('operational.dashboard') }}">Voltar</a></div>
+  </header>
+
+  <form class="form-card" method="post">
+    <label>
+      <span>Decisao</span>
+      <select name="decision" required>
+        {% for decision in decisions %}
+          <option value="{{ decision.value }}" {% if version.operational_evaluation and version.operational_evaluation.decision == decision.value %}selected{% endif %}>{{ decision.value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label><span>Notas</span><textarea name="notes" rows="5">{{ version.operational_evaluation.notes if version.operational_evaluation else "" }}</textarea></label>
+    <div class="form-actions"><button class="button" type="submit">Guardar avaliacao</button></div>
+  </form>
+{% endblock %}

@@ -138,6 +138,11 @@ class ScheduleVersionWorkflow:
         confirm_replace: bool = False,
         notes: str | None = None,
     ) -> None:
+        if version.is_operational_test:
+            raise ScheduleWorkflowError(
+                "Teste operacional nao publicavel.",
+                {"status": "Versoes marcadas como TESTE OPERACIONAL - NAO PUBLICAR nao podem ser publicadas."},
+            )
         if not ScheduleVersionPolicy(version).can_publish():
             raise ScheduleWorkflowError("Estado invalido.", {"status": "Apenas versoes VALIDATED podem ser publicadas."})
         if version.validated_diagnostic_run_id is None:

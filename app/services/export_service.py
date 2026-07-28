@@ -159,6 +159,8 @@ class ScheduleExcelExportService:
         sheet.cell(row=1, column=1).alignment = Alignment(horizontal="center")
 
         title = f"Escala de Servico - {grid.schedule_month.month:02d}/{grid.schedule_month.year}"
+        if version.is_operational_test:
+            title = f"{title} - TESTE OPERACIONAL - NAO PUBLICAR"
         sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=total_columns)
         sheet.cell(row=2, column=1, value=_safe_text(title))
         sheet.cell(row=2, column=1).font = Font(size=13, bold=True)
@@ -175,6 +177,8 @@ class ScheduleExcelExportService:
             ("Publicada em", _format_datetime(version.published_at)),
             ("Encerrada em", _format_datetime(version.closed_at)),
         ]
+        if version.is_operational_test:
+            metadata.insert(3, ("Teste operacional", _operational_test_label(version)))
         row_number = 4
         for label, value in metadata:
             sheet.cell(row=row_number, column=1, value=label)
@@ -253,6 +257,7 @@ class ScheduleExcelExportService:
             ("Mes", f"{grid.schedule_month.month:02d}/{grid.schedule_month.year}"),
             ("Versao", f"V{grid.version.version_number}"),
             ("Estado", grid.version.status),
+            ("Teste operacional", _operational_test_label(grid.version)),
             ("Exportado em", exported_at.strftime("%Y-%m-%d %H:%M UTC")),
             ("Militares relevantes", len(grid.rows)),
             ("Dias no mes", len(grid.days)),
@@ -383,7 +388,8 @@ class ScheduleExcelExportService:
             ScheduleMonthStatus.PUBLISHED.value: "Oficial",
             ScheduleMonthStatus.CLOSED.value: "Encerrada",
         }.get(version.status, version.status)
-        raw = f"Escala_{schedule_month.year}_{schedule_month.month:02d}_Versao_{version.version_number}_{state}.xlsx"
+        marker = "_Teste_Operacional" if version.is_operational_test else ""
+        raw = f"Escala_{schedule_month.year}_{schedule_month.month:02d}_Versao_{version.version_number}_{state}{marker}.xlsx"
         return re.sub(r"[^A-Za-z0-9_.-]+", "_", raw)
 
     def _header_cell(self, cell) -> None:
@@ -494,6 +500,8 @@ class SchedulePdfExportService:
             _simple_table(metadata, [3.5 * cm, width - 3.5 * cm], styles),
             Spacer(1, 0.18 * cm),
         ]
+        if grid.version.is_operational_test:
+            story.insert(2, Paragraph("TESTE OPERACIONAL - NAO PUBLICAR", styles["warning"]))
         headers = ["Seccao", "Equipa", "Nome", "NIM", "Tipo"]
         day_headers = [
             f"{day.day_number}<br/>{_pdf_text(day.weekday_label)}{' F' if day.date in holidays_by_date else ''}"
@@ -562,6 +570,8 @@ class SchedulePdfExportService:
             ("Atribuicoes automaticas", _count_cells(grid, lambda cell: cell.assignment is not None and cell.assignment.source == AssignmentSource.SYSTEM.value)),
             ("Indisponibilidades visiveis", _count_cells(grid, lambda cell: cell.unavailability is not None)),
         ]
+        if grid.version.is_operational_test:
+            summary_rows.insert(4, ("Teste operacional", _operational_test_label(grid.version)))
         story = [Paragraph("Resumo", styles["section"])]
         story.append(_simple_table([(label, str(value)) for label, value in summary_rows], [5.2 * cm, width - 5.2 * cm], styles))
         story.append(Spacer(1, 0.2 * cm))
@@ -672,7 +682,7 @@ class SchedulePdfExportService:
 
     def _metadata_rows(self, grid, exported_at: datetime) -> list[tuple[str, str]]:
         version = grid.version
-        return [
+        rows = [
             ("Versao", f"V{version.version_number}"),
             ("Estado", _state_export_label(version)),
             ("Oficial", _official_label(grid.schedule_month, version)),
@@ -683,6 +693,9 @@ class SchedulePdfExportService:
             ("Encerrada em", _format_datetime(version.closed_at)),
             ("Exportado em", exported_at.strftime("%Y-%m-%d %H:%M UTC")),
         ]
+        if version.is_operational_test:
+            rows.insert(3, ("Teste operacional", _operational_test_label(version)))
+        return rows
 
     def _diagnostic_run_for_export(self, version: ScheduleVersion) -> DiagnosticRun | None:
         if version.validated_diagnostic_run_id:
@@ -699,7 +712,8 @@ class SchedulePdfExportService:
             ScheduleMonthStatus.PUBLISHED.value: "Oficial",
             ScheduleMonthStatus.CLOSED.value: "Encerrada",
         }.get(version.status, version.status)
-        raw = f"Escala_{schedule_month.year}_{schedule_month.month:02d}_Versao_{version.version_number}_{state}.pdf"
+        marker = "_Teste_Operacional" if version.is_operational_test else ""
+        raw = f"Escala_{schedule_month.year}_{schedule_month.month:02d}_Versao_{version.version_number}_{state}{marker}.pdf"
         return re.sub(r"[^A-Za-z0-9_.-]+", "_", raw)
 
 
@@ -737,7 +751,8 @@ class _NumberedCanvas(Canvas):
         width, height = self._pagesize
         self.saveState()
         self.setFont("Helvetica-Bold", 8)
-        self.drawString(0.45 * cm, height - 0.72 * cm, f"Escala de Servico {grid.schedule_month.month:02d}/{grid.schedule_month.year} - V{version.version_number} - {_state_export_label(version)}")
+        title = f"Escala de Servico {grid.schedule_month.month:02d}/{grid.schedule_month.year} - V{version.version_number} - {_state_export_label(version)}"
+        self.drawString(0.45 * cm, height - 0.72 * cm, title[:150])
         self.setFont("Helvetica", 7)
         self.drawRightString(width - 0.45 * cm, height - 0.72 * cm, self.page_meta.exported_at.strftime("Exportado em %Y-%m-%d %H:%M UTC"))
         self.drawString(0.45 * cm, 0.45 * cm, "Documento operacional gerado pela aplicacao Escala de Servico")
@@ -768,6 +783,8 @@ def _format_datetime(value) -> str:
 
 
 def _state_export_label(version: ScheduleVersion) -> str:
+    if version.is_operational_test:
+        return "TESTE OPERACIONAL - NAO PUBLICAR"
     labels = {
         ScheduleMonthStatus.DRAFT.value: "RASCUNHO - NAO OFICIAL",
         ScheduleMonthStatus.VALIDATED.value: "VALIDADA - AGUARDA PUBLICACAO",
@@ -778,9 +795,19 @@ def _state_export_label(version: ScheduleVersion) -> str:
 
 
 def _official_label(schedule_month: ScheduleMonth, version: ScheduleVersion) -> str:
+    if version.is_operational_test:
+        return "Nao oficial - teste operacional"
     if schedule_month.published_version_id == version.id:
         return "Versao oficial publicada"
     return "Versao historica ou de trabalho"
+
+
+def _operational_test_label(version: ScheduleVersion) -> str:
+    if not version.is_operational_test:
+        return "Nao"
+    if version.is_archived:
+        return "Sim - arquivado"
+    return "Sim - nao publicar"
 
 
 def _team_code_from_group(group_label: str) -> str:

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Criar teste operacional{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Teste nao oficial</p>
+      <h1>Criar teste operacional</h1>
+      <p class="notice">A versao criada fica marcada como teste operacional e nao pode ser publicada.</p>
+    </div>
+    <div class="toolbar"><a class="button button--secondary" href="{{ url_for('operational.dashboard') }}">Voltar</a></div>
+  </header>
+
+  <form class="form-card" method="post">
+    <label><span>Ano</span><input type="number" name="year" value="{{ year }}" min="2000" max="2100" required></label>
+    <label><span>Mes</span><input type="number" name="month" value="{{ month }}" min="1" max="12" required></label>
+    <label><span>Notas</span><textarea name="notes" rows="4"></textarea></label>
+    <div class="form-actions"><button class="button" type="submit">Criar teste</button></div>
+  </form>
+{% endblock %}

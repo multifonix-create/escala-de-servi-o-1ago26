@@ -17,6 +17,13 @@
     </div>
   </header>
 
+  {% if version.is_operational_test %}
+    <section class="content-section">
+      <h2>TESTE OPERACIONAL - NAO PUBLICAR</h2>
+      <p class="notice">Diagnostico executado apenas para afericao operacional local.</p>
+    </section>
+  {% endif %}
+
   {% if run %}
     <dl class="summary-grid">
       <div><dt>Estado</dt><dd>{{ run.status }}</dd></div>

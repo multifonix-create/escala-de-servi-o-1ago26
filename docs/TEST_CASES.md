@@ -1059,4 +1059,31 @@ Continuam fora da v1.8:
 
 ---
 
+## 39-J. Casos do Teste Operacional v1.9
+
+Casos automatizados implementados na v1.9:
+
+| ID | Caso | Dominio | Resultado esperado |
+|---|---|---|---|
+| OP-101 | Controlo sem dados reais | OP/UI | `/controlo-operacional` responde e indica estado nao preparado quando nao existem militares reais. |
+| OP-102 | Prontidao operacional | OP/VALIDATION | A validacao deteta ausencia de patrulheiros, patrulheiros sem equipa e equipas sem referencia atual. |
+| OP-103 | Pre-visualizacao CSV | OP/IMPORT | Pre-visualizar CSV valido nao altera a base de dados. |
+| OP-104 | Confirmacao obrigatoria | OP/IMPORT | Importacao sem confirmacao e bloqueada. |
+| OP-105 | Idempotencia por NIM | OP/IMPORT | Reimportar o mesmo NIM nao duplica militares e preserva uma pertença atual coerente. |
+| OP-106 | Teste nao publicavel | OP/STATE | Versao marcada como teste operacional nao pode ser publicada. |
+| OP-107 | Arquivo e avaliacao | OP/STATE | Teste operacional pode ser avaliado e arquivado sem passar a `CLOSED`. |
+| OP-108 | Exportacao assinalada | OP/EXPORT | Excel e PDF de teste operacional incluem `Teste_Operacional` no nome do ficheiro. |
+| OP-109 | Conferencia de ciclo | OP/CYCLE | A pagina de conferencia calcula DS/DC a partir das referencias existentes, sem escrita. |
+
+Continuam fora da v1.9:
+
+* importacao generica de Excel;
+* autenticacao, roles e permissoes multiutilizador;
+* geracao automatica de Ronda;
+* geracao automatica de CR;
+* remunerados;
+* afinacao automatica sem dados reais fornecidos.
+
+---
+
 **Fim do documento — TEST_CASES.md**

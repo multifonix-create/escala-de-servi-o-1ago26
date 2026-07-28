@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Importacao operacional{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Dados reais</p>
+      <h1>Importacao operacional CSV</h1>
+      <p class="notice">A pre-visualizacao nao altera dados. A importacao confirmada cria backup automatico antes de escrever.</p>
+    </div>
+    <div class="toolbar"><a class="button button--secondary" href="{{ url_for('operational.dashboard') }}">Voltar</a></div>
+  </header>
+
+  <form class="form-card" method="post">
+    <label>
+      <span>Caminho do CSV</span>
+      <input type="text" name="csv_path" value="{{ csv_path }}" placeholder="C:\caminho\importacao_militares.csv" required>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" name="confirm_import">
+      <span>Confirmo importacao real apos pre-visualizacao valida.</span>
+    </label>
+    <div class="form-actions">
+      <button class="button button--secondary" name="action" value="preview" type="submit">Pre-visualizar</button>
+      <button class="button" name="action" value="import" type="submit">Importar com backup</button>
+    </div>
+  </form>
+
+  {% if preview %}
+    <section class="content-section">
+      <h2>Pre-visualizacao</h2>
+      <dl class="summary-grid">
+        <div><dt>Total</dt><dd>{{ preview.total_rows }}</dd></div>
+        <div><dt>Validas</dt><dd>{{ preview.valid_rows }}</dd></div>
+        <div><dt>Invalidas</dt><dd>{{ preview.invalid_rows }}</dd></div>
+        <div><dt>Existentes</dt><dd>{{ preview.existing_rows }}</dd></div>
+      </dl>
+      {% if preview.blockers %}
+        <ul class="compact-list">{% for blocker in preview.blockers %}<li>{{ blocker }}</li>{% endfor %}</ul>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if report %}
+    <section class="content-section">
+      <h2>Relatorio de importacao</h2>
+      <dl class="summary-grid">
+        <div><dt>Criados</dt><dd>{{ report.created }}</dd></div>
+        <div><dt>Atualizados</dt><dd>{{ report.updated }}</dd></div>
+        <div><dt>Ignorados</dt><dd>{{ report.ignored }}</dd></div>
+        <div><dt>Rejeitados</dt><dd>{{ report.rejected }}</dd></div>
+      </dl>
+      <p class="notice">Backup: {{ report.backup.path }}</p>
+    </section>
+  {% endif %}
+{% endblock %}

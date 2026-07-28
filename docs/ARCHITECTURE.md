@@ -2143,3 +2143,25 @@ Regras arquiteturais mantidas:
 * nao executa diagnostico, geracao, regeneracao ou manutencao de compensacoes;
 * nao persiste ficheiros nem cria `export_records` nesta fase;
 * `export_records` continua reservado para fase futura com auditoria/autenticacao funcional.
+
+## Nota de Implementacao v1.9 - Controlo Operacional
+
+A v1.9 acrescenta ferramentas locais de preparacao para uso com dados reais sem recriar a aplicacao existente.
+
+Componentes adicionados:
+
+* `app/routes/operational.py` para o blueprint `/controlo-operacional` e comandos CLI;
+* `app/services/backup_service.py` para backup SQLite validado antes de importacoes reais;
+* `app/services/operational_import_service.py` para pre-visualizacao/importacao CSV idempotente por NIM;
+* `app/services/operational_readiness_service.py` para validacao consultiva da prontidao dos dados reais;
+* `app/services/operational_test_service.py` para criar, arquivar e avaliar testes operacionais;
+* `templates/importacao_militares.csv` como modelo CSV sem dados ficticios.
+
+Regras arquiteturais mantidas:
+
+* nenhuma importacao real ocorre sem confirmacao explicita;
+* a pre-visualizacao CSV e operacao de leitura;
+* testes operacionais sao versoes de escala marcadas como nao oficiais e nao publicaveis;
+* arquivo de teste operacional nao usa o estado `CLOSED`;
+* Excel/PDF continuam exportacoes em memoria e assinalam testes operacionais com selo proprio;
+* a afinacao do gerador fica documentada, mas depende de dados reais e decisao do utilizador.

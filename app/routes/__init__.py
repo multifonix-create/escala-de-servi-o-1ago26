@@ -3,6 +3,7 @@ from app.routes.compensations import compensations_bp
 from app.routes.holidays import holidays_bp
 from app.routes.main import main_bp
 from app.routes.militaries import militaries_bp
+from app.routes.operational import operational_bp
 from app.routes.restrictions import military_restrictions_bp, restrictions_bp
 from app.routes.schedules import schedules_bp
 from app.routes.teams import military_teams_bp, teams_bp
@@ -18,6 +19,7 @@ __all__ = [
     "military_teams_bp",
     "military_restrictions_bp",
     "military_unavailabilities_bp",
+    "operational_bp",
     "restrictions_bp",
     "schedules_bp",
     "team_cycle_bp",

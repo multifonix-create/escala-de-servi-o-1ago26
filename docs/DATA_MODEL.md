@@ -2498,3 +2498,34 @@ Regras de integridade implementadas:
 * tipo de descanso original FR limitado a `DS` ou `DC`.
 
 A migracao aplicada foi `9a4e2b7c1d60_add_fc_fr_compensations_v1_6.py`.
+
+---
+
+## Nota de Implementacao v1.9 - Testes Operacionais
+
+A v1.9 adiciona apenas estrutura necessaria para testes operacionais e avaliacao local.
+
+Campos adicionados a `schedule_versions`:
+
+* `is_operational_test`;
+* `test_notes`;
+* `test_created_at`;
+* `is_archived`;
+* `archived_at`;
+* `archive_reason`.
+
+Tabelas adicionadas:
+
+* `operational_test_evaluations`;
+* `operational_test_evaluation_events`.
+
+Regras de dados:
+
+* `is_operational_test` distingue versoes de afericao local de versoes publicaveis;
+* `is_archived` arquiva testes sem usar o estado `CLOSED`;
+* decisoes de avaliacao permitidas: `REJECTED`, `ACCEPTABLE_WITH_CHANGES`, `APPROVED_REFERENCE`;
+* a importacao operacional reutiliza `militaries` e `military_team_history`;
+* o campo CSV `apto_cr` e aceite em pre-visualizacao, mas ainda nao tem coluna funcional persistida;
+* nao foram criados modelos de Ronda, CR automatico, remunerados, autenticacao ou auditoria funcional generica.
+
+A migracao aplicada foi `a78b8ff4bc33_add_operational_testing_support_v1_9.py`.

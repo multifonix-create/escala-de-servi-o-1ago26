@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Conferencia de ciclo{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Ciclo oficial</p>
+      <h1>Conferencia de ciclo</h1>
+      <p class="notice">Consulta read-only para conferir DS/DC calculados a partir das referencias existentes.</p>
+    </div>
+    <div class="toolbar"><a class="button button--secondary" href="{{ url_for('operational.dashboard') }}">Voltar</a></div>
+  </header>
+
+  <form class="filters" method="get">
+    <label><span>Equipa</span><select name="team_id">{% for team in teams %}<option value="{{ team.id }}" {% if selected_team and selected_team.id == team.id %}selected{% endif %}>{{ team.code }}</option>{% endfor %}</select></label>
+    <label><span>Inicio</span><input type="date" name="start_date" value="{{ start_date }}"></label>
+    <label><span>Fim</span><input type="date" name="end_date" value="{{ end_date }}"></label>
+    <button class="button" type="submit">Conferir</button>
+  </form>
+
+  {% if errors %}
+    <section class="content-section"><ul class="compact-list">{% for message in errors.values() %}<li>{{ message }}</li>{% endfor %}</ul></section>
+  {% endif %}
+
+  {% if days %}
+    <table class="data-table">
+      <thead><tr><th>Data</th><th>Dia</th><th>Fase</th><th>Codigo</th><th>Referencia</th></tr></thead>
+      <tbody>
+        {% for day in days %}
+          <tr>
+            <td>{{ day.day.isoformat() }}</td>
+            <td>{{ day.weekday_name }}</td>
+            <td>{{ day.phase }}</td>
+            <td>{{ day.code or "-" }}</td>
+            <td>{{ day.explanation.reference_date.isoformat() }} / fase {{ day.explanation.reference_phase }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

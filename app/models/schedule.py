@@ -82,6 +82,12 @@ class ScheduleVersionStateEventType(StrEnum):
     REOPENED_AS_NEW_VERSION = "REOPENED_AS_NEW_VERSION"
 
 
+class OperationalTestDecision(StrEnum):
+    REJECTED = "REJECTED"
+    ACCEPTABLE_WITH_CHANGES = "ACCEPTABLE_WITH_CHANGES"
+    APPROVED_REFERENCE = "APPROVED_REFERENCE"
+
+
 ALLOWED_SCHEDULE_MONTH_STATUSES = tuple(item.value for item in ScheduleMonthStatus)
 ALLOWED_SCHEDULE_VERSION_SOURCES = tuple(item.value for item in ScheduleVersionSource)
 ALLOWED_ASSIGNMENT_SOURCES = tuple(item.value for item in AssignmentSource)
@@ -92,6 +98,7 @@ ALLOWED_DIAGNOSTIC_RUN_STATUSES = tuple(item.value for item in DiagnosticRunStat
 ALLOWED_GENERATION_RUN_STATUSES = tuple(item.value for item in GenerationRunStatus)
 ALLOWED_GENERATION_MODES = tuple(item.value for item in GenerationMode)
 ALLOWED_SCHEDULE_VERSION_STATE_EVENT_TYPES = tuple(item.value for item in ScheduleVersionStateEventType)
+ALLOWED_OPERATIONAL_TEST_DECISIONS = tuple(item.value for item in OperationalTestDecision)
 
 
 class ScheduleMonth(db.Model):
@@ -216,6 +223,12 @@ class ScheduleVersion(db.Model):
     published_at = db.Column(db.DateTime(timezone=True), nullable=True)
     closed_at = db.Column(db.DateTime(timezone=True), nullable=True)
     state_notes = db.Column(db.Text, nullable=True)
+    is_operational_test = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    test_notes = db.Column(db.Text, nullable=True)
+    test_created_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    is_archived = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    archived_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    archive_reason = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(
         db.DateTime(timezone=True),
@@ -243,6 +256,12 @@ class ScheduleVersion(db.Model):
         "ScheduleVersionStateEvent",
         back_populates="schedule_version",
         order_by="ScheduleVersionStateEvent.created_at.asc(), ScheduleVersionStateEvent.id.asc()",
+    )
+    operational_evaluation = db.relationship(
+        "OperationalTestEvaluation",
+        back_populates="schedule_version",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
 
@@ -285,6 +304,80 @@ class ScheduleVersionStateEvent(db.Model):
 
     schedule_version = db.relationship("ScheduleVersion", back_populates="state_events")
     diagnostic_run = db.relationship("DiagnosticRun")
+
+
+class OperationalTestEvaluation(db.Model):
+    __tablename__ = "operational_test_evaluations"
+    __table_args__ = (
+        db.CheckConstraint(
+            "decision in ('REJECTED', 'ACCEPTABLE_WITH_CHANGES', 'APPROVED_REFERENCE')",
+            name="ck_operational_test_evaluations_decision",
+        ),
+        db.UniqueConstraint(
+            "schedule_version_id",
+            name="uq_operational_test_evaluations_version",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    schedule_version_id = db.Column(
+        db.Integer,
+        db.ForeignKey("schedule_versions.id"),
+        nullable=False,
+        index=True,
+    )
+    decision = db.Column(db.String(40), nullable=False, index=True)
+    notes = db.Column(db.Text, nullable=True)
+    manual_changes_count = db.Column(db.Integer, nullable=False, default=0)
+    coverage_missing_count = db.Column(db.Integer, nullable=False, default=0)
+    blocking_errors_count = db.Column(db.Integer, nullable=False, default=0)
+    warnings_count = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+    )
+
+    schedule_version = db.relationship(
+        "ScheduleVersion",
+        back_populates="operational_evaluation",
+    )
+    events = db.relationship(
+        "OperationalTestEvaluationEvent",
+        back_populates="evaluation",
+        order_by="OperationalTestEvaluationEvent.created_at.asc(), OperationalTestEvaluationEvent.id.asc()",
+        cascade="all, delete-orphan",
+    )
+
+
+class OperationalTestEvaluationEvent(db.Model):
+    __tablename__ = "operational_test_evaluation_events"
+    __table_args__ = (
+        db.CheckConstraint(
+            "previous_decision is null or previous_decision in ('REJECTED', 'ACCEPTABLE_WITH_CHANGES', 'APPROVED_REFERENCE')",
+            name="ck_operational_test_evaluation_events_previous",
+        ),
+        db.CheckConstraint(
+            "new_decision in ('REJECTED', 'ACCEPTABLE_WITH_CHANGES', 'APPROVED_REFERENCE')",
+            name="ck_operational_test_evaluation_events_new",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    evaluation_id = db.Column(
+        db.Integer,
+        db.ForeignKey("operational_test_evaluations.id"),
+        nullable=False,
+        index=True,
+    )
+    previous_decision = db.Column(db.String(40), nullable=True)
+    new_decision = db.Column(db.String(40), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    evaluation = db.relationship("OperationalTestEvaluation", back_populates="events")
 
 
 class Assignment(db.Model):

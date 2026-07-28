@@ -21,6 +21,12 @@
     </section>
   {% endif %}
 
+  {% if version.is_operational_test %}
+    <section class="content-section">
+      <h2>TESTE OPERACIONAL - NAO PUBLICAR</h2>
+      <p class="notice">Esta versao nao pode ser publicada. Arquive ou avalie o teste no controlo operacional.</p>
+    </section>
+  {% else %}
   <form class="form-card" method="post">
     <label>
       <span>Notas</span>
@@ -34,4 +40,5 @@
       <button class="button" type="submit">Publicar escala</button>
     </div>
   </form>
+  {% endif %}
 {% endblock %}

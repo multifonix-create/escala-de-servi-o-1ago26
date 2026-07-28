@@ -4,7 +4,7 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.8 - Exportacao Operacional da Escala para PDF A3
+v1.9 - Teste Operacional com Dados Reais e Afinacao do Gerador
 
 Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT, gestão funcional inicial de FF por trabalho em feriado, gestão funcional de FC e folgas reagendadas FR, exportacao operacional para Excel e exportacao operacional para PDF A3.
 
@@ -89,6 +89,11 @@ Rotas principais:
 /escala/<year>/<month>/versoes/<version_id>/historico-estado
 /escala/<year>/<month>/versoes/<version_id>/exportar/excel
 /escala/<year>/<month>/versoes/<version_id>/exportar/pdf
+/controlo-operacional
+/controlo-operacional/importacao
+/controlo-operacional/ciclo
+/controlo-operacional/teste/criar
+/controlo-operacional/teste/<version_id>/avaliar
 /escala/<year>/<month>/versoes/<version_id>/ff/processar
 /escala/<year>/<month>/versoes/<version_id>/compensacoes/processar
 /feriados
@@ -137,7 +142,18 @@ flask process-compensations
 flask process-compensations --date 2027-01-01
 ```
 
-## Estado da v1.8
+## Controlo operacional v1.9
+
+```powershell
+$env:FLASK_APP = "run.py"
+flask validate-real-data
+flask preview-military-import templates\importacao_militares.csv
+flask import-military-data caminho\para\militares.csv --confirm
+```
+
+O ficheiro `templates/importacao_militares.csv` contem apenas o cabecalho esperado. A importacao confirmada cria backup automatico da base real antes de escrever.
+
+## Estado da v1.9
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -216,6 +232,13 @@ flask process-compensations --date 2027-01-01
 - Exportacao operacional Excel em memoria, sem persistir ficheiros.
 - Exportacao operacional PDF A3 em memoria, sem persistir ficheiros.
 - PDF com grelha mensal, legenda, resumo, diagnostico persistido e alteracoes manuais quando existirem.
+- Controlo operacional local em `/controlo-operacional`.
+- Pre-visualizacao CSV sem escrita na base de dados.
+- Importacao CSV real apenas com `--confirm` ou confirmacao explicita na interface, sempre com backup.
+- Versoes de teste operacional assinaladas com `TESTE OPERACIONAL - NAO PUBLICAR`.
+- Testes operacionais bloqueados para publicacao.
+- Arquivo e avaliacao local de testes operacionais.
+- Afinacao do gerador dependente de dados reais e comparacao operacional fornecida pelo utilizador.
 - Migração v1.6: `9a4e2b7c1d60_add_fc_fr_compensations_v1_6.py`.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
