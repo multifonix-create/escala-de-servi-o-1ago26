@@ -50,6 +50,14 @@ class ScheduleVersionPolicy:
     def can_run_diagnostic(self) -> bool:
         return self.version is not None
 
+    def can_export(self) -> bool:
+        return self.status in {
+            ScheduleMonthStatus.DRAFT.value,
+            ScheduleMonthStatus.VALIDATED.value,
+            ScheduleMonthStatus.PUBLISHED.value,
+            ScheduleMonthStatus.CLOSED.value,
+        }
+
     def as_dict(self) -> dict[str, bool]:
         return {
             "edit": self.can_edit(),
@@ -64,4 +72,5 @@ class ScheduleVersionPolicy:
             "schedule_fc": self.can_schedule_fc(),
             "schedule_fr": self.can_schedule_fr(),
             "run_diagnostic": self.can_run_diagnostic(),
+            "export": self.can_export(),
         }

@@ -1,7 +1,7 @@
 import json
 from datetime import date, time
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 
 from app.extensions import db
 from app.services import ScheduleServiceError
@@ -18,6 +18,7 @@ from app.services.assignment_service import (
     validate_assignment,
 )
 from app.services.diagnostic_service import ScheduleDiagnosticService, latest_run
+from app.services.export_service import ScheduleExcelExportError, ScheduleExcelExportService
 from app.services.compensation_service import CompensationMaintenanceService
 from app.services.monthly_grid_builder import build_monthly_grid
 from app.services.schedule_generator import PTGenerationOptions, ScheduleGenerationError, ScheduleGenerator, latest_generation_run
@@ -148,6 +149,25 @@ def version_detail(year: int, month: int, version_id: int):
         previous_month=previous_month_number,
         next_year=next_year,
         next_month=next_month_number,
+    )
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/exportar/excel")
+def export_version_excel(year: int, month: int, version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    try:
+        result = ScheduleExcelExportService().export_version(schedule_month, version)
+    except ScheduleExcelExportError:
+        abort(404)
+    return send_file(
+        result.stream,
+        mimetype=result.mimetype,
+        as_attachment=True,
+        download_name=result.filename,
+        max_age=0,
     )
 
 

@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v1.6 - Gestao Funcional de FC e Folgas Reagendadas`.
+Versão atual: `v1.7 - Exportacao Operacional da Escala para Excel`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -491,7 +491,6 @@ Continuam fora do ambito:
 * geracao automatica de Ronda;
 * geracao automatica de CR;
 * remunerados;
-* exportacoes operacionais;
 * autenticacao completa;
 * notificacoes.
 
@@ -533,6 +532,35 @@ Regras implementadas na v1.6:
 * o editor generico nao deve criar, limpar, desbloquear ou alterar celulas `FF`, `FC` ou `FR` ligadas;
 * versoes `VALIDATED`, `PUBLISHED` e `CLOSED` nao recebem novos agendamentos FC/FR.
 
+## Complemento v1.7 - Exportacao Operacional para Excel
+
+A v1.7 acrescenta exportacao operacional da escala mensal para Excel, reutilizando a infraestrutura existente.
+
+Existe atualmente:
+
+* dependencia `openpyxl==3.1.5`;
+* servico central `app/services/export_service.py`;
+* politica `ScheduleVersionPolicy.can_export()`;
+* rota `GET /escala/<year>/<month>/versoes/<version_id>/exportar/excel`;
+* botao `Exportar Excel` na pagina mensal da versao;
+* configuracao `UNIT_NAME`, por defeito `Unidade nao definida`;
+* folhas Excel `Escala Mensal`, `Legenda`, `Resumo` e `Diagnostico`;
+* folha `Alteracoes Manuais` quando existirem atribuicoes manuais;
+* nomes de ficheiro seguros como `Escala_2026_01_Versao_1_Rascunho.xlsx`;
+* protecao contra formula injection em textos exportados;
+* estilos, legenda, comentarios, resumo, cobertura AT/PO e configuracao de impressao A3.
+
+Decisoes da v1.7:
+
+* a exportacao usa `MonthlyGridBuilder` como fonte da grelha e nao duplica a logica de ciclo/prioridade visual;
+* a exportacao e permitida para `DRAFT`, `VALIDATED`, `PUBLISHED` e `CLOSED`;
+* `DRAFT` e assinalada como `RASCUNHO - NAO OFICIAL`;
+* `PUBLISHED` e assinalada como `VERSAO OFICIAL`;
+* `CLOSED` e assinalada como `ESCALA ENCERRADA`;
+* a exportacao nao executa diagnostico, geracao, regeneracao nem manutencao de compensacoes;
+* a exportacao nao altera a base de dados, nao cria ficheiros persistentes e nao cria `export_records` nesta fase;
+* a tabela `export_records` continua pendente para fase futura com auditoria/autenticacao funcional.
+
 ## Ainda Não Existe
 
 Ainda não existem:
@@ -543,7 +571,8 @@ Ainda não existem:
 * geracao automatica de Ronda;
 * geracao automatica de CR;
 * remunerados;
-* exportações operacionais.
+* exportacao PDF;
+* registo persistente/auditoria funcional de exportacoes.
 
 ## Documentos Existentes
 
@@ -605,7 +634,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 * A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs`, `assignment_selection_details`, `holidays`, `holiday_leave_credits`, `holiday_leave_credit_events`, `compensatory_leave_credits`, `compensatory_leave_credit_events`, `rescheduled_rest_credits` e `rescheduled_rest_credit_events`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração, detalhes de seleção, feriados, créditos FF, eventos FF, creditos FC, eventos FC, direitos FR nem eventos FR apos a v1.6.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração, detalhes de seleção, feriados, créditos FF, eventos FF, creditos FC, eventos FC, direitos FR, eventos FR nem registos de exportacao apos a v1.7.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
@@ -615,6 +644,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 * A compensação por DS/DC pode criar `FR` apenas apos confirmacao explicita de potencial.
 * A FF por trabalho em feriado existe como crédito funcional autónomo e exige feriado/atribuição de origem.
 * A FC por R/CR ou decisao de comando existe como credito funcional autonomo e separado de FF/FR.
+* A exportacao Excel operacional existe como download direto em memoria e nao persiste ficheiros ou auditoria funcional.
 * Não foi implementada autenticação completa.
 * Não foi implementada CSRF; os formulários usam POST e estão preparados para integração futura.
 * Auditoria funcional genérica fica para versão futura.
@@ -627,11 +657,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-243 passed
+246 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v1.7 - proxima etapa a definir pelo utilizador`, sem avancar para varias funcionalidades grandes em simultaneo.
+`v1.8 - proxima etapa a definir pelo utilizador`, sem avancar para varias funcionalidades grandes em simultaneo.

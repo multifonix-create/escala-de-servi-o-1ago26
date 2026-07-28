@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.6 - Gestao Funcional de FC e Folgas Reagendadas
+v1.7 - Exportacao Operacional da Escala para Excel
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT, gestão funcional inicial de FF por trabalho em feriado, gestão funcional de FC e folgas reagendadas FR.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT, gestão funcional inicial de FF por trabalho em feriado, gestão funcional de FC e folgas reagendadas FR e exportacao operacional para Excel.
 
 ## Requisitos
 
@@ -87,6 +87,7 @@ Rotas principais:
 /escala/<year>/<month>/versoes/<version_id>/encerrar
 /escala/<year>/<month>/versoes/<version_id>/criar-correcao
 /escala/<year>/<month>/versoes/<version_id>/historico-estado
+/escala/<year>/<month>/versoes/<version_id>/exportar/excel
 /escala/<year>/<month>/versoes/<version_id>/ff/processar
 /escala/<year>/<month>/versoes/<version_id>/compensacoes/processar
 /feriados
@@ -135,7 +136,7 @@ flask process-compensations
 flask process-compensations --date 2027-01-01
 ```
 
-## Estado da v1.6
+## Estado da v1.7
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -219,5 +220,7 @@ flask process-compensations --date 2027-01-01
 - Sem indisponibilidades fictícias.
 - Sem escalas fictícias.
 - Sem geracao automatica de Ronda ou CR.
+- Sem exportacao PDF.
+- Sem registo persistente/auditoria funcional de exportacoes.
 - Sem correção automática de problemas de diagnóstico.
 - Sem autenticação completa.

@@ -64,6 +64,9 @@
       {% if grid.version %}
         <a class="button button--secondary" href="{{ url_for('schedules.diagnostic_index', year=year, month=month, version_id=grid.version.id) }}">Diagnostico</a>
         <a class="button button--secondary" href="{{ url_for('schedules.state_history', year=year, month=month, version_id=grid.version.id) }}">Historico de estado</a>
+        {% if version_permissions.export %}
+          <a class="button button--secondary" href="{{ url_for('schedules.export_version_excel', year=year, month=month, version_id=grid.version.id) }}">Exportar Excel</a>
+        {% endif %}
         {% if version_permissions.generate %}
           <a class="button button--secondary" href="{{ url_for('schedules.generation_index', year=year, month=month, version_id=grid.version.id) }}">Completar celulas vazias</a>
         {% endif %}

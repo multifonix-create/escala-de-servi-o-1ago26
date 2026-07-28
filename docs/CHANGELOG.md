@@ -1,5 +1,46 @@
 # Changelog
 
+## v1.7 - 2026-07-28
+
+### Adicionado
+- Criada exportacao operacional da escala mensal para Excel.
+- Adicionado servico central `app/services/export_service.py`.
+- Adicionada rota `GET /escala/<year>/<month>/versoes/<version_id>/exportar/excel`.
+- Adicionado botao `Exportar Excel` na grelha mensal.
+- Adicionada politica `ScheduleVersionPolicy.can_export()`.
+- Adicionada dependencia `openpyxl==3.1.5`.
+- Adicionados testes em `tests/test_excel_export.py`.
+
+### Regras
+- A exportacao reutiliza `MonthlyGridBuilder` e representa a versao selecionada.
+- Estados exportaveis: `DRAFT`, `VALIDATED`, `PUBLISHED` e `CLOSED`.
+- A exportacao nao executa diagnostico, geracao, regeneracao ou manutencao de compensacoes.
+- A exportacao nao altera a base de dados e nao persiste ficheiros XLSX.
+- Textos exportados recebem protecao contra formula injection.
+
+### Migraçao
+- Nao foi criada migracao na v1.7.
+- A revisao Alembic mantem-se em `9a4e2b7c1d60`.
+- Nao foram alteradas migracoes anteriores.
+
+### Testes
+- Suite nova v1.7 validada com `3 passed`.
+- Suite completa validada com `246 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real permaneceu intacta.
+- Nao foram criados militares, equipas, escalas, atribuicoes, diagnosticos, creditos, ficheiros exportados persistentes ou dados ficticios.
+
+### Limitacoes
+- Sem exportacao PDF.
+- Sem registo persistente/auditoria funcional de exportacoes.
+- Sem geracao automatica de Ronda.
+- Sem geracao automatica de CR.
+- Sem remunerados.
+- Sem notificacoes.
+- Sem autenticacao completa.
+
 ## v1.6 - 2026-07-28
 
 ### Adicionado

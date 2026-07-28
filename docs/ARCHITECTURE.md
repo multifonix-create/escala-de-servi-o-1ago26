@@ -2101,3 +2101,24 @@ Regras arquiteturais mantidas:
 * a manutencao de FC e idempotente e nao corre no arranque;
 * versoes nao `DRAFT` nao recebem novos agendamentos FC/FR;
 * nao foram criados dados demonstrativos ou ficticios.
+
+## Nota de Implementacao v1.7 - Exportacao Excel
+
+A implementacao atual acrescenta exportacao operacional para Excel sem recriar a aplicacao existente.
+
+Componentes adicionados:
+
+* `app/services/export_service.py` para construir workbooks `.xlsx` em memoria;
+* `ScheduleVersionPolicy.can_export()` para centralizar estados exportaveis;
+* rota `GET /escala/<year>/<month>/versoes/<version_id>/exportar/excel`;
+* botao de exportacao na vista mensal;
+* dependencia `openpyxl==3.1.5`.
+
+Regras arquiteturais mantidas:
+
+* a exportacao recebe a grelha preparada por `MonthlyGridBuilder`;
+* a rota nao contem logica de composicao Excel;
+* a exportacao e uma operacao de leitura e nao altera dados;
+* nao executa diagnostico, geracao, regeneracao ou manutencao de compensacoes;
+* nao persiste ficheiros nem cria `export_records` nesta fase;
+* `export_records` continua reservado para fase futura com auditoria/autenticacao funcional.

@@ -1007,4 +1007,32 @@ Continuam fora da v1.6:
 
 ---
 
+
+## 39-H. Casos da Exportacao Operacional Excel v1.7
+
+Casos automatizados implementados na v1.7:
+
+| ID | Caso | Dominio | Resultado esperado |
+|---|---|---|---|
+| EXPORT-101 | Workbook operacional | EXPORT/EXCEL | A exportacao cria `.xlsx` com folhas `Escala Mensal`, `Legenda`, `Resumo` e `Diagnostico`. |
+| EXPORT-102 | Versao selecionada | EXPORT/STATE | A exportacao usa a versao pedida e indica estado, numero, revisao e selo operacional. |
+| EXPORT-103 | Alteracoes manuais | EXPORT/MANUAL | Quando existem atribuicoes manuais, a folha `Alteracoes Manuais` e criada. |
+| EXPORT-104 | Diagnostico existente | EXPORT/DIAG | A folha `Diagnostico` usa apenas diagnostico persistido e nao executa novo diagnostico. |
+| EXPORT-105 | Formula injection | EXPORT/SECURITY | Textos iniciados por `=`, `+`, `-` ou `@` sao exportados como texto seguro. |
+| EXPORT-106 | Rota Excel | EXPORT/UI | `GET /escala/<year>/<month>/versoes/<version_id>/exportar/excel` devolve ficheiro XLSX. |
+| EXPORT-107 | Base inalterada | EXPORT/DB | Exportar nao cria atribuicoes, diagnosticos, creditos, ficheiros persistentes ou dados ficticios. |
+| EXPORT-108 | Versao oficial | EXPORT/STATE | Versao publicada selecionada aparece como `VERSAO OFICIAL`. |
+
+Continuam fora da v1.7:
+
+* exportacao PDF;
+* registo persistente/auditoria funcional de exportacoes;
+* geracao automatica de Ronda;
+* geracao automatica de CR;
+* remunerados;
+* notificacoes;
+* autenticacao completa.
+
+---
+
 **Fim do documento — TEST_CASES.md**
