@@ -272,6 +272,24 @@ textarea {
   width: auto;
 }
 
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fieldset-panel {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.fieldset-panel legend {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .full-width {
   grid-column: 1 / -1;
 }
@@ -359,7 +377,8 @@ th {
   .summary-grid,
   .detail-grid,
   .filters,
-  .form-grid {
+  .form-grid,
+  .checkbox-grid {
     display: grid;
     grid-template-columns: 1fr;
   }

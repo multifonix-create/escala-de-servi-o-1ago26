@@ -38,6 +38,11 @@ class Military(db.Model):
         back_populates="military",
         order_by="MilitaryTeamHistory.start_date.asc()",
     )
+    restrictions = db.relationship(
+        "MilitaryRestriction",
+        back_populates="military",
+        order_by="MilitaryRestriction.start_date.desc()",
+    )
 
     def has_inactive_date_warning(self, today=None) -> bool:
         reference_date = today or utc_now().date()
@@ -59,3 +64,7 @@ class Military(db.Model):
     def current_team(self):
         membership = self.current_team_membership
         return membership.team if membership else None
+
+    @property
+    def active_restrictions(self):
+        return [restriction for restriction in self.restrictions if restriction.is_active]

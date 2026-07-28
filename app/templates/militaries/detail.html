@@ -23,6 +23,15 @@
     <div><dt>Tipo funcional</dt><dd>{{ military.functional_type }}</dd></div>
     <div><dt>Estado</dt><dd>{{ "Ativo" if military.is_active else "Inativo" }}</dd></div>
     <div>
+      <dt>Restrições ativas</dt>
+      <dd>
+        {{ military.active_restrictions | length }}
+        {% if military.active_restrictions %}
+          <span class="muted">Existem restrições individuais ativas.</span>
+        {% endif %}
+      </dd>
+    </div>
+    <div>
       <dt>Equipa atual</dt>
       <dd>
         {% if military.functional_type != "PATRULHEIRO" %}
@@ -44,6 +53,16 @@
   <section class="content-section">
     <h2>Notas</h2>
     <p>{{ military.notes or "Sem notas registadas." }}</p>
+  </section>
+
+  <section class="content-section">
+    <h2>Restrições individuais</h2>
+    <p>As restrições são configuradas e consultadas nesta versão; ainda não criam serviços nem escala.</p>
+    <div class="toolbar">
+      <a class="button" href="{{ url_for('military_restrictions.military_restrictions', military_id=military.id) }}">Consultar restrições</a>
+      <a class="button button--secondary" href="{{ url_for('military_restrictions.new_restriction_form', military_id=military.id) }}">Adicionar restrição</a>
+      <a class="button button--secondary" href="{{ url_for('military_restrictions.test_restrictions_form', military_id=military.id) }}">Testar compatibilidade</a>
+    </div>
   </section>
 
   <section class="content-section">

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Nova restrição{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Restrições individuais</p>
+      <h1>Nova restrição</h1>
+      <p class="notice">{{ military.name }} · {{ military.nim }}</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('military_restrictions.military_restrictions', military_id=military.id) }}">Voltar</a>
+  </section>
+
+  <form class="form-panel" method="post" action="{{ url_for('military_restrictions.create_restriction', military_id=military.id) }}">
+    {% include "restrictions/_form.html" %}
+    <div class="form-actions">
+      <button class="button" type="submit">Guardar restrição</button>
+    </div>
+  </form>
+{% endblock %}

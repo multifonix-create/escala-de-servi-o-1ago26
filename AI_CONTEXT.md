@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v0.4 - Referências e Cálculo do Ciclo de Folgas`.
+Versão atual: `v0.5 - Restrições Individuais dos Militares`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -104,6 +104,41 @@ Adaptação ao `DATA_MODEL.md`:
 * o pedido v0.4 usa `notes`; o `DATA_MODEL.md` menciona `reason`;
 * a v0.4 implementa `notes`, mantendo a intenção funcional de observações/motivo sem criar utilizadores ou `created_by` antes da fase de autenticação.
 
+## v0.5 - Restrições Individuais dos Militares
+
+A v0.5 está concluída com:
+
+* modelo `MilitaryRestriction`;
+* tabela `military_restrictions`;
+* migração `671d9ca0bf61_create_military_restrictions.py`;
+* tipos de restrição `UNAVAILABLE`, `AVAILABLE_ONLY` e `SPECIAL_AVAILABILITY`;
+* períodos de validade com data inicial obrigatória e data final opcional;
+* restrições por dias da semana, com ausência de seleção interpretada como todos os dias do período;
+* restrições de dia inteiro;
+* janelas horárias normais e janelas que atravessam a meia-noite;
+* ativação e desativação sem eliminação definitiva;
+* serviço central `app/services/restriction_evaluator.py` para avaliar compatibilidade;
+* bloqueio por restrições absolutas `UNAVAILABLE`;
+* disponibilidade especial sem remoção de restrições absolutas;
+* prevalência da regra mais restritiva;
+* tester de compatibilidade por militar, data e período horário;
+* resumo de restrições na ficha do militar;
+* histórico preservado por registos datados e estado ativo/inativo.
+
+Rotas principais da v0.5:
+
+* `GET /restricoes`;
+* `GET /militares/<id>/restricoes`;
+* `GET /militares/<id>/restricoes/nova`;
+* `POST /militares/<id>/restricoes/nova`;
+* `GET /militares/<id>/restricoes/<restriction_id>`;
+* `GET /militares/<id>/restricoes/<restriction_id>/editar`;
+* `POST /militares/<id>/restricoes/<restriction_id>/editar`;
+* `POST /militares/<id>/restricoes/<restriction_id>/ativar`;
+* `POST /militares/<id>/restricoes/<restriction_id>/desativar`;
+* `GET /militares/<id>/restricoes/testar`;
+* `POST /militares/<id>/restricoes/testar`.
+
 ## Ainda Não Existe
 
 Ainda não existem:
@@ -117,7 +152,6 @@ Ainda não existem:
 * registos diários;
 * motor de geração;
 * indisponibilidades;
-* restrições horárias;
 * autenticação completa;
 * auditoria funcional genérica;
 * diagnósticos completos;
@@ -184,12 +218,14 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 ## Decisões e Limitações Atuais
 
-* A base real contém as tabelas `militaries`, `teams`, `military_team_history` e `team_cycle_references`.
+* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references` e `military_restrictions`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa nem referências de ciclo após a v0.4.
+* A base real não contém militares, pertenças de equipa, referências de ciclo nem restrições individuais após a v0.5.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
+* Restrições individuais não são ainda usadas por um motor de geração de escala.
+* Indisponibilidades operacionais como LF, BM, DIL, tribunal ou inquérito ainda não foram implementadas.
 * Não foi implementada autenticação completa.
 * Não foi implementada CSRF; os formulários usam POST e estão preparados para integração futura.
 * Auditoria funcional genérica fica para versão futura.
@@ -202,11 +238,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-89 passed
+120 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v0.5 - Restrições Individuais dos Militares`.
+`v0.6 - Indisponibilidades dos Militares`.

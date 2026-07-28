@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v0.4 - Referências e Cálculo do Ciclo de Folgas
+v0.5 - Restrições Individuais dos Militares
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença e referências do ciclo de folgas.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas e restrições individuais dos militares.
 
 ## Requisitos
 
@@ -67,12 +67,16 @@ Rotas principais:
 /ciclo
 /ciclo/configurar
 /ciclo/pre-visualizar
+/restricoes
 /equipas/<id>/ciclo
 /equipas/<id>/ciclo/nova-referencia
 /equipas/<id>/ciclo/historico
 /militares/<id>/equipa
 /militares/<id>/equipa/mudar
 /militares/<id>/historico-equipas
+/militares/<id>/restricoes
+/militares/<id>/restricoes/nova
+/militares/<id>/restricoes/testar
 ```
 
 ## Testes
@@ -81,14 +85,19 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v0.4
+## Estado da v0.5
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
 - Cálculo determinístico de fases, DS e DC.
+- Restrições individuais configuráveis por militar.
+- Tipos de restrição suportados: indisponível, disponível apenas e disponibilidade especial.
+- Avaliador central de compatibilidade com datas, dias da semana e janelas horárias.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.
+- Sem restrições fictícias.
 - Sem escalas.
 - Sem motor de geração.
+- Sem indisponibilidades operacionais LF, BM, DIL, tribunal ou inquérito.
 - Sem autenticação completa.

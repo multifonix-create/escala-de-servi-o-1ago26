@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Restrições de {{ military.name }}{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Ficha individual</p>
+      <h1>Restrições de {{ military.name }}</h1>
+      <p class="notice">{{ military.nim }}</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('militaries.detail_military', military_id=military.id) }}">Voltar</a>
+      <a class="button" href="{{ url_for('military_restrictions.new_restriction_form', military_id=military.id) }}">Adicionar</a>
+      <a class="button button--secondary" href="{{ url_for('military_restrictions.test_restrictions_form', military_id=military.id) }}">Testar</a>
+    </div>
+  </section>
+
+  {% if restrictions %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Período</th>
+            <th>Horário</th>
+            <th>Dias</th>
+            <th>Estado</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for restriction in restrictions %}
+            <tr>
+              <td>{{ restriction.restriction_type }}</td>
+              <td>{{ restriction.start_date.isoformat() }} a {{ restriction.end_date.isoformat() if restriction.end_date else "sem fim" }}</td>
+              <td>{{ "Dia completo" if restriction.is_full_day else restriction.start_time.strftime("%H:%M") ~ " - " ~ restriction.end_time.strftime("%H:%M") }}</td>
+              <td>{{ weekdays_summary(restriction) }}</td>
+              <td><span class="status {{ 'status--active' if restriction.is_active else 'status--inactive' }}">{{ "Ativa" if restriction.is_active else "Inativa" }}</span></td>
+              <td><a href="{{ url_for('military_restrictions.detail_restriction', military_id=military.id, restriction_id=restriction.id) }}">Ver</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <section class="empty-state">
+      <h2>Sem restrições</h2>
+      <p>Este militar ainda não possui restrições individuais registadas.</p>
+    </section>
+  {% endif %}
+{% endblock %}

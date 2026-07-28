@@ -1,0 +1,80 @@
+{% set weekday_labels = {
+  "monday": "segunda-feira",
+  "tuesday": "terça-feira",
+  "wednesday": "quarta-feira",
+  "thursday": "quinta-feira",
+  "friday": "sexta-feira",
+  "saturday": "sábado",
+  "sunday": "domingo"
+} %}
+
+<div class="form-grid">
+  <label>
+    <span>Tipo</span>
+    <select name="restriction_type" required>
+      <option value="">Selecionar</option>
+      {% for item in restriction_types %}
+        <option value="{{ item.value }}" {% if form_data.restriction_type == item.value %}selected{% endif %}>{{ item.value }}</option>
+      {% endfor %}
+    </select>
+    {% if errors.restriction_type %}<small class="field-error">{{ errors.restriction_type }}</small>{% endif %}
+  </label>
+  <label>
+    <span>Data inicial</span>
+    <input type="date" name="start_date" value="{{ form_data.start_date }}" required>
+    {% if errors.start_date %}<small class="field-error">{{ errors.start_date }}</small>{% endif %}
+  </label>
+  <label>
+    <span>Data final</span>
+    <input type="date" name="end_date" value="{{ form_data.end_date }}">
+    {% if errors.end_date %}<small class="field-error">{{ errors.end_date }}</small>{% endif %}
+  </label>
+  <label class="checkbox-field">
+    <input type="checkbox" name="is_full_day" value="1" {% if form_data.is_full_day %}checked{% endif %}>
+    <span>Dia completo</span>
+    {% if errors.is_full_day %}<small class="field-error">{{ errors.is_full_day }}</small>{% endif %}
+  </label>
+  <label>
+    <span>Hora inicial</span>
+    <input type="time" name="start_time" value="{{ form_data.start_time }}">
+    {% if errors.start_time %}<small class="field-error">{{ errors.start_time }}</small>{% endif %}
+  </label>
+  <label>
+    <span>Hora final</span>
+    <input type="time" name="end_time" value="{{ form_data.end_time }}">
+    {% if errors.end_time %}<small class="field-error">{{ errors.end_time }}</small>{% endif %}
+  </label>
+  <fieldset class="full-width fieldset-panel">
+    <legend>Dias da semana</legend>
+    <p class="notice">Sem dias selecionados significa todos os dias dentro do período de validade.</p>
+    <div class="checkbox-grid">
+      {% for field in weekday_fields %}
+        <label class="checkbox-field">
+          <input type="checkbox" name="{{ field }}" value="1" {% if form_data[field] %}checked{% endif %}>
+          <span>{{ weekday_labels[field] }}</span>
+        </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <label class="checkbox-field">
+    <input type="checkbox" name="is_active" value="1" {% if form_data.is_active %}checked{% endif %}>
+    <span>Ativa</span>
+  </label>
+  <label class="full-width">
+    <span>Motivo</span>
+    <input type="text" name="reason" value="{{ form_data.reason }}" required>
+    {% if errors.reason %}<small class="field-error">{{ errors.reason }}</small>{% endif %}
+    {% if errors.duplicate %}<small class="field-error">{{ errors.duplicate }}</small>{% endif %}
+  </label>
+  <label class="full-width">
+    <span>Notas</span>
+    <textarea name="notes" rows="4">{{ form_data.notes }}</textarea>
+    {% if errors.notes %}<small class="field-error">{{ errors.notes }}</small>{% endif %}
+  </label>
+</div>
+
+<section class="content-section">
+  <h2>Semântica</h2>
+  <p><strong>UNAVAILABLE</strong> bloqueia qualquer sobreposição. <strong>AVAILABLE_ONLY</strong> só permite serviços totalmente contidos na janela. <strong>SPECIAL_AVAILABILITY</strong> autoriza apenas o intervalo definido e não elimina restrições absolutas.</p>
+  <p>Quando a hora final é igual ou anterior à inicial, o intervalo é tratado como noturno e termina no dia seguinte.</p>
+</section>

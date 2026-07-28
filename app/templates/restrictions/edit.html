@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Editar restrição{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Restrições individuais</p>
+      <h1>Editar restrição</h1>
+      <p class="notice">{{ military.name }} · {{ restriction.restriction_type }}</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('military_restrictions.detail_restriction', military_id=military.id, restriction_id=restriction.id) }}">Voltar</a>
+  </section>
+
+  <form class="form-panel" method="post" action="{{ url_for('military_restrictions.edit_restriction', military_id=military.id, restriction_id=restriction.id) }}">
+    {% include "restrictions/_form.html" %}
+    <div class="form-actions">
+      <button class="button" type="submit">Guardar alterações</button>
+    </div>
+  </form>
+{% endblock %}

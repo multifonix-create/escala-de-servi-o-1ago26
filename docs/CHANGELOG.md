@@ -1,5 +1,49 @@
 # Changelog
 
+## v0.5 - 2026-07-27
+
+### Adicionado
+- Criada gestão de restrições individuais dos militares.
+- Adicionado modelo `MilitaryRestriction`.
+- Adicionado serviço central `app/services/restriction_evaluator.py` para avaliar compatibilidade de um militar com uma data e janela horária.
+- Adicionados tipos `UNAVAILABLE`, `AVAILABLE_ONLY` e `SPECIAL_AVAILABILITY`.
+- Criadas páginas para listagem global, listagem por militar, criação, detalhe, edição, ativação, desativação e teste de compatibilidade.
+- Integrado resumo de restrições ativas na ficha do militar.
+
+### Regras
+- `UNAVAILABLE` é restrição absoluta e bloqueia sempre quando aplicável.
+- `SPECIAL_AVAILABILITY` só permite exatamente o período registado e não remove restrições absolutas.
+- `AVAILABLE_ONLY` limita a disponibilidade aos períodos registados.
+- Quando há conflito, prevalece a regra mais restritiva.
+- Sem dias da semana selecionados significa todos os dias dentro do período de validade.
+- Janelas de dia inteiro, janelas normais e janelas que atravessam a meia-noite são suportadas.
+- Registos são preservados por histórico; ativar/desativar não elimina dados.
+
+### Migração
+- Criada e aplicada a migração `671d9ca0bf61_create_military_restrictions.py`.
+- Criada apenas a tabela `military_restrictions`.
+- Não foram alteradas migrações anteriores.
+- Não foram criados dados iniciais, fictícios ou demonstrativos.
+- Criada cópia de segurança prévia da base real em `instance/backups/escala_20260727_170839.db`.
+
+### Testes
+- Adicionados testes de modelo, validação, dias da semana, dia inteiro, janelas horárias, períodos noturnos, prioridade, disponibilidade especial, rotas e isolamento.
+- Suite completa validada com `120 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` pertenças.
+- A base real ficou com `0` referências do ciclo.
+- A base real ficou com `0` restrições individuais.
+- Revisão Alembic atual: `671d9ca0bf61`.
+- Não foram criados dados fictícios ou demonstrativos.
+
+### Limitações
+- Sem indisponibilidades LF, BM, DIL, tribunal, inquérito ou equivalentes.
+- Sem geração de escala, grelha mensal, atribuições AT/PO/PT, diagnósticos, FF, FC, remunerados, exportações, autenticação completa e auditoria funcional genérica.
+
 ## v0.4 - 2026-07-27
 
 ### Adicionado

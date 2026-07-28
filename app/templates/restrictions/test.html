@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Testar restrições{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Testador manual</p>
+      <h1>Testar compatibilidade</h1>
+      <p class="notice">{{ military.name }} · nenhum serviço será guardado.</p>
+    </div>
+    <a class="button button--secondary" href="{{ url_for('military_restrictions.military_restrictions', military_id=military.id) }}">Voltar</a>
+  </section>
+
+  <form class="form-panel" method="post" action="{{ url_for('military_restrictions.test_restrictions', military_id=military.id) }}">
+    <div class="form-grid">
+      <label>
+        <span>Data</span>
+        <input type="date" name="service_date" value="{{ form_data.service_date }}" required>
+        {% if errors.service_date %}<small class="field-error">{{ errors.service_date }}</small>{% endif %}
+      </label>
+      <label>
+        <span>Hora inicial</span>
+        <input type="time" name="start_time" value="{{ form_data.start_time }}" required>
+        {% if errors.start_time %}<small class="field-error">{{ errors.start_time }}</small>{% endif %}
+      </label>
+      <label>
+        <span>Hora final</span>
+        <input type="time" name="end_time" value="{{ form_data.end_time }}" required>
+        {% if errors.end_time %}<small class="field-error">{{ errors.end_time }}</small>{% endif %}
+      </label>
+      <label class="full-width">
+        <span>Descrição opcional</span>
+        <input type="text" name="description" value="{{ form_data.description }}">
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="button" type="submit">Testar</button>
+    </div>
+  </form>
+
+  {% if evaluation %}
+    <section class="content-section">
+      <h2>Resultado</h2>
+      <p>
+        <span class="status {{ 'status--active' if evaluation.allowed else 'status--inactive' }}">
+          {{ "Permitido" if evaluation.allowed else "Bloqueado" }}
+        </span>
+      </p>
+      <p>{{ evaluation.reason }}</p>
+      <p class="muted">Decisão: {{ evaluation.decision }} · Prioridade: {{ evaluation.priority }}</p>
+      <h3>Restrições consideradas</h3>
+      {% if evaluation.considered_restrictions %}
+        <ul>
+          {% for restriction in evaluation.considered_restrictions %}
+            <li>{{ restriction.restriction_type }} desde {{ restriction.start_date.isoformat() }} — {{ restriction.reason }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>Não existem restrições ativas no intervalo testado.</p>
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}

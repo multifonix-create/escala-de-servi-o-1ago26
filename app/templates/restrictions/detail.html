@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Restrição{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Restrição individual</p>
+      <h1>{{ restriction.restriction_type }}</h1>
+      <p class="notice">{{ military.name }} · {{ military.nim }}</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('military_restrictions.military_restrictions', military_id=military.id) }}">Voltar</a>
+      <a class="button" href="{{ url_for('military_restrictions.edit_restriction_form', military_id=military.id, restriction_id=restriction.id) }}">Editar</a>
+    </div>
+  </section>
+
+  <section class="detail-grid">
+    <div><dt>Período</dt><dd>{{ restriction.start_date.isoformat() }} a {{ restriction.end_date.isoformat() if restriction.end_date else "sem fim" }}</dd></div>
+    <div><dt>Horário</dt><dd>{{ "Dia completo" if restriction.is_full_day else restriction.start_time.strftime("%H:%M") ~ " - " ~ restriction.end_time.strftime("%H:%M") }}</dd></div>
+    <div><dt>Dias</dt><dd>{{ weekdays_summary(restriction) }}</dd></div>
+    <div><dt>Estado</dt><dd>{{ "Ativa" if restriction.is_active else "Inativa" }}</dd></div>
+    <div><dt>Motivo</dt><dd>{{ restriction.reason }}</dd></div>
+    <div><dt>Notas</dt><dd>{{ restriction.notes or "-" }}</dd></div>
+  </section>
+
+  <section class="danger-zone">
+    <h2>Estado da restrição</h2>
+    {% if restriction.is_active %}
+      <form method="post" action="{{ url_for('military_restrictions.deactivate_restriction', military_id=military.id, restriction_id=restriction.id) }}" onsubmit="return confirm('Desativar esta restrição? O histórico será preservado.');">
+        <button class="button button--danger" type="submit">Desativar</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('military_restrictions.activate_restriction', military_id=military.id, restriction_id=restriction.id) }}">
+        <button class="button" type="submit">Ativar</button>
+      </form>
+    {% endif %}
+  </section>
+{% endblock %}
