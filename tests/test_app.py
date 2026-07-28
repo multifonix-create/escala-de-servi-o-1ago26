@@ -6,7 +6,7 @@ from app.extensions import db
 def test_application_factory_creates_app(app):
     assert app is not None
     assert app.config["TESTING"] is True
-    assert app.config["APP_VERSION"] == "v1.5"
+    assert app.config["APP_VERSION"] == "v1.6"
 
 
 def test_index_page_responds_successfully(client):
@@ -14,7 +14,7 @@ def test_index_page_responds_successfully(client):
 
     assert response.status_code == 200
     assert "Escala de Serviço".encode() in response.data
-    assert b"v1.5" in response.data
+    assert b"v1.6" in response.data
 
 
 def test_health_route_responds_successfully(client):
@@ -24,7 +24,7 @@ def test_health_route_responds_successfully(client):
     assert response.get_json() == {
         "application": "Escala de Serviço",
         "status": "ok",
-        "version": "v1.5",
+            "version": "v1.6",
     }
 
 

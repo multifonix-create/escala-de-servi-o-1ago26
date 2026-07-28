@@ -1,5 +1,61 @@
 # Changelog
 
+## v1.6 - 2026-07-28
+
+### Adicionado
+- Criada gestao funcional inicial de `FC` e `FR`.
+- Adicionados modelos `CompensatoryLeaveCredit`, `CompensatoryLeaveCreditEvent`, `RescheduledRestCredit` e `RescheduledRestCreditEvent`.
+- Adicionados campos `assignments.compensatory_leave_credit_id` e `assignments.rescheduled_rest_credit_id`.
+- Criado servico central `app/services/compensation_service.py`.
+- Criado blueprint `app/routes/compensations.py`.
+- Criadas paginas para listar, criar FC por decisao de comando, detalhar, agendar, reagendar, cancelar e consultar historico de FC.
+- Criadas paginas para listar, detalhar, agendar, reagendar, cancelar, confirmar gozo e consultar historico de FR.
+- Criado processamento explicito de potenciais FC/FR por versao em `/escala/<year>/<month>/versoes/<version_id>/compensacoes/processar`.
+- Criado comando `flask process-compensations` com opcao `--date`.
+- Adicionado codigo `FR` ao catalogo de atribuicoes.
+- Atualizada elegibilidade FF para incluir `R` e `CR` em feriado.
+- Integrado diagnostico inicial de FC/FR.
+- Integrada preservacao de ligacoes FC/FR em regeneracao e versoes de correcao.
+
+### Regras
+- `FF`, `FC` e `FR` permanecem conceitos separados.
+- `FC` nasce de `R`, `CR` ou decisao documentada de comando.
+- `R` e `CR` em dia util geram 1 FC; ao sabado/domingo geram 2 FC; em feriado nao geram FC.
+- Cada FC e uma unidade indivisivel de 480 minutos.
+- `FR` nasce apenas de `AT1-AT3`, `PO1-PO3` ou `PT` em `DS`/`DC`.
+- `FR` nao expira, nao soma ao saldo FC e nao altera o ciclo DS/DC.
+- Agendamento de `FC`/`FR` cria celula manual, bloqueada e ligada ao direito.
+- O editor generico nao cria, limpa, desbloqueia ou altera celulas `FF`, `FC` ou `FR` ligadas.
+- Versoes nao `DRAFT` nao recebem novos agendamentos de `FC`/`FR`.
+- Expiracao e gozo automatico de FC sao processados por manutencao idempotente, sem mutacoes no arranque.
+
+### Migracao
+- Criada e aplicada a migracao `9a4e2b7c1d60_add_fc_fr_compensations_v1_6.py`.
+- Nao foram alteradas migracoes anteriores.
+- Backup previo da base real: `instance/backups/escala_20260728_175202_v16_pre_migration.db`.
+- A migracao criou apenas estrutura; nao criou creditos, eventos, atribuicoes, versoes ou dados operacionais.
+
+### Testes
+- Adicionados testes em `tests/test_compensations.py`.
+- Suite nova v1.6 validada com `14 passed`.
+- Suite completa validada com `243 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- Revisao Alembic atual: `9a4e2b7c1d60`.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` escalas, versoes e atribuicoes.
+- A base real ficou com `0` FF, FC e FR.
+- Nao foram criados dados ficticios ou demonstrativos.
+
+### Limitacoes
+- Sem geracao automatica de Ronda.
+- Sem geracao automatica de CR.
+- Sem remunerados.
+- Sem notificacoes.
+- Sem exportacoes operacionais.
+- Sem autenticacao completa.
+
 ## v1.5 - 2026-07-28
 
 ### Adicionado

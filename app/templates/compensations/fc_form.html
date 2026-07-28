@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Nova FC - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <h1>Nova FC por decisao de comando</h1>
+  <form method="post" class="stacked-form">
+    <label>Militar
+      <select name="military_id" required>
+        <option value="">Escolher</option>
+        {% for military in militaries %}
+          <option value="{{ military.id }}">{{ military.name }} - {{ military.nim }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Data de aquisicao <input type="date" name="acquired_date" required></label>
+    <label>Unidades FC <input type="number" name="units" min="1" step="1" required></label>
+    <label>Motivo <textarea name="commander_reason" required></textarea></label>
+    <label>Notas <textarea name="notes"></textarea></label>
+    <button type="submit">Criar FC</button>
+  </form>
+</section>
+{% endblock %}

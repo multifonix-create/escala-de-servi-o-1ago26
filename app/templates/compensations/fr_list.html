@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Folgas reagendadas - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <div class="section-header">
+    <div>
+      <h1>Folgas reagendadas</h1>
+      <p class="muted">Direitos FR autonomos por AT/PO/PT em DS ou DC.</p>
+    </div>
+  </div>
+
+  {% if balances %}
+    <table class="data-table">
+      <thead><tr><th>Militar</th><th>Adquiridas</th><th>Disponiveis</th><th>Agendadas</th><th>Reagendadas</th><th>Gozadas</th><th>Canceladas</th></tr></thead>
+      <tbody>
+        {% for balance in balances if balance.acquired %}
+          <tr><td>{{ balance.military.name }}</td><td>{{ balance.acquired }}</td><td>{{ balance.available }}</td><td>{{ balance.scheduled }}</td><td>{{ balance.rescheduled }}</td><td>{{ balance.used }}</td><td>{{ balance.cancelled }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <form method="get" class="inline-form">
+    <label>Estado
+      <select name="status">
+        <option value="">Todos</option>
+        {% for value, label in status_labels.items() %}
+          <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Filtrar</button>
+  </form>
+
+  {% if credits %}
+    <table class="data-table">
+      <thead><tr><th>Militar</th><th>Origem</th><th>Folga original</th><th>Estado</th><th>Agendada</th><th>Acoes</th></tr></thead>
+      <tbody>
+        {% for credit in credits %}
+          <tr><td>{{ credit.military.name }}</td><td>{{ credit.source_service_code }}</td><td>{{ credit.original_rest_type }} em {{ credit.original_rest_date.strftime("%d/%m/%Y") }}</td><td>{{ status_labels.get(credit.status, credit.status) }}</td><td>{{ credit.scheduled_date.strftime("%d/%m/%Y") if credit.scheduled_date else "-" }}</td><td><a href="{{ url_for('compensations.fr_detail', credit_id=credit.id) }}">Detalhe</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty-state">Ainda nao existem folgas reagendadas.</p>
+  {% endif %}
+</section>
+{% endblock %}

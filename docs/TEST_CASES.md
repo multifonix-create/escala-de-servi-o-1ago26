@@ -964,7 +964,7 @@ Casos automatizados implementados na v1.4:
 | FF-109 | Proteção de célula | FF/MANUAL | Limpeza genérica de célula ligada a crédito FF é bloqueada. |
 | FF-110 | Diagnóstico FF | FF/DIAG | Diagnóstico deteta direito potencial não processado e célula `FF` sem crédito. |
 
-Não coberto por implementação nesta versão:
+Não coberto por implementação na v1.4:
 
 * FC;
 * Ronda;
@@ -972,6 +972,38 @@ Não coberto por implementação nesta versão:
 * remunerados;
 * exportações operacionais;
 * confirmação operacional diária geral de serviços executados.
+
+---
+
+## 39-G. Casos da Gestao Funcional de FC e FR v1.6
+
+Casos automatizados implementados na v1.6:
+
+| ID | Caso | Dominio | Resultado esperado |
+|---|---|---|---|
+| FC-101 | R/CR em dia util e fim de semana | FC/R/CR | R ou CR em dia util cria 1 FC; ao sabado/domingo cria 2 FC independentes de 480 minutos. |
+| FC-102 | R/CR em feriado | FC/FF | R/CR em feriado nao cria FC e fica elegivel para processamento FF. |
+| FC-103 | Decisao de comando | FC/CMD | FC discricionaria exige militar, data, unidades inteiras positivas e motivo obrigatorio. |
+| FC-104 | Agendamento FC | FC/MANUAL | Agendar FC cria celula `FC` manual, bloqueada, com 480 minutos e ligada ao credito. |
+| FC-105 | Bloqueios FC | FC/STATE/UNAV | Agendamento FC bloqueia celula ocupada, indisponibilidade ativa e versao nao `DRAFT`. |
+| FC-106 | Expiracao e protecao | FC/EXPIRY | FC expira apos 31 de dezembro, mas agendamento protegido pode manter uso no ano seguinte. |
+| FC-107 | Gozo automatico | FC/WORKFLOW | FC agendada apenas passa a `USED` automaticamente quando existe celula coerente em versao oficial. |
+| FR-101 | Origem FR | FR/CYCLE | AT/PO/PT em `DS`/`DC` cria direito FR sem alterar o ciclo. |
+| FR-102 | Deteccao de potenciais | FC/FR/DIAG | Versao com R/CR e AT/PO/PT em DS/DC apresenta potenciais FC/FR pendentes. |
+| FR-103 | Agendamento e cancelamento FR | FR/MANUAL | Agendar FR cria celula `FR` ligada; cancelar agendamento devolve o direito a `PENDING`. |
+| BAL-101 | Saldos separados | FF/FC/FR | Saldos FC e FR permanecem separados e nao somam entre si. |
+| REGEN-101 | Preservacao | FC/FR/REGEN | Regeneracao preserva celulas FC/FR manuais e ligacoes aos direitos existentes. |
+| DIAG-101 | Diagnostico FC/FR | FC/FR/DIAG | Diagnostico reporta potenciais nao processados e creditos agendados sem celula coerente. |
+| ROUTE-101 | Rotas FC/FR | UI | Paginas `/fc`, `/fc/novo` e `/folgas-reagendadas` respondem com sucesso. |
+
+Continuam fora da v1.6:
+
+* geracao automatica de Ronda;
+* geracao automatica de CR;
+* remunerados;
+* exportacoes operacionais;
+* notificacoes;
+* autenticacao completa.
 
 ---
 

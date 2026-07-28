@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v1.5 - Validacao, Publicacao e Encerramento da Escala`.
+Versão atual: `v1.6 - Gestao Funcional de FC e Folgas Reagendadas`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -488,13 +488,50 @@ Decisoes da v1.5:
 
 Continuam fora do ambito:
 
-* FC;
-* Ronda;
-* CR;
+* geracao automatica de Ronda;
+* geracao automatica de CR;
 * remunerados;
 * exportacoes operacionais;
 * autenticacao completa;
 * notificacoes.
+
+## Complemento v1.6 - FC e Folgas Reagendadas
+
+A v1.6 acrescenta gestao funcional inicial de `FC` e `FR`, reutilizando a infraestrutura existente.
+
+Existe atualmente:
+
+* modelo `CompensatoryLeaveCredit`;
+* modelo `CompensatoryLeaveCreditEvent`;
+* modelo `RescheduledRestCredit`;
+* modelo `RescheduledRestCreditEvent`;
+* ligacoes explicitas `assignments.compensatory_leave_credit_id` e `assignments.rescheduled_rest_credit_id`;
+* codigo `FR` no catalogo de atribuicoes;
+* servico central `app/services/compensation_service.py`;
+* blueprint `app/routes/compensations.py`;
+* rotas e paginas `/fc`, `/fc/novo`, detalhe, agendamento, reagendamento, cancelamento e historico;
+* rotas e paginas `/folgas-reagendadas`, detalhe, agendamento, reagendamento, confirmacao de gozo, cancelamento e historico;
+* processamento explicito de potenciais em `/escala/<year>/<month>/versoes/<version_id>/compensacoes/processar`;
+* comando CLI `flask process-compensations`;
+* manutencao idempotente para expiracao de FC e gozo automatico de FC em versoes oficiais;
+* diagnostico inicial de incoerencias e potenciais FC/FR;
+* preservacao de ligacoes FC/FR em regeneracao e versoes de correcao;
+* saldos separados para FF, FC e FR.
+
+Regras implementadas na v1.6:
+
+* `FF`, `FC` e `FR` sao direitos separados;
+* `R` e `CR` geram FC apenas fora de feriado;
+* `R`/`CR` iniciado em dia util gera 1 FC;
+* `R`/`CR` iniciado ao sabado ou domingo gera 2 FC;
+* cada FC e uma unidade independente de 480 minutos;
+* FC por decisao de comando exige militar, data, unidades inteiras positivas e motivo obrigatorio;
+* FC expira em 31 de dezembro do ano de aquisicao, salvo agendamento protegido;
+* `FR` nasce apenas de `AT1-AT3`, `PO1-PO3` ou `PT` trabalhado em `DS`/`DC`;
+* `FR` nao expira e nao soma ao saldo FC;
+* `FC` e `FR` agendadas criam celulas manuais, bloqueadas e ligadas ao direito;
+* o editor generico nao deve criar, limpar, desbloquear ou alterar celulas `FF`, `FC` ou `FR` ligadas;
+* versoes `VALIDATED`, `PUBLISHED` e `CLOSED` nao recebem novos agendamentos FC/FR.
 
 ## Ainda Não Existe
 
@@ -503,7 +540,8 @@ Ainda não existem:
 * registos diários;
 * autenticação completa;
 * auditoria funcional genérica;
-* FC;
+* geracao automatica de Ronda;
+* geracao automatica de CR;
 * remunerados;
 * exportações operacionais.
 
@@ -565,17 +603,18 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 ## Decisões e Limitações Atuais
 
-* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs`, `assignment_selection_details`, `holidays`, `holiday_leave_credits` e `holiday_leave_credit_events`.
+* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs`, `assignment_selection_details`, `holidays`, `holiday_leave_credits`, `holiday_leave_credit_events`, `compensatory_leave_credits`, `compensatory_leave_credit_events`, `rescheduled_rest_credits` e `rescheduled_rest_credit_events`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração, detalhes de seleção, feriados, créditos FF nem eventos FF após a v1.4.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração, detalhes de seleção, feriados, créditos FF, eventos FF, creditos FC, eventos FC, direitos FR nem eventos FR apos a v1.6.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
 * Restrições individuais já são usadas pela geração automática AT/PO.
 * Indisponibilidades registadas alimentam a geração automática AT/PO.
 * A grelha mensal consulta DS/DC, indisponibilidades e restrições dinamicamente e sobrepõe atribuições manuais persistidas quando existirem.
-* A compensação por DS/DC é apenas registada; não cria FF nem FC.
+* A compensação por DS/DC pode criar `FR` apenas apos confirmacao explicita de potencial.
 * A FF por trabalho em feriado existe como crédito funcional autónomo e exige feriado/atribuição de origem.
+* A FC por R/CR ou decisao de comando existe como credito funcional autonomo e separado de FF/FR.
 * Não foi implementada autenticação completa.
 * Não foi implementada CSRF; os formulários usam POST e estão preparados para integração futura.
 * Auditoria funcional genérica fica para versão futura.
@@ -588,11 +627,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-229 passed
+243 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v1.6 - Gestao de FC`, apenas depois de decisao funcional suficiente.
+`v1.7 - proxima etapa a definir pelo utilizador`, sem avancar para varias funcionalidades grandes em simultaneo.

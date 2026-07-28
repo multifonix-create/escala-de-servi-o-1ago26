@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhe FC - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <div class="section-header">
+    <div>
+      <h1>FC #{{ credit.id }}</h1>
+      <p class="muted">{{ credit.military.name }} - {{ status_labels.get(credit.status, credit.status) }}</p>
+    </div>
+    <a class="button" href="{{ url_for('compensations.fc_history', credit_id=credit.id) }}">Historico</a>
+  </div>
+
+  <dl class="details-list">
+    <dt>Origem</dt><dd>{{ source_labels.get(credit.source_type, credit.source_type) }}</dd>
+    <dt>Servico</dt><dd>{{ credit.source_service_code or "-" }} em {{ credit.source_service_date.strftime("%d/%m/%Y") }}</dd>
+    <dt>Unidade</dt><dd>{{ credit.unit_number }}/{{ credit.units_from_source }} - {{ credit.minutes }} minutos</dd>
+    <dt>Expira em</dt><dd>{{ credit.expires_on.strftime("%d/%m/%Y") }}</dd>
+    <dt>Agendada</dt><dd>{{ credit.scheduled_date.strftime("%d/%m/%Y") if credit.scheduled_date else "-" }}</dd>
+    <dt>Efetiva</dt><dd>{{ credit.effective_date.strftime("%d/%m/%Y") if credit.effective_date else "-" }}</dd>
+    <dt>Motivo comando</dt><dd>{{ credit.commander_reason or "-" }}</dd>
+    <dt>Notas</dt><dd>{{ credit.notes or "-" }}</dd>
+  </dl>
+
+  <div class="actions">
+    <a href="{{ url_for('compensations.schedule_fc_route', credit_id=credit.id) }}">Agendar</a>
+    <a href="{{ url_for('compensations.reschedule_fc_route', credit_id=credit.id) }}">Reagendar</a>
+    <form method="post" action="{{ url_for('compensations.cancel_fc_schedule_route', credit_id=credit.id) }}">
+      <input type="text" name="reason" placeholder="Motivo">
+      <button type="submit">Cancelar agendamento</button>
+    </form>
+    <form method="post" action="{{ url_for('compensations.cancel_fc_right_route', credit_id=credit.id) }}">
+      <input type="text" name="reason" placeholder="Motivo obrigatorio">
+      <button type="submit">Cancelar direito</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

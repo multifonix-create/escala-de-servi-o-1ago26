@@ -73,6 +73,9 @@
         {% if version_permissions.schedule_ff %}
           <a class="button button--secondary" href="{{ url_for('holidays.process_ff_candidates', year=year, month=month, version_id=grid.version.id) }}">Processar FF</a>
         {% endif %}
+        {% if version_permissions.schedule_fc or version_permissions.schedule_fr %}
+          <a class="button button--secondary" href="{{ url_for('compensations.process_compensations', year=year, month=month, version_id=grid.version.id) }}">Processar compensacoes</a>
+        {% endif %}
         {% if version_permissions.validate %}
           <a class="button button--secondary" href="{{ url_for('schedules.validate_version_confirm', year=year, month=month, version_id=grid.version.id) }}">Validar</a>
         {% endif %}

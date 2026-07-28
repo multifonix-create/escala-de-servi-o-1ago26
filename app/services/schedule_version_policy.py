@@ -41,6 +41,12 @@ class ScheduleVersionPolicy:
     def can_schedule_ff(self) -> bool:
         return self.can_edit()
 
+    def can_schedule_fc(self) -> bool:
+        return self.can_edit()
+
+    def can_schedule_fr(self) -> bool:
+        return self.can_edit()
+
     def can_run_diagnostic(self) -> bool:
         return self.version is not None
 
@@ -55,5 +61,7 @@ class ScheduleVersionPolicy:
             "close": self.can_close(),
             "create_correction": self.can_create_correction(),
             "schedule_ff": self.can_schedule_ff(),
+            "schedule_fc": self.can_schedule_fc(),
+            "schedule_fr": self.can_schedule_fr(),
             "run_diagnostic": self.can_run_diagnostic(),
         }

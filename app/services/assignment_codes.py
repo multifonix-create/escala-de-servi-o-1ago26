@@ -21,6 +21,7 @@ ASSIGNMENT_CODE_DEFINITIONS = (
     AssignmentCodeDefinition("CR", "Compensacao de ronda", "PENDENTE"),
     AssignmentCodeDefinition("FC", "Folga de compensacao", "COMPENSACAO"),
     AssignmentCodeDefinition("FF", "Folga de feriado", "COMPENSACAO"),
+    AssignmentCodeDefinition("FR", "Folga reagendada", "COMPENSACAO"),
     AssignmentCodeDefinition("DS", "Descanso semanal", "DESCANSO"),
     AssignmentCodeDefinition("DC", "Descanso complementar", "DESCANSO"),
     AssignmentCodeDefinition("LF", "Licenca/ferias", "INDISPONIBILIDADE"),

@@ -11,6 +11,8 @@ from app.models import (
     AssignmentChange,
     AssignmentSource,
     CompensationStatus,
+    CompensatoryLeaveCredit,
+    CompensatoryLeaveCreditStatus,
     DiagnosticCategory,
     DiagnosticIssue,
     DiagnosticLevel,
@@ -30,6 +32,8 @@ from app.models import (
     ScheduleVersion,
     ScheduleVersionStateEvent,
     ScheduleVersionStateEventType,
+    RescheduledRestCredit,
+    RescheduledRestCreditStatus,
     Team,
     TeamCycleReference,
     Unavailability,
@@ -169,6 +173,8 @@ class DiagnosticContext:
     restrictions: list[MilitaryRestriction]
     holidays: list[Holiday] = field(default_factory=list)
     holiday_leave_credits: list[HolidayLeaveCredit] = field(default_factory=list)
+    compensatory_leave_credits: list[CompensatoryLeaveCredit] = field(default_factory=list)
+    rescheduled_rest_credits: list[RescheduledRestCredit] = field(default_factory=list)
     teams_by_id: dict[int, Team] = field(default_factory=dict)
     memberships_by_military: dict[int, list[MilitaryTeamHistory]] = field(default_factory=dict)
     references_by_team: dict[int, list[TeamCycleReference]] = field(default_factory=dict)
@@ -227,6 +233,7 @@ class ScheduleDiagnosticService:
             RestrictionDiagnosticValidator(),
             AssignmentDiagnosticValidator(),
             HolidayLeaveDiagnosticValidator(),
+            CompensationDiagnosticValidator(),
             PTDiagnosticValidator(),
             ScheduleStateDiagnosticValidator(),
             CoverageDiagnosticValidator(),
@@ -311,6 +318,8 @@ def build_context(schedule_version: ScheduleVersion) -> DiagnosticContext:
             Holiday.holiday_date <= month_end,
         ).all(),
         holiday_leave_credits=HolidayLeaveCredit.query.all(),
+        compensatory_leave_credits=CompensatoryLeaveCredit.query.all(),
+        rescheduled_rest_credits=RescheduledRestCredit.query.all(),
         teams_by_id={team.id: team for team in teams},
         memberships_by_military=_group_by_military(memberships),
         references_by_team=_group_by_team(team_references),
@@ -434,9 +443,11 @@ class AssignmentDiagnosticValidator(BaseDiagnosticValidator):
                 code_key = "ASSIGNMENT_OVERRIDE_WITHOUT_REASON" if not assignment.override_reason else "ASSIGNMENT_OVERRIDE"
                 problems.append(problem(level, DiagnosticCategory.ASSIGNMENT, code_key, "Override manual", "A atribuicao possui override.", assignment, military_id=assignment.military_id, is_blocking=not assignment.override_reason))
             if assignment.code == "FF" and assignment.holiday_leave_credit_id is None:
-                problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COMPENSATION, "ASSIGNMENT_FF_FC", "FF sem credito funcional", "O codigo manual nao cria nem consome credito.", assignment, military_id=assignment.military_id))
-            if assignment.code == "FC":
-                problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COMPENSATION, "ASSIGNMENT_FF_FC", "FC sem credito funcional", "O codigo manual nao cria nem consome credito.", assignment, military_id=assignment.military_id))
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FF_CELL_WITHOUT_CREDIT", "FF sem credito", "Existe celula FF sem ligacao a credito.", assignment, military_id=assignment.military_id, is_blocking=True))
+            if assignment.code == "FC" and assignment.compensatory_leave_credit_id is None:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FC-CELL-WITHOUT-CREDIT", "FC sem credito", "Existe celula FC sem ligacao a credito.", assignment, military_id=assignment.military_id, is_blocking=True))
+            if assignment.code == "FR" and assignment.rescheduled_rest_credit_id is None:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FR-CELL-WITHOUT-CREDIT", "FR sem direito", "Existe celula FR sem ligacao a direito.", assignment, military_id=assignment.military_id, is_blocking=True))
             if assignment.code in {"R", "CR"}:
                 problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.ASSIGNMENT, "ASSIGNMENT_R_CR", "R/CR sem origem formalizada", "Ainda nao existe validacao operacional completa.", assignment, military_id=assignment.military_id))
             if assignment.code in UNAVAILABILITY_ASSIGNMENT_CODES and not _unavailabilities_for_assignment(assignment, context):
@@ -488,10 +499,101 @@ class HolidayLeaveDiagnosticValidator(BaseDiagnosticValidator):
         for assignment in visible:
             if (
                 assignment.assignment_date in active_holiday_dates
-                and assignment.code in {"AT1", "AT2", "AT3", "PO1", "PO2", "PO3", "PT"}
+                and assignment.code in {"AT1", "AT2", "AT3", "PO1", "PO2", "PO3", "PT", "R", "CR"}
                 and assignment.id not in processed_source_ids
             ):
                 problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COMPENSATION, "FF_UNPROCESSED_RIGHT", "Possivel direito FF por processar", "Existe servico elegivel em feriado sem credito FF associado.", assignment, military_id=assignment.military_id))
+        return problems
+
+
+class CompensationDiagnosticValidator(BaseDiagnosticValidator):
+    def validate(self, context: DiagnosticContext) -> list[DiagnosticProblem]:
+        problems = []
+        visible = visible_assignments(context)
+        fc_assignments_by_credit: dict[int, list[Assignment]] = {}
+        fr_assignments_by_credit: dict[int, list[Assignment]] = {}
+        active_holiday_dates = {holiday.holiday_date for holiday in context.holidays if holiday.is_active}
+
+        for assignment in visible:
+            if assignment.compensatory_leave_credit_id is not None:
+                fc_assignments_by_credit.setdefault(assignment.compensatory_leave_credit_id, []).append(assignment)
+                if assignment.code != "FC":
+                    problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FC-CELL-CHANGED-WITHOUT-CREDIT-UPDATE", "Celula FC alterada", "A celula ligada a FC deixou de possuir codigo FC.", assignment, military_id=assignment.military_id, is_blocking=True))
+            if assignment.rescheduled_rest_credit_id is not None:
+                fr_assignments_by_credit.setdefault(assignment.rescheduled_rest_credit_id, []).append(assignment)
+                if assignment.code != "FR":
+                    problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FR-CELL-CHANGED-WITHOUT-CREDIT-UPDATE", "Celula FR alterada", "A celula ligada a FR deixou de possuir codigo FR.", assignment, military_id=assignment.military_id, is_blocking=True))
+            if assignment.code == "FC" and assignment.compensatory_leave_credit_id is None:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FC-CELL-WITHOUT-CREDIT", "FC sem credito", "Existe celula FC sem ligacao a credito.", assignment, military_id=assignment.military_id, is_blocking=True))
+            if assignment.code == "FR" and assignment.rescheduled_rest_credit_id is None:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FR-CELL-WITHOUT-CREDIT", "FR sem direito", "Existe celula FR sem ligacao a direito.", assignment, military_id=assignment.military_id, is_blocking=True))
+
+        fc_source_keys: dict[tuple, int] = {}
+        for credit in context.compensatory_leave_credits:
+            key = (
+                credit.military_id,
+                credit.source_type,
+                credit.source_service_date,
+                credit.source_service_code,
+                credit.unit_number,
+            )
+            fc_source_keys[key] = fc_source_keys.get(key, 0) + 1
+        for credit in context.compensatory_leave_credits:
+            assignments = fc_assignments_by_credit.get(credit.id, [])
+            if fc_source_keys.get((credit.military_id, credit.source_type, credit.source_service_date, credit.source_service_code, credit.unit_number), 0) > 1:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FC-DUPLICATE-CREDIT", "Credito FC duplicado", "Existe mais do que uma FC para a mesma unidade de origem.", assignment_date=credit.source_service_date, military_id=credit.military_id, is_blocking=True))
+            if credit.minutes != 480 or credit.unit_number < 1 or credit.units_from_source < 1:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FC-WRONG-UNITS", "Unidade FC invalida", "Cada FC deve ser uma unidade indivisivel de 480 minutos.", assignment_date=credit.source_service_date, military_id=credit.military_id, is_blocking=True))
+            if credit.source_service_code in {"R", "CR"} and credit.source_service_date in active_holiday_dates:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FC-R-CR-CREDIT-ON-HOLIDAY", "FC indevida em feriado", "R/CR em feriado deve gerar apenas potencial FF, nao FC.", assignment_date=credit.source_service_date, military_id=credit.military_id, is_blocking=True))
+            if credit.source_type == "COMMANDER_DISCRETION" and not credit.commander_reason:
+                problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COMPENSATION, "FC-DISCRETION-WITHOUT-REASON", "FC de comando sem motivo", "A decisao de comando deve possuir motivo obrigatorio.", assignment_date=credit.source_service_date, military_id=credit.military_id))
+            if credit.status in {CompensatoryLeaveCreditStatus.SCHEDULED.value, CompensatoryLeaveCreditStatus.RESCHEDULED.value}:
+                if not assignments:
+                    problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FC-SCHEDULED-WITHOUT-CELL", "FC agendada sem celula", "A FC agendada nao possui celula FC visivel ligada.", assignment_date=credit.scheduled_date, military_id=credit.military_id, is_blocking=True))
+                for assignment in assignments:
+                    problems.extend(_scheduled_compensation_assignment_problems(assignment, context, "FC"))
+                if credit.scheduled_date and credit.scheduled_date.year > credit.expires_on.year:
+                    problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COMPENSATION, "FC-SCHEDULED-NEXT-YEAR", "FC agendada no ano seguinte", "A FC foi protegida por agendamento antes da expiracao.", assignment_date=credit.scheduled_date, military_id=credit.military_id))
+            if credit.status == CompensatoryLeaveCreditStatus.PENDING.value:
+                problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.COMPENSATION, "FC-PENDING", "FC pendente", "Existe FC pendente de agendamento.", assignment_date=credit.source_service_date, military_id=credit.military_id))
+                if (credit.expires_on - context.month_end).days <= 30:
+                    problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COMPENSATION, "FC-NEAR-EXPIRY", "FC perto de expirar", "A FC aproxima-se do fim do ano civil.", assignment_date=credit.expires_on, military_id=credit.military_id))
+            if credit.status == CompensatoryLeaveCreditStatus.USED.value and credit.effective_date is None:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FC-USED-WITHOUT-EFFECTIVE-DATE", "FC gozada sem data efetiva", "Uma FC gozada deve possuir data efetiva.", assignment_date=credit.scheduled_date, military_id=credit.military_id, is_blocking=True))
+            if credit.status == CompensatoryLeaveCreditStatus.EXPIRED.value:
+                problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.COMPENSATION, "FC-EXPIRED", "FC expirada", "A FC expirada nao conta para saldo disponivel.", assignment_date=credit.expires_on, military_id=credit.military_id))
+
+        fr_origin_keys: dict[tuple, int] = {}
+        for credit in context.rescheduled_rest_credits:
+            key = (credit.military_id, credit.original_rest_date, credit.original_rest_type)
+            fr_origin_keys[key] = fr_origin_keys.get(key, 0) + 1
+        for credit in context.rescheduled_rest_credits:
+            assignments = fr_assignments_by_credit.get(credit.id, [])
+            if fr_origin_keys.get((credit.military_id, credit.original_rest_date, credit.original_rest_type), 0) > 1:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FR-DUPLICATE-CREDIT", "Direito FR duplicado", "Existe mais do que uma FR para o mesmo militar e folga original.", assignment_date=credit.original_rest_date, military_id=credit.military_id, is_blocking=True))
+            if credit.original_rest_type not in {"DS", "DC"}:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FR-ORIGIN-NOT-DS-DC", "Origem FR invalida", "FR so pode nascer de DS ou DC.", assignment_date=credit.original_rest_date, military_id=credit.military_id, is_blocking=True))
+            if credit.source_service_code not in {"AT1", "AT2", "AT3", "PO1", "PO2", "PO3", "PT"}:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FR-INVALID-SOURCE-CODE", "Codigo origem FR invalido", "FR so pode nascer de AT/PO/PT.", assignment_date=credit.original_rest_date, military_id=credit.military_id, is_blocking=True))
+            if credit.status in {RescheduledRestCreditStatus.SCHEDULED.value, RescheduledRestCreditStatus.RESCHEDULED.value}:
+                if not assignments:
+                    problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, "FR-SCHEDULED-WITHOUT-CELL", "FR agendada sem celula", "A FR agendada nao possui celula FR visivel ligada.", assignment_date=credit.scheduled_date, military_id=credit.military_id, is_blocking=True))
+                for assignment in assignments:
+                    problems.extend(_scheduled_compensation_assignment_problems(assignment, context, "FR"))
+            if credit.status == RescheduledRestCreditStatus.PENDING.value:
+                problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.COMPENSATION, "FR-PENDING", "FR pendente", "Existe FR pendente de agendamento.", assignment_date=credit.original_rest_date, military_id=credit.military_id))
+
+        processed_fc = {(credit.military_id, credit.source_service_date, credit.source_service_code) for credit in context.compensatory_leave_credits}
+        processed_fr = {(credit.military_id, credit.original_rest_date, credit.original_rest_type) for credit in context.rescheduled_rest_credits}
+        for assignment in visible:
+            if assignment.code in {"R", "CR"} and assignment.assignment_date not in active_holiday_dates:
+                if (assignment.military_id, assignment.assignment_date, assignment.code) not in processed_fc:
+                    problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COMPENSATION, "FC-POTENTIAL-RIGHT-UNPROCESSED", "Possivel direito FC por processar", "Existe R/CR sem creditos FC confirmados.", assignment, military_id=assignment.military_id))
+            if assignment.code in {"AT1", "AT2", "AT3", "PO1", "PO2", "PO3", "PT"}:
+                rest_type = _assignment_cycle_code(assignment, context)
+                if rest_type in {"DS", "DC"} and (assignment.military_id, assignment.assignment_date, rest_type) not in processed_fr:
+                    problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COMPENSATION, "FR-POTENTIAL-RIGHT-UNPROCESSED", "Possivel direito FR por processar", "Existe AT/PO/PT em DS/DC sem folga reagendada confirmada.", assignment, military_id=assignment.military_id))
         return problems
 
 
@@ -662,6 +764,35 @@ def problem(level, category, code_key, title, description, assignment: Assignmen
         assignment_id=kwargs.pop("assignment_id", assignment.id if assignment else None),
         **kwargs,
     )
+
+
+def _scheduled_compensation_assignment_problems(
+    assignment: Assignment,
+    context: DiagnosticContext,
+    prefix: str,
+) -> list[DiagnosticProblem]:
+    problems = []
+    rest_type = _assignment_cycle_code(assignment, context)
+    if rest_type in {"DS", "DC"}:
+        problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, f"{prefix}-SCHEDULED-IN-DS-DC", f"{prefix} em DS/DC", f"{prefix} foi agendada em dia de descanso {rest_type}.", assignment, military_id=assignment.military_id, is_blocking=True))
+    for unavailability in _unavailabilities_for_assignment(assignment, context):
+        if unavailability.status == UnavailabilityStatus.CONFIRMED.value:
+            problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COMPENSATION, f"{prefix}-SCHEDULED-CONFIRMED-UNAVAILABILITY", f"{prefix} em indisponibilidade", f"{prefix} coincide com indisponibilidade confirmada.", assignment, military_id=assignment.military_id, is_blocking=True))
+        elif unavailability.status == UnavailabilityStatus.PLANNED.value:
+            problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COMPENSATION, f"{prefix}-SCHEDULED-PLANNED-UNAVAILABILITY", f"{prefix} em indisponibilidade planeada", f"{prefix} coincide com indisponibilidade planeada.", assignment, military_id=assignment.military_id))
+    return problems
+
+
+def _assignment_cycle_code(assignment: Assignment, context: DiagnosticContext) -> str | None:
+    if assignment.military.functional_type != FunctionalType.PATRULHEIRO.value:
+        return None
+    team = context.team_for_military_on_date(assignment.military_id, assignment.assignment_date)
+    if team is None:
+        return None
+    try:
+        return context.cycle_day_for_team(team, assignment.assignment_date).code
+    except cycle_calculator.MissingTeamReferenceError:
+        return None
 
 
 def visible_assignments(context: DiagnosticContext) -> list[Assignment]:

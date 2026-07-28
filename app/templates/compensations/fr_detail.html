@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhe FR - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <div class="section-header">
+    <div><h1>FR #{{ credit.id }}</h1><p class="muted">{{ credit.military.name }} - {{ status_labels.get(credit.status, credit.status) }}</p></div>
+    <a class="button" href="{{ url_for('compensations.fr_history', credit_id=credit.id) }}">Historico</a>
+  </div>
+  <dl class="details-list">
+    <dt>Origem</dt><dd>{{ credit.source_service_code }} em {{ credit.original_rest_date.strftime("%d/%m/%Y") }}</dd>
+    <dt>Tipo de folga original</dt><dd>{{ credit.original_rest_type }}</dd>
+    <dt>Agendada</dt><dd>{{ credit.scheduled_date.strftime("%d/%m/%Y") if credit.scheduled_date else "-" }}</dd>
+    <dt>Efetiva</dt><dd>{{ credit.effective_date.strftime("%d/%m/%Y") if credit.effective_date else "-" }}</dd>
+    <dt>Notas</dt><dd>{{ credit.notes or "-" }}</dd>
+  </dl>
+  <div class="actions">
+    <a href="{{ url_for('compensations.schedule_fr_route', credit_id=credit.id) }}">Agendar</a>
+    <a href="{{ url_for('compensations.reschedule_fr_route', credit_id=credit.id) }}">Reagendar</a>
+    <form method="post" action="{{ url_for('compensations.cancel_fr_schedule_route', credit_id=credit.id) }}"><input type="text" name="reason" placeholder="Motivo"><button type="submit">Cancelar agendamento</button></form>
+    <form method="post" action="{{ url_for('compensations.confirm_fr_used_route', credit_id=credit.id) }}"><button type="submit">Confirmar gozo</button></form>
+    <form method="post" action="{{ url_for('compensations.cancel_fr_right_route', credit_id=credit.id) }}"><input type="text" name="reason" placeholder="Motivo obrigatorio"><button type="submit">Cancelar direito</button></form>
+  </div>
+</section>
+{% endblock %}

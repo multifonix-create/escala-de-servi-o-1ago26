@@ -31,7 +31,7 @@ from app.services.schedule_version_workflow import touch_version_content
 from app.services.unavailability_evaluator import interval_for_unavailability, overlaps
 
 
-FF_ELIGIBLE_SERVICE_CODES = ("AT1", "AT2", "AT3", "PO1", "PO2", "PO3", "PT")
+FF_ELIGIBLE_SERVICE_CODES = ("AT1", "AT2", "AT3", "PO1", "PO2", "PO3", "PT", "R", "CR")
 FF_SOURCE_VERSION_STATUSES = {
     ScheduleMonthStatus.VALIDATED.value,
     ScheduleMonthStatus.PUBLISHED.value,
@@ -411,7 +411,7 @@ def _validate_credit_source(assignment: Assignment, holiday: Holiday, manual_con
         raise HolidayCreditServiceError("Feriado invalido.", {"holiday": "O feriado deve estar ativo."})
     if assignment.assignment_date != holiday.holiday_date:
         raise HolidayCreditServiceError("Data incoerente.", {"holiday": "O feriado nao corresponde a data do servico."})
-    if assignment.military.functional_type == FunctionalType.CMD.value:
+    if assignment.military.functional_type == FunctionalType.CMD.value and assignment.code not in {"R", "CR"}:
         raise HolidayCreditServiceError("CMD nao e elegivel para FF operacional.", {"military": "CMD nao executa servico operacional elegivel."})
     if assignment.schedule_version.status not in FF_SOURCE_VERSION_STATUSES and not manual_confirmation:
         raise HolidayCreditServiceError(
@@ -458,6 +458,7 @@ def _clear_linked_assignment(credit: HolidayLeaveCredit, reason: str) -> None:
         assignment.has_override = False
         assignment.override_reason = None
         assignment.is_cleared = True
+        assignment.holiday_leave_credit_id = None
         _add_assignment_change(
             assignment,
             AssignmentChangeType.CLEARED.value,

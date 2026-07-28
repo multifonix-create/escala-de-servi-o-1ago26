@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.5 - Validacao, Publicacao e Encerramento da Escala
+v1.6 - Gestao Funcional de FC e Folgas Reagendadas
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT e gestão funcional inicial de FF por trabalho em feriado.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT, gestão funcional inicial de FF por trabalho em feriado, gestão funcional de FC e folgas reagendadas FR.
 
 ## Requisitos
 
@@ -88,6 +88,7 @@ Rotas principais:
 /escala/<year>/<month>/versoes/<version_id>/criar-correcao
 /escala/<year>/<month>/versoes/<version_id>/historico-estado
 /escala/<year>/<month>/versoes/<version_id>/ff/processar
+/escala/<year>/<month>/versoes/<version_id>/compensacoes/processar
 /feriados
 /feriados/novo
 /ff
@@ -95,6 +96,17 @@ Rotas principais:
 /ff/<credit_id>/agendar
 /ff/<credit_id>/reagendar
 /ff/<credit_id>/historico
+/fc
+/fc/novo
+/fc/<credit_id>
+/fc/<credit_id>/agendar
+/fc/<credit_id>/reagendar
+/fc/<credit_id>/historico
+/folgas-reagendadas
+/folgas-reagendadas/<credit_id>
+/folgas-reagendadas/<credit_id>/agendar
+/folgas-reagendadas/<credit_id>/reagendar
+/folgas-reagendadas/<credit_id>/historico
 /equipas/<id>/ciclo
 /equipas/<id>/ciclo/nova-referencia
 /equipas/<id>/ciclo/historico
@@ -115,7 +127,15 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v1.5
+## Manutencao FC
+
+```powershell
+$env:FLASK_APP = "run.py"
+flask process-compensations
+flask process-compensations --date 2027-01-01
+```
+
+## Estado da v1.6
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -173,6 +193,17 @@ pytest
 - Saldo de FF por militar.
 - Regeneração segura preserva célula FF manual/importada e a ligação ao mesmo crédito.
 - Diagnóstico inclui incoerências FF.
+- FC criada por R, CR ou decisao documentada de comando.
+- R/CR em dia util gera 1 FC; R/CR ao sabado/domingo gera 2 FC.
+- R/CR em feriado nao gera FC e fica elegivel para FF.
+- Cada FC e uma unidade independente de 480 minutos.
+- FC expira em 31 de dezembro do ano de aquisicao, com protecao quando agendada dentro do prazo.
+- FR criada por confirmacao explicita de AT/PO/PT em DS/DC.
+- FR nao expira, nao altera o ciclo e nao soma ao saldo FC.
+- FC/FR agendadas criam celulas manuais, bloqueadas e ligadas ao direito.
+- Regeneracao e versoes de correcao preservam celulas FC/FR manuais/importadas e as ligacoes aos direitos.
+- Diagnostico inclui incoerencias e potenciais FC/FR.
+- Comando `flask process-compensations` processa expiracoes FC e gozo automatico em versoes oficiais.
 - Estados oficiais de versao: NOT_GENERATED, DRAFT, VALIDATED, PUBLISHED e CLOSED.
 - Validacao executa sempre novo diagnostico e bloqueia erros criticos.
 - Avisos exigem confirmacao explicita para validar.
@@ -180,13 +211,13 @@ pytest
 - Encerramento executa diagnostico final e torna a versao imutavel.
 - Versoes CLOSED so podem ser corrigidas por nova versao DRAFT de correcao.
 - Historico de estado registado em `schedule_version_state_events`.
-- Migração v1.5: `d34f6a9b8c21_add_schedule_validation_publication_v1_5.py`.
+- Migração v1.6: `9a4e2b7c1d60_add_fc_fr_compensations_v1_6.py`.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.
 - Sem restrições fictícias.
 - Sem indisponibilidades fictícias.
 - Sem escalas fictícias.
-- Sem criação automática de FC.
+- Sem geracao automatica de Ronda ou CR.
 - Sem correção automática de problemas de diagnóstico.
 - Sem autenticação completa.

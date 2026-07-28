@@ -2465,3 +2465,36 @@ A base de dados deve permitir saber, em qualquer momento:
 8. quais foram autorizados;
 9. que FF estavam pendentes;
 10. como foi escolhido cada militar, sempre que essa explicação esteja disponível.
+
+---
+
+## Nota de Implementacao v1.6 - FC e FR
+
+A v1.6 implementa a infraestrutura funcional de compensacoes com as seguintes tabelas reais:
+
+* `compensatory_leave_credits`;
+* `compensatory_leave_credit_events`;
+* `rescheduled_rest_credits`;
+* `rescheduled_rest_credit_events`.
+
+Foram adicionadas a `assignments` as chaves opcionais:
+
+* `compensatory_leave_credit_id`;
+* `rescheduled_rest_credit_id`.
+
+Regras de integridade implementadas:
+
+* uma atribuicao so pode estar ligada a uma das familias `FF`, `FC` ou `FR`;
+* codigo `FF` exige `holiday_leave_credit_id`;
+* codigo `FC` exige `compensatory_leave_credit_id`;
+* codigo `FR` exige `rescheduled_rest_credit_id`;
+* outros codigos nao devem possuir ligacoes `FF`/`FC`/`FR`;
+* cada FC tem `minutes = 480`;
+* cada FC tem `unit_number >= 1` e `units_from_source >= 1`;
+* fontes FC controladas: `RONDA`, `CONDUTOR_RONDANTE`, `COMMANDER_DISCRETION`;
+* estados FC controlados: `PENDING`, `SCHEDULED`, `RESCHEDULED`, `USED`, `CANCELLED`, `EXPIRED`;
+* estados FR controlados: `PENDING`, `SCHEDULED`, `RESCHEDULED`, `USED`, `CANCELLED`;
+* origem FR limitada a `AT1`, `AT2`, `AT3`, `PO1`, `PO2`, `PO3` e `PT`;
+* tipo de descanso original FR limitado a `DS` ou `DC`.
+
+A migracao aplicada foi `9a4e2b7c1d60_add_fc_fr_compensations_v1_6.py`.

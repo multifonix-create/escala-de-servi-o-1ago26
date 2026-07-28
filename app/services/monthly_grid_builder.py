@@ -99,6 +99,10 @@ class MonthlyGridCell:
             parts.append(f"Origem: {self.assignment.source}")
             if self.assignment.holiday_leave_credit_id:
                 parts.append(f"Credito FF: {self.assignment.holiday_leave_credit_id}")
+            if self.assignment.compensatory_leave_credit_id:
+                parts.append(f"Credito FC: {self.assignment.compensatory_leave_credit_id}")
+            if self.assignment.rescheduled_rest_credit_id:
+                parts.append(f"Credito FR: {self.assignment.rescheduled_rest_credit_id}")
             if self.assignment.start_time and self.assignment.end_time:
                 parts.append(f"Horario: {self.assignment.start_time.strftime('%H:%M')}-{self.assignment.end_time.strftime('%H:%M')}")
             if self.assignment.duration_minutes:
@@ -487,6 +491,10 @@ def _build_legend(rows: list[MonthlyGridRow]) -> list[str]:
                 legend.add(cell.assignment.code)
                 if cell.assignment.holiday_leave_credit_id:
                     legend.add("Credito FF")
+                if cell.assignment.compensatory_leave_credit_id:
+                    legend.add("Credito FC")
+                if cell.assignment.rescheduled_rest_credit_id:
+                    legend.add("Credito FR")
             if cell.is_locked:
                 legend.add("Bloqueada")
             if cell.has_override:

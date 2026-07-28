@@ -2079,3 +2079,25 @@ Sempre que uma regra ainda não esteja definida, a aplicação deve:
 3. permitir decisão manual;
 4. registar a decisão;
 5. aguardar formalização da regra antes de automatizar.
+
+## Nota de Implementacao v1.6 - FC e FR
+
+A implementacao atual acrescenta um modulo funcional de compensacoes sem recriar a aplicacao existente.
+
+Componentes adicionados:
+
+* `app/models/compensation.py` para modelos e enums de FC/FR;
+* `app/services/compensation_service.py` para deteccao, confirmacao, agendamento, cancelamento, saldos e manutencao;
+* `app/routes/compensations.py` para rotas de FC, FR e processamento de potenciais;
+* `app/templates/compensations/` para paginas Jinja2 do modulo;
+* comando CLI `flask process-compensations`;
+* diagnostico FC/FR integrado em `ScheduleDiagnosticService`;
+* preservacao de ligacoes FC/FR em regeneracao e versoes de correcao.
+
+Regras arquiteturais mantidas:
+
+* `FF`, `FC` e `FR` permanecem separados;
+* rotas nao concentram regras operacionais;
+* a manutencao de FC e idempotente e nao corre no arranque;
+* versoes nao `DRAFT` nao recebem novos agendamentos FC/FR;
+* nao foram criados dados demonstrativos ou ficticios.

@@ -18,6 +18,7 @@ from app.services.assignment_service import (
     validate_assignment,
 )
 from app.services.diagnostic_service import ScheduleDiagnosticService, latest_run
+from app.services.compensation_service import CompensationMaintenanceService
 from app.services.monthly_grid_builder import build_monthly_grid
 from app.services.schedule_generator import PTGenerationOptions, ScheduleGenerationError, ScheduleGenerator, latest_generation_run
 from app.services.schedule_regeneration import (
@@ -72,6 +73,7 @@ def month_detail(year: int, month: int):
         return redirect(url_for("schedules.index"))
 
     schedule_month = get_schedule_month(year, month)
+    CompensationMaintenanceService().process()
     previous_year, previous_month_number = previous_month(year, month)
     next_year, next_month_number = next_month(year, month)
     grid = build_monthly_grid(schedule_month) if schedule_month else None
@@ -124,6 +126,7 @@ def version_detail(year: int, month: int, version_id: int):
         flash("Mes de escala inexistente.", "warning")
         return redirect(url_for("schedules.month_detail", year=year, month=month))
     version = get_version_for_month_or_404(schedule_month, version_id)
+    CompensationMaintenanceService().process()
     grid = build_monthly_grid(schedule_month, version=version)
     diagnostic_run = latest_run(version.id)
     generation_run = latest_generation_run(version.id)

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Processar compensacoes - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <div class="section-header">
+    <div>
+      <h1>Processar compensacoes</h1>
+      <p class="muted">{{ schedule_month.year }}/{{ "%02d"|format(schedule_month.month) }} - versao {{ version.version_number }}</p>
+    </div>
+  </div>
+
+  <form method="post">
+    <h2>FC potenciais</h2>
+    {% if fc_potentials %}
+      <table class="data-table">
+        <thead><tr><th></th><th>Militar</th><th>Data</th><th>Origem</th><th>Unidades</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for item in fc_potentials %}
+            <tr>
+              <td>{% if item.is_new %}<input type="checkbox" name="fc_assignment_id" value="{{ item.assignment.id }}">{% endif %}</td>
+              <td>{{ item.assignment.military.name }}</td>
+              <td>{{ item.assignment.assignment_date.strftime("%d/%m/%Y") }}</td>
+              <td>{{ item.assignment.code }}</td>
+              <td>{{ item.units }}</td>
+              <td>{% if item.is_holiday %}Feriado: processar FF{% elif item.pending_units %}Novo{% else %}Processado{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="empty-state">Sem potenciais FC nesta versao.</p>
+    {% endif %}
+
+    <h2>FR potenciais</h2>
+    {% if fr_potentials %}
+      <table class="data-table">
+        <thead><tr><th></th><th>Militar</th><th>Data</th><th>Servico</th><th>Folga original</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for item in fr_potentials %}
+            <tr>
+              <td>{% if item.is_new %}<input type="checkbox" name="fr_assignment_id" value="{{ item.assignment.id }}">{% endif %}</td>
+              <td>{{ item.assignment.military.name }}</td>
+              <td>{{ item.assignment.assignment_date.strftime("%d/%m/%Y") }}</td>
+              <td>{{ item.assignment.code }}</td>
+              <td>{{ item.original_rest_type }}</td>
+              <td>{{ "Novo" if item.is_new else "Processado" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="empty-state">Sem potenciais FR nesta versao.</p>
+    {% endif %}
+    <button type="submit">Criar creditos selecionados</button>
+  </form>
+</section>
+{% endblock %}

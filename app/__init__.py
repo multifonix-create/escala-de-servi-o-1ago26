@@ -8,6 +8,7 @@ from app.config import config_by_name
 from app.extensions import db, migrate
 from app.routes import (
     cycle_bp,
+    compensations_bp,
     holidays_bp,
     main_bp,
     militaries_bp,
@@ -54,6 +55,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(teams_bp)
     app.register_blueprint(military_teams_bp)
     app.register_blueprint(cycle_bp)
+    app.register_blueprint(compensations_bp)
     app.register_blueprint(holidays_bp)
     app.register_blueprint(team_cycle_bp)
     app.register_blueprint(restrictions_bp)
@@ -61,6 +63,13 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(unavailabilities_bp)
     app.register_blueprint(military_unavailabilities_bp)
     app.register_blueprint(schedules_bp)
+    _register_cli(app)
+
+
+def _register_cli(app: Flask) -> None:
+    from app.routes.compensations import register_cli
+
+    register_cli(app)
 
 
 def _register_error_handlers(app: Flask) -> None:

@@ -232,8 +232,9 @@ def test_generic_clear_is_blocked_for_ff_credit_cell(app):
         credit = create_credit_from_assignment(source_assignment, holiday, manual_confirmation=True)
         target_version = _draft_version(schedule_month)
         ff_assignment = schedule_credit(credit, target_version, date(2026, 1, 7))
-        unlock_assignment(ff_assignment, "Tentativa generica")
 
+        with pytest.raises(AssignmentServiceError):
+            unlock_assignment(ff_assignment, "Tentativa generica")
         with pytest.raises(AssignmentServiceError):
             clear_assignment(ff_assignment)
 
@@ -243,18 +244,17 @@ def test_ff_diagnostics_detects_unprocessed_and_incoherent_cells(app):
         military, _, version = _context()
         _holiday()
         save_manual_assignment(version, military, date(2026, 1, 6), "PO2")
-        manual_ff, _ = save_manual_assignment(
-            version,
-            military,
-            date(2026, 1, 7),
-            "FF",
-            override_requested=True,
-            override_reason="Teste controlado de FF sem credito",
-        )
+        with pytest.raises(AssignmentServiceError):
+            save_manual_assignment(
+                version,
+                military,
+                date(2026, 1, 7),
+                "FF",
+                override_requested=True,
+                override_reason="Teste controlado de FF sem credito",
+            )
 
         problems, _ = ScheduleDiagnosticService().analyze(version)
         codes = {item.code for item in problems}
 
         assert "FF-POTENTIAL-RIGHT-UNPROCESSED" in codes
-        assert "FF-CELL-WITHOUT-CREDIT" in codes
-        assert manual_ff.holiday_leave_credit_id is None

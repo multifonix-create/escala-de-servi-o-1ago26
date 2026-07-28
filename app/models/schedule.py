@@ -305,12 +305,26 @@ class Assignment(db.Model):
             name="ck_assignments_code_length",
         ),
         db.CheckConstraint(
-            "code is null or code in ('AT1', 'AT2', 'AT3', 'PO1', 'PO2', 'PO3', 'PT', 'P', 'R', 'CR', 'FC', 'FF', 'DS', 'DC', 'LF', 'LP', 'BM', 'LC', 'LN', 'DIL', 'TRIB', 'INQ', 'DCP', 'D24', 'FORMACAO', 'TIRO', 'OUTRA')",
+            "code is null or code in ('AT1', 'AT2', 'AT3', 'PO1', 'PO2', 'PO3', 'PT', 'P', 'R', 'CR', 'FC', 'FF', 'FR', 'DS', 'DC', 'LF', 'LP', 'BM', 'LC', 'LN', 'DIL', 'TRIB', 'INQ', 'DCP', 'D24', 'FORMACAO', 'TIRO', 'OUTRA')",
             name="ck_assignments_code",
         ),
         db.CheckConstraint(
             "(is_cleared = 1 and code is null) or (is_cleared = 0 and code is not null)",
             name="ck_assignments_cleared_code",
+        ),
+        db.CheckConstraint(
+            "(case when holiday_leave_credit_id is not null then 1 else 0 end + "
+            "case when compensatory_leave_credit_id is not null then 1 else 0 end + "
+            "case when rescheduled_rest_credit_id is not null then 1 else 0 end) <= 1",
+            name="ck_assignments_single_leave_link",
+        ),
+        db.CheckConstraint(
+            "(code != 'FF' or holiday_leave_credit_id is not null) and "
+            "(code != 'FC' or compensatory_leave_credit_id is not null) and "
+            "(code != 'FR' or rescheduled_rest_credit_id is not null) and "
+            "(code in ('FF', 'FC', 'FR') or "
+            "(holiday_leave_credit_id is null and compensatory_leave_credit_id is null and rescheduled_rest_credit_id is null))",
+            name="ck_assignments_leave_code_link",
         ),
     )
 
@@ -349,6 +363,18 @@ class Assignment(db.Model):
         nullable=True,
         index=True,
     )
+    compensatory_leave_credit_id = db.Column(
+        db.Integer,
+        db.ForeignKey("compensatory_leave_credits.id"),
+        nullable=True,
+        index=True,
+    )
+    rescheduled_rest_credit_id = db.Column(
+        db.Integer,
+        db.ForeignKey("rescheduled_rest_credits.id"),
+        nullable=True,
+        index=True,
+    )
     is_cleared = db.Column(db.Boolean, nullable=False, default=False, index=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(
@@ -363,6 +389,14 @@ class Assignment(db.Model):
     holiday_leave_credit = db.relationship(
         "HolidayLeaveCredit",
         foreign_keys=[holiday_leave_credit_id],
+    )
+    compensatory_leave_credit = db.relationship(
+        "CompensatoryLeaveCredit",
+        foreign_keys=[compensatory_leave_credit_id],
+    )
+    rescheduled_rest_credit = db.relationship(
+        "RescheduledRestCredit",
+        foreign_keys=[rescheduled_rest_credit_id],
     )
     changes = db.relationship(
         "AssignmentChange",

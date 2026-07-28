@@ -30,6 +30,10 @@ BLOCKING_VALIDATION_CODES = {
     "COVERAGE-MISSING",
     "FF-CELL-WITHOUT-CREDIT",
     "FF-SCHEDULED-WITHOUT-CELL",
+    "FC-CELL-WITHOUT-CREDIT",
+    "FC-SCHEDULED-WITHOUT-CELL",
+    "FR-CELL-WITHOUT-CREDIT",
+    "FR-SCHEDULED-WITHOUT-CELL",
     "PT-AUTO-CONFIRMED-UNAVAILABILITY",
     "PT-AUTO-IN-DS-DC",
     "PT-AUTO-REST-TOO-SHORT",
@@ -341,6 +345,8 @@ def _copy_visible_assignments(source_version: ScheduleVersion, correction: Sched
             end_time=assignment.end_time,
             duration_minutes=assignment.duration_minutes,
             holiday_leave_credit_id=assignment.holiday_leave_credit_id,
+            compensatory_leave_credit_id=assignment.compensatory_leave_credit_id,
+            rescheduled_rest_credit_id=assignment.rescheduled_rest_credit_id,
             is_cleared=False,
         )
         db.session.add(copy)

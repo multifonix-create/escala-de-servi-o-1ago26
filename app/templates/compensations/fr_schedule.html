@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar FR - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <h1>Agendar FR #{{ credit.id }}</h1>
+  <form method="post" class="stacked-form">
+    <label>Versao DRAFT
+      <select name="schedule_version_id" required>
+        {% for version in versions %}
+          <option value="{{ version.id }}">{{ version.schedule_month.year }}/{{ "%02d"|format(version.schedule_month.month) }} - v{{ version.version_number }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Data <input type="date" name="scheduled_date" required></label>
+    <label>Notas <textarea name="notes"></textarea></label>
+    <button type="submit">Guardar</button>
+  </form>
+</section>
+{% endblock %}

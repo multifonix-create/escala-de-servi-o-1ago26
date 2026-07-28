@@ -146,8 +146,8 @@ def validate_assignment(
     if restrictions and normalized_code in OPERATIONAL_ASSIGNMENT_CODES:
         warnings.append("Existem restricoes individuais aplicaveis nesta data.")
 
-    if normalized_code in {"FF", "FC"}:
-        warnings.append("A celula manual nao cria nem consome credito FF/FC.")
+    if normalized_code in {"FF", "FC", "FR"}:
+        blocking_errors["compensation"] = "FF, FC e FR devem ser geridas pelos modulos proprios."
     if normalized_code in {"R", "CR"}:
         warnings.append("R/CR ainda nao possui validacao operacional completa.")
 
@@ -181,10 +181,8 @@ def save_manual_assignment(
 ) -> tuple[Assignment, AssignmentValidationResult]:
     normalized_code = normalize_code(code)
     assignment = get_assignment(schedule_version.id, military.id, assignment_date)
-    if assignment and assignment.is_visible and assignment.holiday_leave_credit_id is not None:
-        raise AssignmentServiceError(
-            {"holiday_leave_credit": "A celula esta ligada a uma FF. Use as opcoes de FF para cancelar ou reagendar."}
-        )
+    if assignment and assignment.is_visible:
+        _ensure_not_linked_leave_cell(assignment)
     if assignment and assignment.is_locked and not assignment.is_cleared:
         raise AssignmentServiceError({"locked": "A celula esta bloqueada. Desbloqueie antes de alterar."})
 
@@ -247,10 +245,7 @@ def save_manual_assignment(
 def clear_assignment(assignment: Assignment, reason: str | None = None) -> Assignment:
     if not ScheduleVersionPolicy(assignment.schedule_version).can_edit():
         raise AssignmentServiceError({"status": "A versao selecionada nao permite edicao."})
-    if assignment.holiday_leave_credit_id is not None:
-        raise AssignmentServiceError(
-            {"holiday_leave_credit": "A celula esta ligada a uma FF. Use as opcoes de FF para cancelar ou reagendar."}
-        )
+    _ensure_not_linked_leave_cell(assignment)
     if assignment.is_locked:
         raise AssignmentServiceError({"locked": "A celula esta bloqueada. Desbloqueie antes de limpar."})
     previous_code = assignment.code
@@ -288,6 +283,7 @@ def lock_assignment(assignment: Assignment, reason: str | None = None) -> Assign
 def unlock_assignment(assignment: Assignment, reason: str | None = None) -> Assignment:
     if not ScheduleVersionPolicy(assignment.schedule_version).can_edit():
         raise AssignmentServiceError({"status": "A versao selecionada nao permite edicao."})
+    _ensure_not_linked_leave_cell(assignment)
     if not assignment.is_locked:
         return assignment
     try:
@@ -368,3 +364,18 @@ def _add_change(
             reason=reason,
         )
     )
+
+
+def _ensure_not_linked_leave_cell(assignment: Assignment) -> None:
+    if assignment.holiday_leave_credit_id is not None:
+        raise AssignmentServiceError(
+            {"holiday_leave_credit": "A celula esta ligada a uma FF. Use as opcoes de FF para cancelar ou reagendar."}
+        )
+    if assignment.compensatory_leave_credit_id is not None:
+        raise AssignmentServiceError(
+            {"compensatory_leave_credit": "A celula esta ligada a uma FC. Use as opcoes de FC para cancelar ou reagendar."}
+        )
+    if assignment.rescheduled_rest_credit_id is not None:
+        raise AssignmentServiceError(
+            {"rescheduled_rest_credit": "A celula esta ligada a uma FR. Use as opcoes de folgas reagendadas para cancelar ou reagendar."}
+        )
