@@ -38,16 +38,37 @@
             </th>
             {% for cell in row.cells %}
               <td class="{{ cell.css_classes }}" title="{{ cell.tooltip }}">
-                {% if cell.primary_code %}
-                  <strong>{{ cell.primary_code }}</strong>
-                {% elif cell.team_code %}
-                  <span class="muted">{{ cell.team_code }}</span>
+                {% if grid.version and grid.version.status == "DRAFT" and not cell.is_outside_period %}
+                  <a class="cell-link" href="{{ url_for('schedules.edit_assignment', year=grid.schedule_month.year, month=grid.schedule_month.month, version_id=grid.version.id, military_id=row.military.id, assignment_date=cell.date.isoformat()) }}">
+                    {% if cell.primary_code %}
+                      <strong>{{ cell.primary_code }}</strong>
+                    {% elif cell.team_code %}
+                      <span class="muted">{{ cell.team_code }}</span>
+                    {% else %}
+                      <span class="muted">+</span>
+                    {% endif %}
+                  </a>
+                {% else %}
+                  {% if cell.primary_code %}
+                    <strong>{{ cell.primary_code }}</strong>
+                  {% elif cell.team_code %}
+                    <span class="muted">{{ cell.team_code }}</span>
+                  {% endif %}
                 {% endif %}
                 {% if cell.restriction_count %}
                   <span class="cell-marker">R</span>
                 {% endif %}
                 {% if cell.is_partial_unavailability %}
                   <span class="cell-marker">P</span>
+                {% endif %}
+                {% if cell.manual_code %}
+                  <span class="cell-marker">M</span>
+                {% endif %}
+                {% if cell.is_locked %}
+                  <span class="cell-marker">B</span>
+                {% endif %}
+                {% if cell.has_override %}
+                  <span class="cell-marker">O</span>
                 {% endif %}
               </td>
             {% endfor %}

@@ -5,6 +5,7 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import or_
 
 from app.models import (
+    Assignment,
     CompensationStatus,
     FunctionalType,
     Military,
@@ -41,6 +42,13 @@ class MonthlyGridCell:
     is_holiday: bool = False
     is_outside_period: bool = False
     is_partial_unavailability: bool = False
+    assignment: Assignment | None = None
+    manual_code: str | None = None
+    source: str | None = None
+    is_locked: bool = False
+    has_override: bool = False
+    notes: str | None = None
+    history_count: int = 0
 
     @property
     def css_classes(self) -> str:
@@ -58,6 +66,12 @@ class MonthlyGridCell:
             classes.append("schedule-cell--restriction")
         if self.warnings:
             classes.append("schedule-cell--warning")
+        if self.assignment and self.assignment.is_visible:
+            classes.append("schedule-cell--manual")
+        if self.is_locked:
+            classes.append("schedule-cell--locked")
+        if self.has_override:
+            classes.append("schedule-cell--override")
         return " ".join(classes)
 
     @property
@@ -75,6 +89,14 @@ class MonthlyGridCell:
                 parts.append("Compensacao pendente")
         if self.restriction_labels:
             parts.append("Restricoes: " + ", ".join(self.restriction_labels))
+        if self.manual_code:
+            parts.append(f"Manual: {self.manual_code}")
+        if self.is_locked:
+            parts.append("Bloqueada")
+        if self.has_override:
+            parts.append("Override autorizado")
+        if self.notes:
+            parts.append("Notas: " + self.notes)
         parts.extend(self.warnings)
         return " | ".join(parts)
 
@@ -118,14 +140,17 @@ def build_monthly_grid(
     if not militaries:
         warnings.append("Nao existem militares registados para este mes.")
 
+    selected_version = version or schedule_month.latest_version
+    assignments = _assignments_by_cell(selected_version) if selected_version else {}
+
     rows = [
-        _build_row(military, days, month_start, month_end, warnings)
+        _build_row(military, days, month_start, month_end, warnings, assignments)
         for military in militaries
     ]
     rows.sort(key=_row_sort_key)
     return MonthlyGrid(
         schedule_month=schedule_month,
-        version=version or schedule_month.latest_version,
+        version=selected_version,
         days=days,
         rows=rows,
         warnings=_unique(warnings),
@@ -166,10 +191,11 @@ def _build_row(
     month_start: date,
     month_end: date,
     global_warnings: list[str],
+    assignments: dict[tuple[int, date], Assignment],
 ) -> MonthlyGridRow:
     group_label = _group_label_for_military(military, month_start, month_end)
     cells = [
-        _build_cell(military, grid_day, global_warnings)
+        _build_cell(military, grid_day, global_warnings, assignments)
         for grid_day in days
     ]
     return MonthlyGridRow(military=military, group_label=group_label, cells=cells)
@@ -179,6 +205,7 @@ def _build_cell(
     military: Military,
     grid_day: MonthlyGridDay,
     global_warnings: list[str],
+    assignments: dict[tuple[int, date], Assignment],
 ) -> MonthlyGridCell:
     current = grid_day.date
     outside_period = current < military.start_date or (
@@ -202,7 +229,21 @@ def _build_cell(
 
     _apply_unavailability(cell, military, current)
     _apply_restrictions(cell, military, current)
+    _apply_assignment(cell, assignments.get((military.id, current)))
     return cell
+
+
+def _apply_assignment(cell: MonthlyGridCell, assignment: Assignment | None) -> None:
+    if assignment is None or not assignment.is_visible:
+        return
+    cell.assignment = assignment
+    cell.manual_code = assignment.code
+    cell.primary_code = assignment.code
+    cell.source = assignment.source
+    cell.is_locked = assignment.is_locked
+    cell.has_override = assignment.has_override
+    cell.notes = assignment.notes
+    cell.history_count = len(assignment.changes)
 
 
 def _apply_cycle(
@@ -314,7 +355,25 @@ def _build_legend(rows: list[MonthlyGridRow]) -> list[str]:
                     legend.add("Compensacao pendente")
             if cell.restriction_count:
                 legend.add("Restricao")
+            if cell.manual_code:
+                legend.add("Manual")
+            if cell.is_locked:
+                legend.add("Bloqueada")
+            if cell.has_override:
+                legend.add("Override")
     return sorted(legend)
+
+
+def _assignments_by_cell(version: ScheduleVersion) -> dict[tuple[int, date], Assignment]:
+    assignments = (
+        Assignment.query.filter_by(schedule_version_id=version.id)
+        .order_by(Assignment.assignment_date.asc(), Assignment.id.asc())
+        .all()
+    )
+    return {
+        (assignment.military_id, assignment.assignment_date): assignment
+        for assignment in assignments
+    }
 
 
 def _unique(values: list[str]) -> list[str]:

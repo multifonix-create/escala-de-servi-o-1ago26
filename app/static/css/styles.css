@@ -488,6 +488,29 @@ th {
   box-shadow: inset 0 0 0 2px #b42318;
 }
 
+.schedule-cell--manual {
+  background: #e6f2ff;
+}
+
+.schedule-cell--locked {
+  border-bottom: 4px solid #17212b;
+}
+
+.schedule-cell--override {
+  outline: 2px solid #7c3aed;
+  outline-offset: -2px;
+}
+
+.cell-link {
+  display: inline-flex;
+  min-width: 24px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  text-decoration: none;
+}
+
 @media (max-width: 640px) {
   .page {
     margin-top: 24px;

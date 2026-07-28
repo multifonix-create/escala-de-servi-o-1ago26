@@ -1830,6 +1830,28 @@ Decisão técnica da v0.7:
 
 ---
 
+## 33-B. Estado implementado da edição manual na v0.8
+
+A v0.8 introduz persistência de células manuais sobre a grelha mensal.
+
+Componentes implementados:
+
+* modelo `Assignment`;
+* modelo `AssignmentChange`;
+* serviço `app/services/assignment_service.py`;
+* catálogo `app/services/assignment_codes.py`;
+* templates de edição e histórico em `app/templates/schedules/`.
+
+Decisão técnica da v0.8:
+
+* uma célula limpa permanece como registo lógico com `is_cleared`, para preservar a ligação ao histórico;
+* alterações manuais são apresentadas sobre a informação dinâmica calculada;
+* versões fora de `DRAFT` bloqueiam edição normal;
+* overrides exigem ação explícita e motivo;
+* a edição manual não executa geração automática, não altera ciclo, não cria indisponibilidades e não cria FF/FC.
+
+---
+
 ## 33. Decisões que dependem de regras futuras
 
 Alguns comportamentos só podem ser implementados automaticamente depois de serem formalizados no `ESCALA_RULES.md`.

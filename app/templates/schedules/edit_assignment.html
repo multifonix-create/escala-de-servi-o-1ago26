@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Editar celula {{ assignment_date.isoformat() }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Edicao manual</p>
+      <h1>{{ military.name }} - {{ assignment_date.strftime("%Y-%m-%d") }}</h1>
+      <p class="notice">Versao {{ version.version_number }} · {{ schedule_month.label }} · Estado {{ version.status }}</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar a grelha</a>
+      <a class="button button--secondary" href="{{ url_for('schedules.assignment_history', year=schedule_month.year, month=schedule_month.month, version_id=version.id, military_id=military.id, assignment_date=assignment_date.isoformat()) }}">Historico</a>
+    </div>
+  </header>
+
+  <section class="content-section">
+    <h2>Contexto</h2>
+    <dl class="detail-grid">
+      <div>
+        <dt>Codigo atual</dt>
+        <dd>{% if assignment and assignment.is_visible %}{{ assignment.code }}{% else %}Sem atribuicao manual{% endif %}</dd>
+      </div>
+      <div>
+        <dt>Bloqueio</dt>
+        <dd>{% if assignment and assignment.is_locked %}Bloqueada{% else %}Desbloqueada{% endif %}</dd>
+      </div>
+      <div>
+        <dt>Override</dt>
+        <dd>{% if assignment and assignment.has_override %}Ativo{% else %}Nao{% endif %}</dd>
+      </div>
+    </dl>
+    {% if validation and validation.warnings %}
+      <ul class="compact-list">
+        {% for warning in validation.warnings %}
+          <li>{{ warning }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+
+  <form class="form-panel" method="post" action="{{ url_for('schedules.save_assignment', year=schedule_month.year, month=schedule_month.month, version_id=version.id, military_id=military.id, assignment_date=assignment_date.isoformat()) }}">
+    <div class="form-grid">
+      <label>
+        Codigo
+        <select name="code" required>
+          <option value="">Selecionar</option>
+          {% for item in codes %}
+            <option value="{{ item.code }}" {% if assignment and assignment.code == item.code %}selected{% endif %}>{{ item.code }} - {{ item.label }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.code %}<span class="field-error">{{ errors.code }}</span>{% endif %}
+      </label>
+      <label class="checkbox-field">
+        <input type="checkbox" name="is_locked" {% if not assignment or assignment.is_locked %}checked{% endif %}>
+        Bloquear celula
+      </label>
+      <label class="checkbox-field">
+        <input type="checkbox" name="override_requested" {% if assignment and assignment.has_override %}checked{% endif %}>
+        Aplicar override
+      </label>
+      <label class="full-width">
+        Motivo do override
+        <textarea name="override_reason" rows="3">{{ assignment.override_reason if assignment and assignment.override_reason else "" }}</textarea>
+        {% if errors.override_reason %}<span class="field-error">{{ errors.override_reason }}</span>{% endif %}
+      </label>
+      <label class="full-width">
+        Notas
+        <textarea name="notes" rows="3">{{ assignment.notes if assignment and assignment.notes else "" }}</textarea>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="button" type="submit">Guardar</button>
+    </div>
+  </form>
+
+  {% if assignment %}
+    <section class="content-section">
+      <h2>Acoes da celula</h2>
+      <form class="form-actions" method="post" action="{{ url_for('schedules.unlock_assignment_route', year=schedule_month.year, month=schedule_month.month, version_id=version.id, military_id=military.id, assignment_date=assignment_date.isoformat()) }}">
+        <input type="hidden" name="reason" value="Desbloqueio manual confirmado">
+        <button class="button button--secondary" type="submit">Desbloquear</button>
+      </form>
+      <form class="form-actions" method="post" action="{{ url_for('schedules.lock_assignment_route', year=schedule_month.year, month=schedule_month.month, version_id=version.id, military_id=military.id, assignment_date=assignment_date.isoformat()) }}">
+        <input type="hidden" name="reason" value="Bloqueio manual confirmado">
+        <button class="button button--secondary" type="submit">Bloquear</button>
+      </form>
+      <form class="form-actions" method="post" action="{{ url_for('schedules.clear_assignment_route', year=schedule_month.year, month=schedule_month.month, version_id=version.id, military_id=military.id, assignment_date=assignment_date.isoformat()) }}">
+        <input type="hidden" name="reason" value="Limpeza manual confirmada">
+        <button class="button button--danger" type="submit">Limpar atribuicao manual</button>
+      </form>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,7 +1,5 @@
 from datetime import date
 
-from sqlalchemy import inspect
-
 from app.extensions import db
 from app.models import (
     CompensationStatus,
@@ -118,12 +116,15 @@ def test_schedule_grid_uses_dynamic_cycle_unavailabilities_and_restrictions(app)
         assert jan_18.cycle_code == "DC"
 
 
-def test_schedule_grid_does_not_create_assignments_table(app):
+def test_schedule_grid_does_not_create_assignments(app):
     with app.app_context():
-        tables = inspect(db.engine).get_table_names()
+        create_schedule_month(2026, 7)
+        schedule_month = get_schedule_month(2026, 7)
+        build_monthly_grid(schedule_month)
 
-        assert "assignments" not in tables
-        assert "schedule_assignments" not in tables
+        from app.models import Assignment
+
+        assert Assignment.query.count() == 0
 
 
 def test_schedule_index_route_responds(client):

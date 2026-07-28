@@ -1,7 +1,13 @@
 from app.models.military import FunctionalType, Military
 from app.models.schedule import (
+    ALLOWED_ASSIGNMENT_CHANGE_TYPES,
+    ALLOWED_ASSIGNMENT_SOURCES,
     ALLOWED_SCHEDULE_MONTH_STATUSES,
     ALLOWED_SCHEDULE_VERSION_SOURCES,
+    Assignment,
+    AssignmentChange,
+    AssignmentChangeType,
+    AssignmentSource,
     ScheduleMonth,
     ScheduleMonthStatus,
     ScheduleVersion,
@@ -32,12 +38,18 @@ from app.models.unavailability import (
 
 __all__ = [
     "ALLOWED_RESTRICTION_TYPES",
+    "ALLOWED_ASSIGNMENT_CHANGE_TYPES",
+    "ALLOWED_ASSIGNMENT_SOURCES",
     "ALLOWED_SCHEDULE_MONTH_STATUSES",
     "ALLOWED_SCHEDULE_VERSION_SOURCES",
     "ALLOWED_COMPENSATION_STATUSES",
     "ALLOWED_UNAVAILABILITY_CODES",
     "ALLOWED_UNAVAILABILITY_STATUSES",
     "CompensationStatus",
+    "Assignment",
+    "AssignmentChange",
+    "AssignmentChangeType",
+    "AssignmentSource",
     "FunctionalType",
     "Military",
     "MilitaryRestriction",

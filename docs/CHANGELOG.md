@@ -1,5 +1,56 @@
 # Changelog
 
+## v0.8 - 2026-07-28
+
+### Adicionado
+- Criada edição manual controlada das células da escala.
+- Adicionados modelos `Assignment` e `AssignmentChange`.
+- Adicionado catálogo central `app/services/assignment_codes.py`.
+- Adicionado serviço `app/services/assignment_service.py`.
+- Criadas páginas para editar célula e consultar histórico.
+- Integrada a atribuição manual persistida no `MonthlyGridBuilder`.
+
+### Regras
+- Apenas versões `DRAFT` permitem edição normal.
+- Atribuições novas são manuais e ficam bloqueadas por defeito quando selecionado na interface.
+- A grelha apresenta primeiro a atribuição manual persistida e preserva o ciclo, indisponibilidade e restrições subjacentes.
+- Avisos ultrapassáveis exigem override explícito e motivo.
+- BM confirmada bloqueia override normal.
+- A limpeza da célula é lógica através de `is_cleared` e preserva o histórico.
+- `FF` e `FC` manuais não criam nem consomem créditos.
+- `DS` e `DC` manuais não alteram o ciclo.
+- Códigos de indisponibilidade manuais não criam indisponibilidades.
+
+### Migração
+- Criada e aplicada a migração `465d32473e31_create_assignments_and_assignment_.py`.
+- Criadas apenas as tabelas `assignments` e `assignment_changes`.
+- Não foram alteradas migrações anteriores.
+- Não foram inseridas atribuições ou alterações.
+- Criada cópia de segurança prévia da base real em `instance/backups/escala_20260728_123400_v08_pre_migration.db`.
+
+### Testes
+- Adicionados testes de atribuições manuais, unicidade, códigos inválidos, estados, DS/DC, indisponibilidades, BM, override, limpeza, histórico, builder e rotas.
+- Suite completa validada com `170 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` pertenças.
+- A base real ficou com `0` referências do ciclo.
+- A base real ficou com `0` restrições individuais.
+- A base real ficou com `0` indisponibilidades.
+- A base real ficou com `0` eventos de indisponibilidade.
+- A base real ficou com `0` meses de escala.
+- A base real ficou com `0` versões de escala.
+- A base real ficou com `0` atribuições.
+- A base real ficou com `0` alterações de atribuição.
+- Revisão Alembic atual: `465d32473e31`.
+- Não foram criados dados fictícios ou demonstrativos.
+
+### Limitações
+- Sem geração automática, distribuição AT/PO/PT, equidade, descanso entre serviços, diagnóstico global completo, FF/FC funcionais, Ronda, CR, remunerados, exportações, autenticação completa e auditoria funcional genérica.
+
 ## v0.7 - 2026-07-28
 
 ### Adicionado

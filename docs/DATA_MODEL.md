@@ -2065,6 +2065,74 @@ Decisão da v0.7:
 
 ---
 
+# PARTE XX-B — ESTADO IMPLEMENTADO NA v0.8
+
+## 47-B. Tabelas criadas na v0.8
+
+A v0.8 criou apenas as tabelas:
+
+* `assignments`;
+* `assignment_changes`.
+
+Campos principais de `assignments`:
+
+* `id`;
+* `schedule_version_id`;
+* `military_id`;
+* `assignment_date`;
+* `code`;
+* `source`;
+* `is_manual`;
+* `is_locked`;
+* `has_override`;
+* `override_reason`;
+* `notes`;
+* `is_cleared`;
+* `created_at`;
+* `updated_at`.
+
+Restrições:
+
+* combinação única de `schedule_version_id`, `military_id` e `assignment_date`;
+* `schedule_version_id` referencia `schedule_versions.id`;
+* `military_id` referencia `militaries.id`;
+* `source` limitado a `MANUAL`, `SYSTEM` e `IMPORTED`;
+* `code` limitado ao catálogo oficial implementado;
+* quando `is_cleared` é verdadeiro, `code` deve ser nulo;
+* quando `is_cleared` é falso, `code` deve estar preenchido.
+
+Campos principais de `assignment_changes`:
+
+* `id`;
+* `assignment_id`;
+* `change_type`;
+* `previous_code`;
+* `new_code`;
+* `previous_locked`;
+* `new_locked`;
+* `previous_override`;
+* `new_override`;
+* `reason`;
+* `created_at`.
+
+Tipos de alteração:
+
+* `CREATED`;
+* `UPDATED`;
+* `CLEARED`;
+* `LOCKED`;
+* `UNLOCKED`;
+* `OVERRIDE_APPLIED`;
+* `OVERRIDE_REMOVED`.
+
+Decisão da v0.8:
+
+* limpar uma célula não elimina fisicamente o registo de atribuição;
+* a preservação é feita por `is_cleared` e pelo histórico associado;
+* autenticação e `user_id` continuam pendentes para fase futura.
+
+---
+
 # PARTE XXI — TESTES DO MODELO
 
 ## 48. Testes obrigatórios

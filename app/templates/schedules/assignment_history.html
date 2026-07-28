@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Historico da celula{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Historico da celula</p>
+      <h1>{{ military.name }} - {{ assignment_date.strftime("%Y-%m-%d") }}</h1>
+      <p class="notice">Versao {{ version.version_number }} · {{ schedule_month.label }}</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.edit_assignment', year=schedule_month.year, month=schedule_month.month, version_id=version.id, military_id=military.id, assignment_date=assignment_date.isoformat()) }}">Voltar a celula</a>
+    </div>
+  </header>
+
+  {% if changes %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Anterior</th>
+            <th>Novo</th>
+            <th>Bloqueio</th>
+            <th>Override</th>
+            <th>Razao</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for change in changes %}
+            <tr>
+              <td>{{ change.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+              <td>{{ change.change_type }}</td>
+              <td>{{ change.previous_code or "-" }}</td>
+              <td>{{ change.new_code or "-" }}</td>
+              <td>{{ change.previous_locked }} -> {{ change.new_locked }}</td>
+              <td>{{ change.previous_override }} -> {{ change.new_override }}</td>
+              <td>{{ change.reason or "-" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <section class="empty-state">
+      <h2>Sem historico</h2>
+      <p class="notice">Ainda nao existem alteracoes registadas para esta celula.</p>
+    </section>
+  {% endif %}
+{% endblock %}

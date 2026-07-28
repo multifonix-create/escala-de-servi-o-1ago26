@@ -727,6 +727,22 @@ Não são definidos limites rígidos de tempo sem aprovação funcional/técnica
 
 ---
 
+## 36-B. Casos da Edição Manual v0.8
+
+| ID | Título | Regra de origem | Tipo | Prioridade | Procedimento e resultado esperado |
+| --- | --- | --- | --- | --- | --- |
+| MANUAL-001 | Criar atribuição manual | ESCALA_RULES 18, 180-181 | Funcional | Crítica | Guardar código manual em versão `DRAFT` cria `Assignment` com origem `MANUAL` e evento `CREATED`. |
+| MANUAL-002 | Bloqueio por defeito | ESCALA_RULES 3.4, 181 | Funcional | Alta | A célula manual fica protegida quando marcada como bloqueada. |
+| MANUAL-003 | Alteração bloqueada exige desbloqueio | ESCALA_RULES 18, 203 | Regressão | Crítica | A tentativa de alterar célula bloqueada falha até existir desbloqueio. |
+| MANUAL-004 | Limpeza preserva histórico | ESCALA_RULES 155-158 | Auditoria | Crítica | Limpar célula cria evento `CLEARED` e volta a mostrar o estado dinâmico. |
+| MANUAL-005 | Override explícito | ESCALA_RULES 18-19, 144 | Validação | Crítica | Conflito ultrapassável só grava com confirmação de override e motivo. |
+| MANUAL-006 | BM bloqueia override normal | ESCALA_RULES 35 | Segurança | Crítica | Baixa médica confirmada impede atribuição operacional sem exceção funcional documentada. |
+| MANUAL-007 | Manual preserva camada subjacente | ESCALA_RULES 179-181 | Integração | Alta | Código manual prevalece visualmente e mantém DS/DC, indisponibilidade e restrições no contexto. |
+| MANUAL-008 | Versões não editáveis bloqueiam | Pedido v0.8 | Estado | Crítica | `VALIDATED`, `PUBLISHED`, `CLOSED` e `NOT_GENERATED` não aceitam edição normal. |
+| MANUAL-009 | Sem geração automática | Pedido v0.8 | Regressão | Crítica | Edição manual não seleciona militares, não cria AT/PO/PT automático, FF ou FC. |
+
+---
+
 ## 37. Matriz de Rastreabilidade
 
 | Secção do ESCALA_RULES.md | Domínio | Casos | Estado |

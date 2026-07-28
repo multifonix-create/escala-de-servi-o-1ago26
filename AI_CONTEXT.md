@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v0.7 - Grelha Mensal da Escala`.
+Versão atual: `v0.8 - Edição Manual e Preservação de Alterações`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -215,6 +215,44 @@ Decisão de arquitetura da v0.7:
 * não foram criados meses, versões ou células na base real para demonstração;
 * feriados ainda não têm módulo próprio e são tratados como pendência.
 
+## v0.8 - Edição Manual e Preservação de Alterações
+
+A v0.8 está concluída com:
+
+* modelo `Assignment`;
+* modelo `AssignmentChange`;
+* tabelas `assignments` e `assignment_changes`;
+* migração `465d32473e31_create_assignments_and_assignment_.py`;
+* catálogo central de códigos manuais em `app/services/assignment_codes.py`;
+* serviço central `app/services/assignment_service.py`;
+* edição manual célula a célula em versões `DRAFT`;
+* atribuições manuais persistidas;
+* bloqueio e desbloqueio de célula;
+* limpeza lógica da célula através de `is_cleared`, preservando histórico;
+* histórico com `CREATED`, `UPDATED`, `CLEARED`, `LOCKED`, `UNLOCKED`, `OVERRIDE_APPLIED` e `OVERRIDE_REMOVED`;
+* validação contra estado da versão, período do militar, códigos permitidos, ciclo, equipa, referência de ciclo, indisponibilidades e restrições;
+* override explícito com motivo obrigatório quando há avisos ultrapassáveis;
+* BM confirmada bloqueada sem override normal;
+* integração das atribuições manuais no `MonthlyGridBuilder`;
+* indicadores visuais para manual, bloqueado e override.
+
+Rotas principais da v0.8:
+
+* `GET /escala/<year>/<month>/versoes/<version_id>/militares/<military_id>/dias/<date>`;
+* `POST /escala/<year>/<month>/versoes/<version_id>/militares/<military_id>/dias/<date>`;
+* `POST /escala/<year>/<month>/versoes/<version_id>/militares/<military_id>/dias/<date>/limpar`;
+* `POST /escala/<year>/<month>/versoes/<version_id>/militares/<military_id>/dias/<date>/bloquear`;
+* `POST /escala/<year>/<month>/versoes/<version_id>/militares/<military_id>/dias/<date>/desbloquear`;
+* `GET /escala/<year>/<month>/versoes/<version_id>/militares/<military_id>/dias/<date>/historico`.
+
+Decisões de arquitetura da v0.8:
+
+* a edição manual não cria serviços automaticamente;
+* a escrita manual de `DS` ou `DC` não altera o ciclo;
+* a escrita manual de códigos de indisponibilidade não cria indisponibilidades;
+* a escrita manual de `FF` ou `FC` não cria nem consome créditos;
+* a grelha apresenta primeiro a atribuição manual persistida e mantém os dados subjacentes.
+
 ## Ainda Não Existe
 
 Ainda não existem:
@@ -223,8 +261,6 @@ Ainda não existem:
 * atribuição de AT;
 * atribuição de PO;
 * atribuição de PT;
-* atribuição persistida de DS/DC por militar;
-* células persistidas de escala;
 * registos diários;
 * motor de geração;
 * autenticação completa;
@@ -293,15 +329,15 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 ## Decisões e Limitações Atuais
 
-* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months` e `schedule_versions`.
+* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments` e `assignment_changes`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala nem versões de escala após a v0.7.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições nem alterações de atribuição após a v0.8.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
 * Restrições individuais não são ainda usadas por um motor de geração de escala.
 * Indisponibilidades já são registáveis e visíveis na grelha mensal, mas ainda não alimentam geração automática de escala.
-* A grelha mensal consulta DS/DC, indisponibilidades e restrições dinamicamente; não preserva alterações manuais porque a edição manual fica para a v0.8.
+* A grelha mensal consulta DS/DC, indisponibilidades e restrições dinamicamente e sobrepõe atribuições manuais persistidas quando existirem.
 * A compensação por DS/DC é apenas registada; não cria FF nem FC.
 * Não foi implementada autenticação completa.
 * Não foi implementada CSRF; os formulários usam POST e estão preparados para integração futura.
@@ -315,11 +351,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-158 passed
+170 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v0.8 - Edição Manual e Preservação de Alterações`.
+`v0.9 - Diagnóstico Inicial da Escala`.
