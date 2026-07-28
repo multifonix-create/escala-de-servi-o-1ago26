@@ -18,6 +18,7 @@ from app.models.military import utc_now
 from app.services.diagnostic_service import ScheduleDiagnosticService
 from app.services.schedule_generator import (
     GENERATION_SERVICE_CODES,
+    PTGenerationOptions,
     ScheduleGenerationError,
     ScheduleGenerator,
     generation_parameters,
@@ -73,9 +74,15 @@ class ScheduleRegenerationService:
     def __init__(self, generator: ScheduleGenerator | None = None):
         self.generator = generator or ScheduleGenerator()
 
-    def regenerate_automatic_at_po(self, source_version: ScheduleVersion) -> RegenerationSummary:
+    def regenerate_automatic_at_po(
+        self,
+        source_version: ScheduleVersion,
+        pt_options: PTGenerationOptions | None = None,
+    ) -> RegenerationSummary:
         validate_regeneration_source(source_version)
         ensure_no_running_regeneration(source_version.id)
+        pt_options = pt_options or PTGenerationOptions()
+        pt_options.validate()
 
         copied_count = 0
         skipped_automatic_count = 0
@@ -99,12 +106,12 @@ class ScheduleRegenerationService:
                 source_version_id=source_version.id,
                 result_version_id=result_version.id,
                 generation_mode=GenerationMode.REGENERATE_AUTOMATIC.value,
-                parameters_json=regeneration_parameters(source_version, result_version),
+                parameters_json=regeneration_parameters(source_version, result_version, pt_options),
             )
             db.session.add(run)
             db.session.flush()
 
-            self.generator.generate_into_version(result_version, run, commit=False)
+            self.generator.generate_into_version(result_version, run, commit=False, pt_options=pt_options)
             db.session.commit()
         except ScheduleGenerationError:
             db.session.rollback()
@@ -176,6 +183,9 @@ def copy_preserved_assignments(source_version: ScheduleVersion, result_version: 
             has_override=assignment.has_override,
             override_reason=assignment.override_reason,
             notes=assignment.notes,
+            start_time=assignment.start_time,
+            end_time=assignment.end_time,
+            duration_minutes=assignment.duration_minutes,
             is_cleared=False,
         )
         db.session.add(copy)
@@ -197,8 +207,8 @@ def copy_preserved_assignments(source_version: ScheduleVersion, result_version: 
     return copied_count, skipped_automatic_count
 
 
-def regeneration_parameters(source_version: ScheduleVersion, result_version: ScheduleVersion) -> str:
-    params = generation_parameters()
+def regeneration_parameters(source_version: ScheduleVersion, result_version: ScheduleVersion, pt_options: PTGenerationOptions | None = None) -> str:
+    params = generation_parameters(pt_options)
     params["mode"] = GenerationMode.REGENERATE_AUTOMATIC.value
     params["source_version_id"] = source_version.id
     params["result_version_id"] = result_version.id

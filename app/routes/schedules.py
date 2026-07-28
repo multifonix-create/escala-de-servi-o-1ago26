@@ -1,4 +1,5 @@
-from datetime import date
+import json
+from datetime import date, time
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
@@ -18,7 +19,7 @@ from app.services.assignment_service import (
 )
 from app.services.diagnostic_service import ScheduleDiagnosticService, latest_run
 from app.services.monthly_grid_builder import build_monthly_grid
-from app.services.schedule_generator import ScheduleGenerationError, ScheduleGenerator, latest_generation_run
+from app.services.schedule_generator import PTGenerationOptions, ScheduleGenerationError, ScheduleGenerator, latest_generation_run
 from app.services.schedule_regeneration import (
     ScheduleRegenerationError,
     ScheduleRegenerationService,
@@ -171,12 +172,12 @@ def run_generation(year: int, month: int, version_id: int):
         abort(404)
     version = get_version_for_month_or_404(schedule_month, version_id)
     try:
-        generation_run = ScheduleGenerator().generate_at_po(version)
+        generation_run = ScheduleGenerator().generate_at_po(version, pt_options=_pt_options_from_form())
     except ScheduleGenerationError as exc:
         for message in exc.errors.values() or [str(exc)]:
             flash(message, "warning")
         return redirect(url_for("schedules.generation_index", year=year, month=month, version_id=version.id))
-    flash("Geracao AT/PO concluida.", "success")
+    flash("Geracao concluida.", "success")
     return redirect(
         url_for(
             "schedules.generation_detail",
@@ -199,6 +200,8 @@ def generation_detail(year: int, month: int, version_id: int, run_id: int):
         abort(404)
     details = generation_run.selection_details
     selected = [item for item in details if item.is_selected]
+    selected_at_po = [item for item in selected if item.service_code != "PT"]
+    selected_pt = [item for item in selected if item.service_code == "PT"]
     excluded = [item for item in details if not item.is_eligible and item.military_id is not None]
     incomplete = [item for item in details if item.military_id is None]
     return render_template(
@@ -207,8 +210,11 @@ def generation_detail(year: int, month: int, version_id: int, run_id: int):
         version=version,
         generation_run=generation_run,
         selected_details=selected,
+        selected_at_po_details=selected_at_po,
+        selected_pt_details=selected_pt,
         excluded_details=excluded,
         incomplete_details=incomplete,
+        summary=_json_dict(generation_run.summary_json),
     )
 
 
@@ -239,7 +245,11 @@ def run_regeneration(year: int, month: int, version_id: int):
         flash("Confirme explicitamente a criacao de nova versao antes de regenerar.", "warning")
         return redirect(url_for("schedules.regeneration_confirm", year=year, month=month, version_id=version.id))
     try:
-        summary = ScheduleRegenerationService().regenerate_automatic_at_po(version)
+        summary = ScheduleRegenerationService().regenerate_automatic_at_po(version, pt_options=_pt_options_from_form())
+    except ScheduleGenerationError as exc:
+        for message in exc.errors.values() or [str(exc)]:
+            flash(message, "warning")
+        return redirect(url_for("schedules.regeneration_confirm", year=year, month=month, version_id=version.id))
     except ScheduleRegenerationError as exc:
         for message in exc.errors.values() or [str(exc)]:
             flash(message, "warning")
@@ -533,3 +543,49 @@ def _assignment_count(version_id: int, source: str) -> int:
         source=source,
         is_cleared=False,
     ).count()
+
+
+def _pt_options_from_form() -> PTGenerationOptions:
+    enabled = request.form.get("generate_pt") == "on"
+    if not enabled:
+        return PTGenerationOptions(enabled=False)
+    duration_hours = _optional_int(request.form.get("pt_duration_hours"))
+    max_daily = _optional_int(request.form.get("pt_max_daily"), default=0)
+    weekdays = tuple(sorted(_optional_int(value) for value in request.form.getlist("pt_weekdays") if _optional_int(value) is not None))
+    return PTGenerationOptions(
+        enabled=True,
+        duration_hours=duration_hours,
+        start_time=_parse_time(request.form.get("pt_start_time")),
+        max_daily=max_daily or 0,
+        weekdays=weekdays,
+        allow_support_groups=request.form.get("pt_allow_support_groups") == "on",
+        policy_note=(request.form.get("pt_policy_note") or "").strip() or None,
+    )
+
+
+def _optional_int(value: str | None, default: int | None = None) -> int | None:
+    if value is None or value == "":
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def _parse_time(value: str | None) -> time | None:
+    if not value:
+        return None
+    try:
+        return time.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _json_dict(value: str | None) -> dict:
+    if not value:
+        return {}
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}

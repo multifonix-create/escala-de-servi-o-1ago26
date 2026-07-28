@@ -290,6 +290,39 @@ textarea {
   font-weight: 700;
 }
 
+.form-fieldset {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.form-fieldset legend {
+  color: var(--muted);
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.checkbox-row,
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-row input,
+.checkbox-group input,
+.checkbox-line input {
+  width: auto;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-bottom: 16px;
+}
+
 .full-width {
   grid-column: 1 / -1;
 }

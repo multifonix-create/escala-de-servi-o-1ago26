@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.2 - Otimização e Desempenho do Motor AT/PO
+v1.3 - Geração Automática de PT e Serviços Adicionais
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão e otimizações de desempenho sem alteração de regras.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho e geração automática opcional de PT.
 
 ## Requisitos
 
@@ -101,7 +101,7 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v1.2
+## Estado da v1.3
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -142,14 +142,21 @@ pytest
 - Geração, regeneração, grelha e diagnóstico com carregamento em lote.
 - Caches locais por execução, sem cache global persistente.
 - Testes de regressão de queries em `tests/test_performance.py`.
-- Sem migração nova na v1.2.
+- PT automático opcional, desligado por defeito.
+- PT só é criado depois de AT/PO completo no dia.
+- PT não conta para cobertura obrigatória.
+- PT exige duração de 6 ou 8 horas, hora inicial e limite diário.
+- Campos estruturais de horário/duração em `assignments`.
+- PT manual é preservado e conta para o limite diário.
+- Regeneração recalcula PT automático e preserva PT manual.
+- Diagnóstico inclui regras específicas para PT.
+- Migração v1.3: `adaa03cbb54b_add_pt_assignment_timing_fields.py`.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.
 - Sem restrições fictícias.
 - Sem indisponibilidades fictícias.
 - Sem escalas fictícias.
-- Sem geração automática de PT.
 - Sem criação automática de FF ou FC.
 - Sem correção automática de problemas de diagnóstico.
 - Sem autenticação completa.

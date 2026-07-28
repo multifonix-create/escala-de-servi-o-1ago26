@@ -22,10 +22,48 @@
       <li>Apenas AT1, AT2, AT3, PO1, PO2 e PO3.</li>
       <li>Todas as atribuicoes existentes sao preservadas.</li>
       <li>A cobertura pode ficar incompleta se nao existirem militares elegiveis.</li>
+      <li>PT e opcional, nao conta para cobertura obrigatoria e so pode ser criado depois de AT/PO completo.</li>
     </ul>
     {% if can_generate %}
-      <form class="form-actions" method="post" action="{{ url_for('schedules.run_generation', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">
-        <button class="button" type="submit">Completar celulas vazias</button>
+      <form method="post" action="{{ url_for('schedules.run_generation', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">
+        <fieldset class="form-fieldset">
+          <legend>Patrulhamento adicional PT</legend>
+          <label class="checkbox-row">
+            <input type="checkbox" name="generate_pt">
+            Gerar PT
+          </label>
+          <div class="form-grid">
+            <label>
+              Duracao
+              <select name="pt_duration_hours">
+                <option value="">Selecionar</option>
+                <option value="8">8 horas</option>
+                <option value="6">6 horas</option>
+              </select>
+            </label>
+            <label>
+              Hora inicial
+              <input type="time" name="pt_start_time">
+            </label>
+            <label>
+              Maximo diario
+              <input type="number" name="pt_max_daily" min="0" value="0">
+            </label>
+          </div>
+          <div class="checkbox-group">
+            {% for value, label in [(0, "Seg"), (1, "Ter"), (2, "Qua"), (3, "Qui"), (4, "Sex"), (5, "Sab"), (6, "Dom")] %}
+              <label><input type="checkbox" name="pt_weekdays" value="{{ value }}" checked> {{ label }}</label>
+            {% endfor %}
+          </div>
+          <label>
+            Observacao da politica
+            <input type="text" name="pt_policy_note" maxlength="200">
+          </label>
+          <p class="notice">O PT automatico fica desligado por defeito. Quando ativado, so e criado se a cobertura AT/PO do dia estiver completa; a ausencia de PT nao e erro.</p>
+        </fieldset>
+        <div class="form-actions">
+          <button class="button" type="submit">Completar celulas vazias</button>
+        </div>
       </form>
     {% else %}
       <p class="notice">Esta versao nao esta em DRAFT e nao permite geracao.</p>

@@ -1,5 +1,60 @@
 # Changelog
 
+## v1.3 - 2026-07-28
+
+### Adicionado
+- Criada geração automática opcional de `PT` depois da cobertura AT/PO.
+- Adicionados campos opcionais `start_time`, `end_time` e `duration_minutes` em `assignments`.
+- Adicionada seleção determinística específica para PT, com métricas próprias.
+- Adicionados detalhes de seleção `PT` em `assignment_selection_details`.
+- Adicionados parâmetros PT por execução em `GenerationRun.parameters_json`.
+- Adicionado diagnóstico específico de PT.
+- Adicionados testes `tests/test_pt_generation.py` e `tests/test_pt_diagnostics.py`.
+- Adicionado teste de performance para geração com PT.
+
+### Regras
+- PT fica desativado por defeito.
+- PT exige ativação explícita, duração de 6 ou 8 horas, hora inicial, limite diário e dias aplicáveis.
+- PT só é gerado quando AT/PO do dia está completo.
+- PT não conta para a cobertura obrigatória.
+- Ausência de PT não é erro.
+- CMD nunca recebe PT.
+- SEC/SI não recebem PT automático por defeito.
+- DS/DC, indisponibilidades, restrições e descanso mínimo continuam a bloquear PT automático.
+- PT manual é preservado e conta para o limite diário.
+
+### Regeneração
+- PT automático antigo não é copiado.
+- PT automático é recalculado na nova versão quando solicitado.
+- PT manual é copiado e preserva horário/duração quando existirem.
+
+### Diagnóstico
+- `INFO`: PT não solicitado, sem sobrantes ou bloqueado por cobertura AT/PO incompleta.
+- `WARNING`: PT manual sem horário/duração, PT manual em DS/DC e excesso sobre limite diário.
+- `ERROR`: PT em CMD, PT automático em DS/DC, indisponibilidade confirmada, descanso insuficiente ou intervalo inválido.
+
+### Migração
+- Criada e aplicada a migração `adaa03cbb54b_add_pt_assignment_timing_fields.py`.
+- A migração adiciona apenas campos opcionais em `assignments` e permite `PT` em `assignment_selection_details`.
+- Não foram alteradas migrações anteriores.
+- Backup prévio da base real: `instance/backups/escala_20260728_151346_v13_pre_migration.db`.
+
+### Testes
+- Suite completa validada com `215 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` meses, versões, atribuições, gerações, detalhes de seleção e diagnósticos.
+- Não foram criados PT reais, dados fictícios ou dados demonstrativos.
+- Revisão Alembic atual: `adaa03cbb54b`.
+
+### Limitações
+- Sem FF, FC, Ronda, CR, remunerados ou exportações.
+- Sem configuração global persistente de PT.
+- SEC/SI para PT automático exige parâmetro explícito, ainda sem interface dedicada além da política por execução.
+
 ## v1.2 - 2026-07-28
 
 ### Adicionado

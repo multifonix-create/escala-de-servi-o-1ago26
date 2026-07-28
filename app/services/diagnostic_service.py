@@ -9,6 +9,7 @@ from app.extensions import db
 from app.models import (
     Assignment,
     AssignmentChange,
+    AssignmentSource,
     CompensationStatus,
     DiagnosticCategory,
     DiagnosticIssue,
@@ -67,6 +68,18 @@ DIAG_CODES = {
     "REST_TOO_SHORT": "REST-TOO-SHORT",
     "REST_NOT_YET_VALIDATED": "REST-NOT-YET-VALIDATED",
     "SYSTEM_EMPTY_ASSIGNMENTS": "SYSTEM-MONTH-WITHOUT-ASSIGNMENTS",
+    "PT_NOT_REQUESTED": "PT-NOT-REQUESTED",
+    "PT_NO_SURPLUS": "PT-NOT-CREATED-NO-SURPLUS",
+    "PT_INCOMPLETE_COVERAGE": "PT-NOT-CREATED-COVERAGE-INCOMPLETE",
+    "PT_MANUAL_MISSING_TIME": "PT-MANUAL-MISSING-TIME",
+    "PT_MANUAL_MISSING_DURATION": "PT-MANUAL-MISSING-DURATION",
+    "PT_DSDC": "PT-IN-DS-DC",
+    "PT_AUTO_DSDC": "PT-AUTO-IN-DS-DC",
+    "PT_CMD": "PT-CMD",
+    "PT_AUTO_UNAV_CONFIRMED": "PT-AUTO-CONFIRMED-UNAVAILABILITY",
+    "PT_AUTO_REST_TOO_SHORT": "PT-AUTO-REST-TOO-SHORT",
+    "PT_INVALID_INTERVAL": "PT-INVALID-INTERVAL",
+    "PT_DAILY_LIMIT_EXCEEDED": "PT-DAILY-LIMIT-EXCEEDED",
 }
 
 
@@ -177,6 +190,7 @@ class ScheduleDiagnosticService:
             UnavailabilityDiagnosticValidator(),
             RestrictionDiagnosticValidator(),
             AssignmentDiagnosticValidator(),
+            PTDiagnosticValidator(),
             ScheduleStateDiagnosticValidator(),
             CoverageDiagnosticValidator(),
             RestDiagnosticValidator(),
@@ -390,6 +404,57 @@ class AssignmentDiagnosticValidator(BaseDiagnosticValidator):
         return problems
 
 
+class PTDiagnosticValidator(BaseDiagnosticValidator):
+    def validate(self, context: DiagnosticContext) -> list[DiagnosticProblem]:
+        problems = []
+        pt_assignments = [assignment for assignment in visible_assignments(context) if assignment.code == "PT"]
+        generation = _latest_generation_for_version(context.schedule_version.id)
+        pt_parameters = _pt_parameters(generation)
+        pt_summary = _generation_summary(generation)
+        if generation and not pt_parameters.get("enabled"):
+            problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.SYSTEM, "PT_NOT_REQUESTED", "PT nao solicitado", "A ultima execucao nao solicitou geracao automatica de PT."))
+        for assignment_date in pt_summary.get("pt_days_without_surplus", []) or []:
+            problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.SYSTEM, "PT_NO_SURPLUS", "PT nao criado", "Nao existiam sobrantes elegiveis para PT.", assignment_date=date.fromisoformat(assignment_date)))
+        for assignment_date in pt_summary.get("pt_days_skipped_incomplete_coverage", []) or []:
+            problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.COVERAGE, "PT_INCOMPLETE_COVERAGE", "PT bloqueado por cobertura", "PT nao foi criado porque AT/PO estava incompleto.", assignment_date=date.fromisoformat(assignment_date)))
+        max_daily = pt_parameters.get("max_daily") or 0
+        if max_daily:
+            by_day: dict[date, int] = {}
+            for assignment in pt_assignments:
+                by_day[assignment.assignment_date] = by_day.get(assignment.assignment_date, 0) + 1
+            for assignment_date, count in by_day.items():
+                if count > max_daily:
+                    problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.ASSIGNMENT, "PT_DAILY_LIMIT_EXCEEDED", "PT acima do limite diario", f"Existem {count} PT para limite {max_daily}.", assignment_date=assignment_date, details={"count": count, "max_daily": max_daily}))
+        for assignment in pt_assignments:
+            interval = _assignment_interval(assignment)
+            if assignment.is_manual and (assignment.start_time is None or assignment.end_time is None):
+                problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.ASSIGNMENT, "PT_MANUAL_MISSING_TIME", "PT manual sem horario", "O PT manual nao possui hora inicial e final estruturadas.", assignment, military_id=assignment.military_id))
+            if assignment.is_manual and assignment.duration_minutes is None:
+                problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.ASSIGNMENT, "PT_MANUAL_MISSING_DURATION", "PT manual sem duracao", "O PT manual nao possui duracao estruturada.", assignment, military_id=assignment.military_id))
+            if interval is None or assignment.duration_minutes not in {360, 480}:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.ASSIGNMENT, "PT_INVALID_INTERVAL", "PT com intervalo invalido", "O PT deve possuir intervalo real e duracao de 6 ou 8 horas.", assignment, military_id=assignment.military_id, is_blocking=assignment.source == AssignmentSource.SYSTEM.value))
+            if assignment.military.functional_type == FunctionalType.CMD.value:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.MILITARY, "PT_CMD", "PT atribuido a CMD", "CMD nunca pode executar PT.", assignment, military_id=assignment.military_id, is_blocking=True))
+            team = context.team_for_military_on_date(assignment.military_id, assignment.assignment_date)
+            if team is not None:
+                try:
+                    cycle_day = context.cycle_day_for_team(team, assignment.assignment_date)
+                    if cycle_day.code in {"DS", "DC"}:
+                        level = DiagnosticLevel.ERROR if assignment.source == AssignmentSource.SYSTEM.value else DiagnosticLevel.WARNING
+                        code_key = "PT_AUTO_DSDC" if assignment.source == AssignmentSource.SYSTEM.value else "PT_DSDC"
+                        problems.append(problem(level, DiagnosticCategory.CYCLE, code_key, f"PT em {cycle_day.code}", "PT coincide com folga DS/DC.", assignment, military_id=assignment.military_id, team_id=team.id, is_blocking=assignment.source == AssignmentSource.SYSTEM.value))
+                except cycle_calculator.MissingTeamReferenceError:
+                    pass
+            if assignment.source == AssignmentSource.SYSTEM.value and interval is not None:
+                for unavailability in _unavailabilities_for_assignment(assignment, context):
+                    if unavailability.status == UnavailabilityStatus.CONFIRMED.value:
+                        problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.UNAVAILABILITY, "PT_AUTO_UNAV_CONFIRMED", "PT automatico em indisponibilidade", "PT automatico coincide com indisponibilidade confirmada.", assignment, military_id=assignment.military_id, is_blocking=True))
+                rest_gap = _minimum_rest_gap_for_assignment(assignment, context)
+                if rest_gap is not None and rest_gap < timedelta(hours=8):
+                    problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.REST, "PT_AUTO_REST_TOO_SHORT", "PT automatico com descanso insuficiente", "PT automatico tem descanso inferior a oito horas.", assignment, military_id=assignment.military_id, is_blocking=True, details={"minutes": int(rest_gap.total_seconds() // 60)}))
+        return problems
+
+
 class ScheduleStateDiagnosticValidator(BaseDiagnosticValidator):
     def validate(self, context: DiagnosticContext) -> list[DiagnosticProblem]:
         status = context.schedule_version.status
@@ -435,8 +500,8 @@ class RestDiagnosticValidator(BaseDiagnosticValidator):
         for assignment in visible_assignments(context):
             assignments_by_military.setdefault(assignment.military_id, []).append(assignment)
         for military_id, assignments in assignments_by_military.items():
-            timed = [item for item in assignments if item.code in SERVICE_TIME_WINDOWS]
-            untimed = [item for item in assignments if item.code not in SERVICE_TIME_WINDOWS]
+            timed = [item for item in assignments if _assignment_interval(item) is not None]
+            untimed = [item for item in assignments if _assignment_interval(item) is None]
             for assignment in untimed:
                 problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.REST, "REST_NOT_YET_VALIDATED", "Descanso nao avaliado", "O codigo nao possui horario formalizado nesta versao.", assignment, military_id=military_id))
             intervals = sorted(
@@ -529,6 +594,32 @@ def _has_completed_generation(schedule_version_id: int) -> bool:
     ).scalar()
 
 
+def _latest_generation_for_version(schedule_version_id: int) -> GenerationRun | None:
+    return (
+        GenerationRun.query.filter_by(schedule_version_id=schedule_version_id)
+        .order_by(GenerationRun.created_at.desc(), GenerationRun.id.desc())
+        .first()
+    )
+
+
+def _pt_parameters(generation: GenerationRun | None) -> dict:
+    if generation is None or not generation.parameters_json:
+        return {}
+    try:
+        return (json.loads(generation.parameters_json).get("pt") or {})
+    except json.JSONDecodeError:
+        return {}
+
+
+def _generation_summary(generation: GenerationRun | None) -> dict:
+    if generation is None or not generation.summary_json:
+        return {}
+    try:
+        return json.loads(generation.summary_json)
+    except json.JSONDecodeError:
+        return {}
+
+
 def problem_sort_key(item: DiagnosticProblem) -> tuple:
     level_order = {DiagnosticLevel.ERROR.value: 0, DiagnosticLevel.WARNING.value: 1, DiagnosticLevel.INFO.value: 2}
     return (level_order[item.level], item.category, item.assignment_date or date.min, item.military_id or 0, item.code)
@@ -573,20 +664,52 @@ def _overlapping_references(references: list[TeamCycleReference]) -> list[Diagno
 
 def _unavailabilities_for_assignment(assignment: Assignment, context: DiagnosticContext) -> list[Unavailability]:
     matches = []
+    assignment_interval = _assignment_interval(assignment)
     for unavailability in context.unavailabilities:
         if unavailability.military_id != assignment.military_id:
             continue
-        if unavailability.start_date <= assignment.assignment_date <= unavailability.end_date:
+        if assignment_interval is not None:
+            interval = interval_for_unavailability(unavailability)
+            if interval.effective_start < assignment_interval[1] and interval.effective_end > assignment_interval[0]:
+                matches.append(unavailability)
+        elif unavailability.start_date <= assignment.assignment_date <= unavailability.end_date:
             matches.append(unavailability)
     return sorted(matches, key=lambda item: (0 if item.status == UnavailabilityStatus.CONFIRMED.value else 1, item.start_date, item.id))
 
 
-def _assignment_interval(assignment: Assignment) -> tuple[datetime, datetime]:
+def _assignment_interval(assignment: Assignment) -> tuple[datetime, datetime] | None:
+    if assignment.code == "PT":
+        if not assignment.start_time or not assignment.duration_minutes:
+            return None
+        start = datetime.combine(assignment.assignment_date, assignment.start_time)
+        return start, start + timedelta(minutes=assignment.duration_minutes)
+    if assignment.code not in SERVICE_TIME_WINDOWS:
+        return None
     window = SERVICE_TIME_WINDOWS[assignment.code]
     start = datetime.combine(assignment.assignment_date, window.start_time)
     end_date = assignment.assignment_date + timedelta(days=1) if window.crosses_midnight else assignment.assignment_date
     end = datetime.combine(end_date, window.end_time)
     return start, end
+
+
+def _minimum_rest_gap_for_assignment(target: Assignment, context: DiagnosticContext) -> timedelta | None:
+    target_interval = _assignment_interval(target)
+    if target_interval is None:
+        return None
+    target_start, target_end = target_interval
+    gaps = []
+    for assignment in visible_assignments(context):
+        if assignment.id == target.id or assignment.military_id != target.military_id:
+            continue
+        interval = _assignment_interval(assignment)
+        if interval is None:
+            continue
+        existing_start, existing_end = interval
+        if existing_start <= target_start:
+            gaps.append(target_start - existing_end)
+        else:
+            gaps.append(existing_start - target_end)
+    return min(gaps) if gaps else None
 
 
 def _group_by_military(items: list) -> dict[int, list]:

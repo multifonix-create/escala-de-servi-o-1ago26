@@ -920,4 +920,31 @@ Critérios:
 
 ---
 
+## 39-E. Casos da Geração Automática de PT v1.3
+
+Casos automatizados implementados na v1.3:
+
+| ID | Caso | Domínio | Resultado esperado |
+|---|---|---|---|
+| PT-101 | PT desativado por defeito | PT/GEN | Geração sem parâmetros explícitos não cria PT. |
+| PT-102 | Parâmetros inválidos | PT/STATE | Duração inválida ou hora inicial ausente bloqueiam a execução. |
+| PT-103 | PT após AT/PO completo | PT/COVERAGE | PT só é criado depois de AT/PO do dia estar completo. |
+| PT-104 | Cobertura incompleta | PT/COVERAGE | Dia com AT/PO incompleto não recebe PT automático. |
+| PT-105 | Manual conta para limite | PT/MANUAL | PT manual é preservado e desconta ao máximo diário. |
+| PT-106 | Elegibilidade real prioritária | PT/DSDC/UNAV/RESTR/REST | DS/DC, indisponibilidade, restrição, descanso e CMD excluem PT automático. |
+| PT-107 | Regeneração | PT/REGEN | PT automático antigo não é copiado, PT manual é preservado e PT automático é recalculado. |
+| PT-108 | Rotas | PT/UI | Formulário aceita parâmetros PT e apresenta detalhe da execução. |
+| PT-109 | Diagnóstico manual | PT/DIAG | PT manual sem horário/duração gera aviso. |
+| PT-110 | Diagnóstico CMD | PT/DIAG | PT atribuído a CMD gera erro. |
+| PT-111 | PT não obrigatório | PT/COVERAGE/DIAG | Ausência de PT é informação e não cobertura obrigatória. |
+| PERF-104 | Performance com PT | PT/PERF | Geração com PT não reintroduz explosão de queries. |
+
+Critérios:
+
+* PT não entra no total mínimo diário de nove militares;
+* os dados dos testes existem apenas na base de testes;
+* não são criados FF, FC, Ronda, CR, remunerados ou exportações.
+
+---
+
 **Fim do documento — TEST_CASES.md**

@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v1.2 - Otimização e Desempenho do Motor AT/PO`.
+Versão atual: `v1.3 - Geração Automática de PT e Serviços Adicionais`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -395,11 +395,43 @@ Decisões da v1.2:
 * os testes continuam a usar base SQLite em memória;
 * a base real não foi usada para benchmarks.
 
+## v1.3 - Geração Automática de PT e Serviços Adicionais
+
+A v1.3 está concluída com:
+
+* geração automática opcional de `PT`;
+* `PT` desativado por defeito;
+* parâmetros explícitos por execução em `GenerationRun.parameters_json`;
+* duração permitida apenas de 6 ou 8 horas;
+* hora inicial obrigatória quando PT é ativado;
+* cálculo de hora final e `duration_minutes`;
+* campos opcionais `start_time`, `end_time` e `duration_minutes` em `assignments`;
+* migração `adaa03cbb54b_add_pt_assignment_timing_fields.py`;
+* geração de PT apenas depois de AT/PO do dia estar completo;
+* regra conservadora: sem PT num dia com cobertura AT/PO incompleta;
+* PT apenas para militares sobrantes elegíveis;
+* exclusão de `CMD`;
+* `SEC` e `SI` excluídos por defeito do PT automático;
+* respeito por DS/DC, indisponibilidades, restrições e descanso mínimo;
+* preservação de PT manual;
+* PT manual conta para limite diário;
+* regeneração recalcula PT automático e preserva PT manual;
+* detalhes de seleção `PT` em `assignment_selection_details`;
+* diagnóstico específico para PT;
+* grelha mensal com horário, duração e origem de PT quando existirem.
+
+Decisões da v1.3:
+
+* `PT` não conta para cobertura obrigatória;
+* ausência de PT nunca é erro;
+* PT automático usa `source=SYSTEM`, `is_manual=False`, `is_locked=False` e `has_override=False`;
+* horários de PT não são globais nem inventados: dependem dos parâmetros da execução;
+* `FF`, `FC`, Ronda, CR, remunerados e exportações continuam fora do âmbito.
+
 ## Ainda Não Existe
 
 Ainda não existem:
 
-* atribuição de PT;
 * registos diários;
 * autenticação completa;
 * auditoria funcional genérica;
@@ -468,7 +500,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 * A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs` e `assignment_selection_details`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração nem detalhes de seleção após a v1.2.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração nem detalhes de seleção após a v1.3.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
@@ -488,11 +520,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-203 passed
+215 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v1.2 - Otimização e Desempenho do Motor AT/PO`.
+`v1.4 - Observabilidade Técnica e Métricas de Execução`.

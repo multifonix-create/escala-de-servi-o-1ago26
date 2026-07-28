@@ -1966,6 +1966,39 @@ Estruturas relevantes:
 
 ---
 
+## 33-G. Estado implementado do PT na v1.3
+
+A v1.3 introduz PT automático como serviço adicional de prioridade inferior.
+
+Componentes:
+
+* `PTGenerationOptions`;
+* `AdditionalServiceGenerator`;
+* campos opcionais de horário/duração em `Assignment`;
+* validações específicas no `ScheduleDiagnosticService`;
+* parâmetros PT no formulário de geração e regeneração.
+
+Fluxo:
+
+1. preservar atribuições existentes;
+2. gerar AT/PO pela ordem obrigatória;
+3. validar cobertura AT/PO do dia;
+4. gerar PT apenas quando PT foi solicitado e AT/PO está completo;
+5. persistir PT automático com horário/duração estruturados;
+6. executar diagnóstico final.
+
+Decisões:
+
+* PT fica desligado por defeito;
+* PT não conta para cobertura obrigatória;
+* ausência de PT é informação, nunca erro;
+* regra conservadora: não gerar PT num dia com AT/PO incompleto;
+* PT automático antigo não é copiado na regeneração;
+* PT manual é preservado e conta para limite diário;
+* sem FF, FC, Ronda, CR, remunerados ou exportações nesta versão.
+
+---
+
 ## 33. Decisões que dependem de regras futuras
 
 Alguns comportamentos só podem ser implementados automaticamente depois de serem formalizados no `ESCALA_RULES.md`.

@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, time
 
 from sqlalchemy import event
 
@@ -18,7 +18,7 @@ from app.models import (
 )
 from app.services.diagnostic_service import ScheduleDiagnosticService
 from app.services.monthly_grid_builder import build_monthly_grid
-from app.services.schedule_generator import ScheduleGenerator
+from app.services.schedule_generator import PTGenerationOptions, ScheduleGenerator
 
 
 @contextmanager
@@ -84,6 +84,24 @@ def test_generation_uses_preloaded_context_without_candidate_query_explosion(app
             ScheduleGenerator().generate_at_po(version)
 
         assert counter["count"] < 10_000
+
+
+def test_generation_with_pt_does_not_reintroduce_candidate_query_explosion(app):
+    with app.app_context():
+        _, version = _performance_context(25)
+
+        with query_counter() as counter:
+            ScheduleGenerator().generate_at_po(
+                version,
+                PTGenerationOptions(
+                    enabled=True,
+                    duration_hours=8,
+                    start_time=time(8, 0),
+                    max_daily=2,
+                ),
+            )
+
+        assert counter["count"] < 18_000
 
 
 def test_monthly_grid_uses_batch_loading_without_cell_query_explosion(app):

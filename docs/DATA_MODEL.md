@@ -2336,6 +2336,33 @@ Estes campos permitem distinguir execuções de preenchimento de vazios e regene
 
 ---
 
+## 56-D. Estado implementado na v1.3
+
+A v1.3 acrescentou campos opcionais à tabela `assignments`:
+
+```text
+start_time
+end_time
+duration_minutes
+```
+
+Decisões:
+
+* os campos são opcionais para preservar atribuições antigas e códigos sem horário formalizado;
+* PT automático preenche sempre os três campos;
+* PT manual pode existir sem estes campos, mas o diagnóstico gera aviso;
+* `duration_minutes` aceita operacionalmente 360 ou 480 minutos para PT;
+* `assignment_selection_details.service_code` passou a aceitar `PT`;
+* PT continua a ser uma atribuição principal e não conta para cobertura obrigatória AT/PO.
+
+Migração:
+
+```text
+adaa03cbb54b_add_pt_assignment_timing_fields.py
+```
+
+---
+
 # PARTE XXII — DECISÕES PENDENTES
 
 ## 49. Regras ainda por formalizar

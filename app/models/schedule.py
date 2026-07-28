@@ -252,6 +252,9 @@ class Assignment(db.Model):
     has_override = db.Column(db.Boolean, nullable=False, default=False, index=True)
     override_reason = db.Column(db.Text, nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    start_time = db.Column(db.Time, nullable=True)
+    end_time = db.Column(db.Time, nullable=True)
+    duration_minutes = db.Column(db.Integer, nullable=True)
     is_cleared = db.Column(db.Boolean, nullable=False, default=False, index=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(
@@ -450,7 +453,7 @@ class AssignmentSelectionDetail(db.Model):
     __tablename__ = "assignment_selection_details"
     __table_args__ = (
         db.CheckConstraint(
-            "service_code in ('AT1', 'AT2', 'AT3', 'PO1', 'PO2', 'PO3')",
+            "service_code in ('AT1', 'AT2', 'AT3', 'PO1', 'PO2', 'PO3', 'PT')",
             name="ck_assignment_selection_details_service_code",
         ),
     )

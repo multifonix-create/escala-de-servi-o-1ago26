@@ -43,8 +43,8 @@
   </section>
 
   <section class="content-section">
-    <h2>Atribuicoes criadas</h2>
-    {% if selected_details %}
+    <h2>AT/PO criados</h2>
+    {% if selected_at_po_details %}
       <table class="data-table">
         <thead>
           <tr>
@@ -56,7 +56,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for detail in selected_details %}
+          {% for detail in selected_at_po_details %}
             <tr>
               <td>{{ detail.assignment_date.isoformat() }}</td>
               <td>{{ detail.service_code }}</td>
@@ -68,7 +68,45 @@
         </tbody>
       </table>
     {% else %}
-      <p class="notice">Nao foram criadas atribuicoes nesta execucao.</p>
+      <p class="notice">Nao foram criadas atribuicoes AT/PO nesta execucao.</p>
+    {% endif %}
+  </section>
+
+  <section class="content-section">
+    <h2>PT adicional</h2>
+    <ul class="compact-list">
+      <li>PT solicitado: {{ "sim" if summary.get("pt_requested") else "nao" }}</li>
+      <li>PT criados: {{ summary.get("pt_created", 0) }}</li>
+      <li>PT manuais preservados: {{ summary.get("pt_manual_preserved", 0) }}</li>
+      <li>Duração: {{ summary.get("pt_duration_minutes") or "-" }} minutos</li>
+      <li>Horário: {{ summary.get("pt_start_time") or "-" }}{% if summary.get("pt_end_time") %}-{{ summary.get("pt_end_time") }}{% endif %}</li>
+      <li>Dias sem PT por cobertura incompleta: {{ summary.get("pt_days_skipped_incomplete_coverage", [])|length }}</li>
+      <li>Dias sem sobrantes elegíveis: {{ summary.get("pt_days_without_surplus", [])|length }}</li>
+      <li>Candidatos PT excluídos: {{ summary.get("pt_excluded_candidates", 0) }}</li>
+    </ul>
+    {% if selected_pt_details %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Militar</th>
+            <th>Posicao</th>
+            <th>Metricas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for detail in selected_pt_details %}
+            <tr>
+              <td>{{ detail.assignment_date.isoformat() }}</td>
+              <td>{% if detail.military %}{{ detail.military.name }}{% else %}-{% endif %}</td>
+              <td>{{ detail.position or "-" }}</td>
+              <td><code>{{ detail.metrics_json or "{}" }}</code></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="notice">Nao foram criados PT automaticos nesta execucao.</p>
     {% endif %}
   </section>
 

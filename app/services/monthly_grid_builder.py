@@ -95,6 +95,12 @@ class MonthlyGridCell:
             parts.append("Restricoes: " + ", ".join(self.restriction_labels))
         if self.manual_code:
             parts.append(f"Manual: {self.manual_code}")
+        if self.assignment and self.assignment.is_visible:
+            parts.append(f"Origem: {self.assignment.source}")
+            if self.assignment.start_time and self.assignment.end_time:
+                parts.append(f"Horario: {self.assignment.start_time.strftime('%H:%M')}-{self.assignment.end_time.strftime('%H:%M')}")
+            if self.assignment.duration_minutes:
+                parts.append(f"Duracao: {self.assignment.duration_minutes // 60}h")
         if self.is_locked:
             parts.append("Bloqueada")
         if self.has_override:
@@ -475,6 +481,8 @@ def _build_legend(rows: list[MonthlyGridRow]) -> list[str]:
                 legend.add("Restricao")
             if cell.manual_code:
                 legend.add("Manual")
+            if cell.assignment and cell.assignment.code:
+                legend.add(cell.assignment.code)
             if cell.is_locked:
                 legend.add("Bloqueada")
             if cell.has_override:

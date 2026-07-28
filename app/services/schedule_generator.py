@@ -1,7 +1,7 @@
 import json
 from calendar import monthrange
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 from sqlalchemy import or_
 
@@ -37,10 +37,12 @@ from app.services.unavailability_evaluator import interval_for_unavailability, o
 
 GENERATION_SERVICE_ORDER = ("AT1", "PO1", "AT2", "PO2", "AT3", "PO3")
 GENERATION_SERVICE_CODES = set(GENERATION_SERVICE_ORDER)
+PT_SERVICE_CODE = "PT"
 MINIMUM_REST_HOURS = 8
 DEFAULT_EQUITY_LOOKBACK_MONTHS = 3
 NIGHT_SERVICE_CODES = {"AT1", "AT3", "PO1", "PO3"}
 EDITABLE_GENERATION_STATUSES = {ScheduleMonthStatus.DRAFT.value}
+DEFAULT_PT_WEEKDAYS = tuple(range(7))
 
 
 class ScheduleGenerationError(Exception):
@@ -86,11 +88,44 @@ class CandidateMetrics:
 
 
 @dataclass(frozen=True)
+class PTCandidateMetrics:
+    pt_count: int
+    pt_minutes: int
+    total_at_po_pt_count: int
+    pt_weekend_count: int
+    team_load: int
+    days_since_pt: int
+    stable_id: int
+
+    def as_dict(self) -> dict:
+        return {
+            "pt_count": self.pt_count,
+            "pt_minutes": self.pt_minutes,
+            "total_at_po_pt_count": self.total_at_po_pt_count,
+            "pt_weekend_count": self.pt_weekend_count,
+            "team_load": self.team_load,
+            "days_since_pt": self.days_since_pt,
+            "stable_id": self.stable_id,
+        }
+
+    def sort_key(self) -> tuple:
+        return (
+            self.pt_count,
+            self.pt_minutes,
+            self.total_at_po_pt_count,
+            self.pt_weekend_count,
+            self.team_load,
+            -self.days_since_pt,
+            self.stable_id,
+        )
+
+
+@dataclass(frozen=True)
 class CandidateDecision:
     military: Military
     is_eligible: bool
     reason: str
-    metrics: CandidateMetrics | None = None
+    metrics: CandidateMetrics | PTCandidateMetrics | None = None
     position: int | None = None
     is_selected: bool = False
     uses_support_group: bool = False
@@ -118,6 +153,15 @@ class GenerationSummary:
     incomplete_services: list[dict] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     diagnostic_run_id: int | None = None
+    pt_requested: bool = False
+    pt_created: int = 0
+    pt_manual_preserved: int = 0
+    pt_days_skipped_incomplete_coverage: list[str] = field(default_factory=list)
+    pt_days_without_surplus: list[str] = field(default_factory=list)
+    pt_excluded_candidates: int = 0
+    pt_duration_minutes: int | None = None
+    pt_start_time: str | None = None
+    pt_end_time: str | None = None
 
     def as_dict(self) -> dict:
         return {
@@ -128,6 +172,57 @@ class GenerationSummary:
             "incomplete_services": self.incomplete_services,
             "warnings": self.warnings,
             "diagnostic_run_id": self.diagnostic_run_id,
+            "pt_requested": self.pt_requested,
+            "pt_created": self.pt_created,
+            "pt_manual_preserved": self.pt_manual_preserved,
+            "pt_days_skipped_incomplete_coverage": self.pt_days_skipped_incomplete_coverage,
+            "pt_days_without_surplus": self.pt_days_without_surplus,
+            "pt_excluded_candidates": self.pt_excluded_candidates,
+            "pt_duration_minutes": self.pt_duration_minutes,
+            "pt_start_time": self.pt_start_time,
+            "pt_end_time": self.pt_end_time,
+        }
+
+
+@dataclass(frozen=True)
+class PTGenerationOptions:
+    enabled: bool = False
+    duration_hours: int | None = None
+    start_time: time | None = None
+    max_daily: int = 0
+    weekdays: tuple[int, ...] = DEFAULT_PT_WEEKDAYS
+    allow_support_groups: bool = False
+    policy_note: str | None = None
+
+    @property
+    def duration_minutes(self) -> int | None:
+        return self.duration_hours * 60 if self.duration_hours is not None else None
+
+    def validate(self) -> None:
+        if not self.enabled:
+            return
+        errors = {}
+        if self.duration_hours not in {6, 8}:
+            errors["pt_duration_hours"] = "A duracao do PT deve ser 6 ou 8 horas."
+        if self.start_time is None:
+            errors["pt_start_time"] = "A hora inicial do PT e obrigatoria."
+        if self.max_daily < 0:
+            errors["pt_max_daily"] = "O maximo diario de PT nao pode ser negativo."
+        if not self.weekdays or any(item not in range(7) for item in self.weekdays):
+            errors["pt_weekdays"] = "Selecione pelo menos um dia da semana valido para PT."
+        if errors:
+            raise ScheduleGenerationError("Parametros de PT invalidos.", errors)
+
+    def as_dict(self) -> dict:
+        return {
+            "enabled": self.enabled,
+            "duration_hours": self.duration_hours,
+            "duration_minutes": self.duration_minutes,
+            "start_time": self.start_time.strftime("%H:%M") if self.start_time else None,
+            "max_daily": self.max_daily,
+            "weekdays": list(self.weekdays),
+            "allow_support_groups": self.allow_support_groups,
+            "policy_note": self.policy_note,
         }
 
 
@@ -354,31 +449,156 @@ class CandidateSelector:
         return eligible, excluded
 
 
+@dataclass(frozen=True)
+class PTDayResult:
+    created: int = 0
+    manual_preserved: int = 0
+    excluded_candidates: int = 0
+    skipped_incomplete_coverage: bool = False
+    no_surplus: bool = False
+    warning: str | None = None
+
+
+class AdditionalServiceGenerator:
+    def generate_pt_for_day(
+        self,
+        context: GenerationContext,
+        run: GenerationRun,
+        assignment_date: date,
+        options: PTGenerationOptions,
+    ) -> PTDayResult:
+        if assignment_date.weekday() not in options.weekdays:
+            add_no_candidate_detail(run, assignment_date, PT_SERVICE_CODE, "PT nao configurado para este dia da semana.")
+            return PTDayResult()
+        if not mandatory_coverage_complete(context, assignment_date):
+            add_no_candidate_detail(run, assignment_date, PT_SERVICE_CODE, "PT bloqueado: cobertura AT/PO incompleta.")
+            return PTDayResult(skipped_incomplete_coverage=True)
+
+        manual_count = count_visible_code(context, assignment_date, PT_SERVICE_CODE)
+        remaining = max(options.max_daily - manual_count, 0)
+        if manual_count and remaining == 0:
+            add_no_candidate_detail(run, assignment_date, PT_SERVICE_CODE, "Limite diario de PT ja preenchido por atribuicoes manuais.")
+            return PTDayResult(manual_preserved=manual_count)
+        if remaining == 0:
+            add_no_candidate_detail(run, assignment_date, PT_SERVICE_CODE, "PT sem limite diario disponivel.")
+            return PTDayResult(manual_preserved=manual_count)
+
+        selected: list[CandidateDecision] = []
+        excluded: list[CandidateDecision] = []
+        service_start, service_end = pt_interval(assignment_date, options)
+        for _ in range(remaining):
+            candidates, rejected = self._rank_pt_candidates(context, assignment_date, service_start, service_end, options)
+            excluded.extend(rejected)
+            if not candidates:
+                break
+            chosen = candidates[0]
+            selected_decision = CandidateDecision(
+                military=chosen.military,
+                is_eligible=True,
+                reason=chosen.reason,
+                metrics=chosen.metrics,
+                position=chosen.position,
+                is_selected=True,
+            )
+            selected.append(selected_decision)
+            assignment = Assignment(
+                schedule_version_id=context.schedule_version.id,
+                military_id=chosen.military.id,
+                assignment_date=assignment_date,
+                code=PT_SERVICE_CODE,
+                source=AssignmentSource.SYSTEM.value,
+                is_manual=False,
+                is_locked=False,
+                has_override=False,
+                is_cleared=False,
+                start_time=options.start_time,
+                end_time=calculate_pt_end_time(options.start_time, options.duration_minutes or 0),
+                duration_minutes=options.duration_minutes,
+                notes=options.policy_note,
+            )
+            context.planned_assignments.append(assignment)
+            persist_system_assignment(context, chosen.military, assignment_date, PT_SERVICE_CODE)
+
+        for decision in selected + excluded:
+            db.session.add(selection_detail(run, assignment_date, PT_SERVICE_CODE, decision))
+        if not selected:
+            add_no_candidate_detail(run, assignment_date, PT_SERVICE_CODE, "PT nao criado por ausencia de sobrantes elegiveis.")
+        return PTDayResult(
+            created=len(selected),
+            manual_preserved=manual_count,
+            excluded_candidates=len(excluded),
+            no_surplus=not selected,
+        )
+
+    def _rank_pt_candidates(
+        self,
+        context: GenerationContext,
+        assignment_date: date,
+        service_start: datetime,
+        service_end: datetime,
+        options: PTGenerationOptions,
+    ) -> tuple[list[CandidateDecision], list[CandidateDecision]]:
+        eligible = []
+        excluded = []
+        for military in context.militaries:
+            reason = pt_exclusion_reason(context, military, assignment_date, service_start, service_end, options)
+            if reason:
+                excluded.append(CandidateDecision(military=military, is_eligible=False, reason=reason))
+                continue
+            metrics = build_pt_metrics(context, military, assignment_date)
+            eligible.append(CandidateDecision(military=military, is_eligible=True, reason="Elegivel para PT.", metrics=metrics))
+        eligible.sort(key=lambda item: item.metrics.sort_key())
+        return [
+            CandidateDecision(
+                military=item.military,
+                is_eligible=True,
+                reason=item.reason,
+                metrics=item.metrics,
+                position=index,
+            )
+            for index, item in enumerate(eligible, start=1)
+        ], excluded
+
+
 class ScheduleGenerator:
     def __init__(self, selector: CandidateSelector | None = None):
         self.selector = selector or CandidateSelector()
 
-    def generate_at_po(self, schedule_version: ScheduleVersion) -> GenerationRun:
+    def generate_at_po(
+        self,
+        schedule_version: ScheduleVersion,
+        pt_options: PTGenerationOptions | None = None,
+    ) -> GenerationRun:
         validate_generation_target(schedule_version)
+        pt_options = pt_options or PTGenerationOptions()
+        pt_options.validate()
         run = GenerationRun(
             schedule_version_id=schedule_version.id,
             source_version_id=schedule_version.id,
             result_version_id=schedule_version.id,
             generation_mode=GenerationMode.FILL_EMPTY.value,
-            parameters_json=json.dumps(generation_parameters(), sort_keys=True),
+            parameters_json=json.dumps(generation_parameters(pt_options), sort_keys=True),
         )
         db.session.add(run)
         db.session.commit()
 
-        return self.generate_into_version(schedule_version, run, commit=True)
+        return self.generate_into_version(schedule_version, run, commit=True, pt_options=pt_options)
 
     def generate_into_version(
         self,
         schedule_version: ScheduleVersion,
         run: GenerationRun,
         commit: bool = True,
+        pt_options: PTGenerationOptions | None = None,
     ) -> GenerationRun:
         summary = GenerationSummary()
+        pt_options = pt_options or PTGenerationOptions()
+        pt_options.validate()
+        summary.pt_requested = pt_options.enabled
+        summary.pt_duration_minutes = pt_options.duration_minutes
+        if pt_options.start_time:
+            summary.pt_start_time = pt_options.start_time.strftime("%H:%M")
+            summary.pt_end_time = calculate_pt_end_time(pt_options.start_time, pt_options.duration_minutes or 0).strftime("%H:%M")
         try:
             context = build_generation_context(schedule_version)
             for assignment_date in iter_month_dates(context.month_start, context.month_end):
@@ -413,6 +633,24 @@ class ScheduleGenerator:
                     if selection.warnings:
                         summary.warnings.extend(selection.warnings)
                         summary.total_warnings += len(selection.warnings)
+                if pt_options.enabled:
+                    pt_result = AdditionalServiceGenerator().generate_pt_for_day(
+                        context,
+                        run,
+                        assignment_date,
+                        pt_options,
+                    )
+                    summary.total_created += pt_result.created
+                    summary.pt_created += pt_result.created
+                    summary.pt_manual_preserved += pt_result.manual_preserved
+                    summary.pt_excluded_candidates += pt_result.excluded_candidates
+                    if pt_result.skipped_incomplete_coverage:
+                        summary.pt_days_skipped_incomplete_coverage.append(assignment_date.isoformat())
+                    if pt_result.no_surplus:
+                        summary.pt_days_without_surplus.append(assignment_date.isoformat())
+                    if pt_result.warning:
+                        summary.warnings.append(pt_result.warning)
+                        summary.total_warnings += 1
 
             run.status = (
                 GenerationRunStatus.COMPLETED_WITH_WARNINGS.value
@@ -466,7 +704,7 @@ def build_generation_context(schedule_version: ScheduleVersion, lookback_months:
         Assignment.query.join(ScheduleVersion, Assignment.schedule_version_id == ScheduleVersion.id)
         .join(ScheduleMonth, ScheduleVersion.schedule_month_id == ScheduleMonth.id)
         .filter(Assignment.assignment_date >= equity_start, Assignment.assignment_date <= month_end)
-        .filter(Assignment.is_cleared.is_(False), Assignment.code.in_(GENERATION_SERVICE_CODES))
+        .filter(Assignment.is_cleared.is_(False), Assignment.code.in_(GENERATION_SERVICE_CODES | {PT_SERVICE_CODE}))
         .all()
     )
     teams = Team.query.all()
@@ -533,7 +771,8 @@ def validate_generation_target(schedule_version: ScheduleVersion) -> None:
         )
 
 
-def generation_parameters() -> dict:
+def generation_parameters(pt_options: PTGenerationOptions | None = None) -> dict:
+    pt_options = pt_options or PTGenerationOptions()
     return {
         "mode": "complete_empty_cells",
         "service_order": list(GENERATION_SERVICE_ORDER),
@@ -541,14 +780,26 @@ def generation_parameters() -> dict:
         "equity_lookback_months": DEFAULT_EQUITY_LOOKBACK_MONTHS,
         "minimum_rest_hours": MINIMUM_REST_HOURS,
         "night_service_codes": sorted(NIGHT_SERVICE_CODES),
+        "pt": pt_options.as_dict(),
     }
 
 
 def coverage_count(context: GenerationContext, assignment_date: date, service_code: str) -> int:
+    return count_visible_code(context, assignment_date, service_code)
+
+
+def count_visible_code(context: GenerationContext, assignment_date: date, service_code: str) -> int:
     return sum(
         1
         for assignment in context.all_current_assignments
         if assignment.assignment_date == assignment_date and assignment.code == service_code
+    )
+
+
+def mandatory_coverage_complete(context: GenerationContext, assignment_date: date) -> bool:
+    return all(
+        coverage_count(context, assignment_date, code) >= target
+        for code, target in COVERAGE_TARGETS.items()
     )
 
 
@@ -619,6 +870,26 @@ def build_metrics(context: GenerationContext, military: Military, assignment_dat
     )
 
 
+def build_pt_metrics(context: GenerationContext, military: Military, assignment_date: date) -> PTCandidateMetrics:
+    assignments = [
+        item
+        for item in context.historical_assignments + context.planned_assignments
+        if item.military_id == military.id and item.is_visible
+    ]
+    current_team = context.team_for_military_on_date(military.id, assignment_date)
+    team_id = current_team.id if current_team else 0
+    pt_assignments = [item for item in assignments if item.code == PT_SERVICE_CODE]
+    return PTCandidateMetrics(
+        pt_count=len(pt_assignments),
+        pt_minutes=sum(item.duration_minutes or 0 for item in pt_assignments),
+        total_at_po_pt_count=sum(1 for item in assignments if item.code in GENERATION_SERVICE_CODES or item.code == PT_SERVICE_CODE),
+        pt_weekend_count=sum(1 for item in pt_assignments if item.assignment_date.weekday() >= 5),
+        team_load=context.team_load.get((assignment_date, PT_SERVICE_CODE, team_id), 0),
+        days_since_pt=days_since_equivalent(pt_assignments, assignment_date, PT_SERVICE_CODE),
+        stable_id=military.id,
+    )
+
+
 def consecutive_count(assignments: list[Assignment], assignment_date: date) -> int:
     dates = {item.assignment_date for item in assignments}
     count = 0
@@ -644,9 +915,12 @@ def minimum_rest_gap(
 ) -> timedelta | None:
     gaps = []
     for assignment in context.all_current_assignments:
-        if assignment.military_id != military_id or assignment.code not in SERVICE_TIME_WINDOWS:
+        if assignment.military_id != military_id:
             continue
-        existing_start, existing_end = service_interval(assignment.assignment_date, assignment.code)
+        existing_interval = assignment_interval(assignment)
+        if existing_interval is None:
+            continue
+        existing_start, existing_end = existing_interval
         if existing_start <= service_start:
             gaps.append(service_start - existing_end)
         else:
@@ -661,6 +935,77 @@ def service_interval(assignment_date: date, service_code: str) -> tuple[datetime
     start = datetime.combine(assignment_date, window.start_time)
     end_date = assignment_date + timedelta(days=1) if window.crosses_midnight else assignment_date
     return start, datetime.combine(end_date, window.end_time)
+
+
+def assignment_interval(assignment: Assignment) -> tuple[datetime, datetime] | None:
+    if assignment.code in SERVICE_TIME_WINDOWS:
+        return service_interval(assignment.assignment_date, assignment.code)
+    if assignment.code == PT_SERVICE_CODE and assignment.start_time and assignment.end_time and assignment.duration_minutes:
+        start = datetime.combine(assignment.assignment_date, assignment.start_time)
+        end = start + timedelta(minutes=assignment.duration_minutes)
+        return start, end
+    return None
+
+
+def pt_interval(assignment_date: date, options: PTGenerationOptions) -> tuple[datetime, datetime]:
+    start = datetime.combine(assignment_date, options.start_time)
+    end = start + timedelta(minutes=options.duration_minutes or 0)
+    return start, end
+
+
+def calculate_pt_end_time(start_time: time | None, duration_minutes: int) -> time | None:
+    if start_time is None:
+        return None
+    start = datetime.combine(date(2000, 1, 1), start_time)
+    return (start + timedelta(minutes=duration_minutes)).time()
+
+
+def pt_exclusion_reason(
+    context: GenerationContext,
+    military: Military,
+    assignment_date: date,
+    service_start: datetime,
+    service_end: datetime,
+    options: PTGenerationOptions,
+) -> str | None:
+    if military.functional_type == FunctionalType.CMD.value:
+        return "CMD nao pode receber PT."
+    if military.functional_type in {FunctionalType.SEC.value, FunctionalType.SI.value} and not options.allow_support_groups:
+        return "SEC/SI nao autorizados para PT automatico."
+    if military.functional_type not in {FunctionalType.PATRULHEIRO.value, FunctionalType.SEC.value, FunctionalType.SI.value}:
+        return "Tipo funcional nao elegivel para PT."
+    if not military.is_active:
+        return "Militar inativo."
+    if assignment_date < military.start_date or (military.end_date and assignment_date > military.end_date):
+        return "Militar fora do periodo de efetividade."
+    if any(
+        item.military_id == military.id and item.assignment_date == assignment_date
+        for item in context.all_assignment_rows
+    ):
+        return "Ja existe atribuicao principal nesta data."
+    if military.functional_type == FunctionalType.PATRULHEIRO.value:
+        team = context.team_for_military_on_date(military.id, assignment_date)
+        if team is None:
+            return "Patrulheiro sem equipa valida na data."
+        try:
+            cycle_day = context.cycle_day_for_team(team, assignment_date)
+        except cycle_calculator.MissingTeamReferenceError:
+            return "Equipa sem referencia de ciclo valida."
+        if cycle_day.code in {"DS", "DC"}:
+            return f"Ciclo {cycle_day.code}."
+    confirmed = context.confirmed_unavailabilities_for_interval(military.id, service_start, service_end)
+    if confirmed:
+        return "Existe indisponibilidade confirmada sobreposta ao intervalo."
+    restriction_reason = context.restriction_block_reason(military.id, service_start, service_end)
+    if restriction_reason:
+        return restriction_reason
+    planned = context.planned_unavailability_for_interval(military.id, service_start, service_end)
+    if planned is not None:
+        return f"Indisponibilidade planeada {planned.code}."
+    rest_gap = minimum_rest_gap(context, military.id, service_start, service_end)
+    if rest_gap is not None and rest_gap < timedelta(hours=MINIMUM_REST_HOURS):
+        return "Descanso inferior a oito horas."
+    return None
 
 
 def planned_unavailability_overlap(military_id: int, service_start: datetime, service_end: datetime) -> Unavailability | None:
