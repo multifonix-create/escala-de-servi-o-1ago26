@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.1 - Regeneração Segura de Atribuições Automáticas AT/PO
+v1.2 - Otimização e Desempenho do Motor AT/PO
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO e regeneração segura de automáticos numa nova versão.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão e otimizações de desempenho sem alteração de regras.
 
 ## Requisitos
 
@@ -101,7 +101,7 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v1.1
+## Estado da v1.2
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -139,6 +139,10 @@ pytest
 - Células manuais/importadas preservadas na nova versão.
 - Automáticos antigos não são copiados.
 - Células limpas continuam sem código ativo.
+- Geração, regeneração, grelha e diagnóstico com carregamento em lote.
+- Caches locais por execução, sem cache global persistente.
+- Testes de regressão de queries em `tests/test_performance.py`.
+- Sem migração nova na v1.2.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.

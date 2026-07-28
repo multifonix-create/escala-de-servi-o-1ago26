@@ -17,16 +17,20 @@ from app.models import (
     GenerationRun,
     GenerationRunStatus,
     Military,
+    MilitaryRestriction,
+    MilitaryTeamHistory,
     ScheduleMonth,
     ScheduleMonthStatus,
     ScheduleVersion,
+    Team,
+    TeamCycleReference,
     Unavailability,
     UnavailabilityStatus,
 )
 from app.models.military import utc_now
-from app.services import cycle_calculator, membership_service
-from app.services.availability_evaluator import evaluate_service_interval
+from app.services import cycle_calculator
 from app.services.diagnostic_service import ScheduleDiagnosticService
+from app.services.restriction_evaluator import contains, intervals_for_restriction, overlaps as restriction_overlaps
 from app.services.service_code_catalog import COVERAGE_TARGETS, SERVICE_TIME_WINDOWS
 from app.services.unavailability_evaluator import interval_for_unavailability, overlaps
 
@@ -137,8 +141,15 @@ class GenerationContext:
     militaries: list[Military]
     assignments: list[Assignment]
     historical_assignments: list[Assignment]
+    teams_by_id: dict[int, Team] = field(default_factory=dict)
+    memberships_by_military: dict[int, list[MilitaryTeamHistory]] = field(default_factory=dict)
+    references_by_team: dict[int, list[TeamCycleReference]] = field(default_factory=dict)
+    restrictions_by_military: dict[int, list[MilitaryRestriction]] = field(default_factory=dict)
+    unavailabilities_by_military: dict[int, list[Unavailability]] = field(default_factory=dict)
     planned_assignments: list[Assignment] = field(default_factory=list)
     team_load: dict[tuple[date, str, int], int] = field(default_factory=dict)
+    team_date_cache: dict[tuple[int, date], Team | None] = field(default_factory=dict)
+    cycle_cache: dict[tuple[int, date], cycle_calculator.CycleDay] = field(default_factory=dict)
 
     @property
     def all_current_assignments(self) -> list[Assignment]:
@@ -147,6 +158,91 @@ class GenerationContext:
     @property
     def all_assignment_rows(self) -> list[Assignment]:
         return self.assignments + self.planned_assignments
+
+    def team_for_military_on_date(self, military_id: int, assignment_date: date) -> Team | None:
+        key = (military_id, assignment_date)
+        if key not in self.team_date_cache:
+            membership = next(
+                (
+                    item
+                    for item in self.memberships_by_military.get(military_id, [])
+                    if item.start_date <= assignment_date and (item.end_date is None or item.end_date >= assignment_date)
+                ),
+                None,
+            )
+            self.team_date_cache[key] = self.teams_by_id.get(membership.team_id) if membership else None
+        return self.team_date_cache[key]
+
+    def cycle_day_for_team(self, team: Team, assignment_date: date) -> cycle_calculator.CycleDay:
+        key = (team.id, assignment_date)
+        if key in self.cycle_cache:
+            return self.cycle_cache[key]
+        reference = next(
+            (
+                item
+                for item in self.references_by_team.get(team.id, [])
+                if item.valid_from <= assignment_date and (item.valid_until is None or item.valid_until >= assignment_date)
+            ),
+            None,
+        )
+        if reference is None:
+            raise cycle_calculator.MissingTeamReferenceError(
+                {"reference": "A equipa nao possui referencia valida para a data indicada."}
+            )
+        phase = cycle_calculator.calculate_phase(reference.reference_phase, reference.reference_date, assignment_date)
+        code = cycle_calculator.day_off_code_for_phase(phase, assignment_date)
+        self.cycle_cache[key] = cycle_calculator.CycleDay(
+            day=assignment_date,
+            weekday_name=cycle_calculator.WEEKDAY_NAMES[assignment_date.weekday()],
+            phase=phase,
+            code=code,
+            explanation=cycle_calculator.explain_calculation(reference, assignment_date, phase, code),
+        )
+        return self.cycle_cache[key]
+
+    def confirmed_unavailabilities_for_interval(self, military_id: int, service_start: datetime, service_end: datetime) -> list[Unavailability]:
+        matches = []
+        for item in self.unavailabilities_by_military.get(military_id, []):
+            if item.status != UnavailabilityStatus.CONFIRMED.value:
+                continue
+            interval = interval_for_unavailability(item)
+            if overlaps(interval.effective_start, interval.effective_end, service_start, service_end):
+                matches.append(item)
+        return matches
+
+    def planned_unavailability_for_interval(self, military_id: int, service_start: datetime, service_end: datetime) -> Unavailability | None:
+        for item in self.unavailabilities_by_military.get(military_id, []):
+            if item.status != UnavailabilityStatus.PLANNED.value:
+                continue
+            interval = interval_for_unavailability(item)
+            if overlaps(interval.effective_start, interval.effective_end, service_start, service_end):
+                return item
+        return None
+
+    def restriction_block_reason(self, military_id: int, service_start: datetime, service_end: datetime) -> str | None:
+        considered = self.restrictions_by_military.get(military_id, [])
+        unavailable_matches = []
+        available_intervals = []
+        special_intervals = []
+        for restriction in considered:
+            intervals = intervals_for_restriction(restriction, service_start, service_end)
+            if restriction.restriction_type == "UNAVAILABLE":
+                unavailable_matches.extend(
+                    interval for interval in intervals if restriction_overlaps(interval.start, interval.end, service_start, service_end)
+                )
+            elif restriction.restriction_type == "AVAILABLE_ONLY":
+                available_intervals.extend(intervals)
+            elif restriction.restriction_type == "SPECIAL_AVAILABILITY":
+                special_intervals.extend(intervals)
+        if unavailable_matches:
+            return "Existe uma restricao absoluta sobreposta ao intervalo."
+        if any(contains(interval.start, interval.end, service_start, service_end) for interval in special_intervals):
+            return None
+        if any(restriction.restriction_type == "AVAILABLE_ONLY" for restriction in considered):
+            if any(contains(interval.start, interval.end, service_start, service_end) for interval in available_intervals):
+                return None
+            return "Existe disponibilidade limitada e o servico nao esta contido numa janela autorizada."
+        return None
 
 
 class CandidateSelector:
@@ -364,6 +460,7 @@ def build_generation_context(schedule_version: ScheduleVersion, lookback_months:
         .order_by(Military.id.asc())
         .all()
     )
+    military_ids = [military.id for military in militaries]
     assignments = Assignment.query.filter_by(schedule_version_id=schedule_version.id).all()
     historical_assignments = (
         Assignment.query.join(ScheduleVersion, Assignment.schedule_version_id == ScheduleVersion.id)
@@ -372,6 +469,45 @@ def build_generation_context(schedule_version: ScheduleVersion, lookback_months:
         .filter(Assignment.is_cleared.is_(False), Assignment.code.in_(GENERATION_SERVICE_CODES))
         .all()
     )
+    teams = Team.query.all()
+    memberships = (
+        MilitaryTeamHistory.query.filter(
+            MilitaryTeamHistory.military_id.in_(military_ids),
+            MilitaryTeamHistory.start_date <= month_end,
+            or_(MilitaryTeamHistory.end_date.is_(None), MilitaryTeamHistory.end_date >= month_start),
+        )
+        .order_by(MilitaryTeamHistory.start_date.desc(), MilitaryTeamHistory.id.desc())
+        .all()
+    ) if military_ids else []
+    references = (
+        TeamCycleReference.query.filter(
+            TeamCycleReference.valid_from <= month_end,
+            or_(TeamCycleReference.valid_until.is_(None), TeamCycleReference.valid_until >= month_start),
+        )
+        .order_by(TeamCycleReference.valid_from.desc(), TeamCycleReference.id.desc())
+        .all()
+    )
+    restrictions = (
+        MilitaryRestriction.query.filter(
+            MilitaryRestriction.military_id.in_(military_ids),
+            MilitaryRestriction.is_active.is_(True),
+            MilitaryRestriction.start_date <= month_end,
+            or_(MilitaryRestriction.end_date.is_(None), MilitaryRestriction.end_date >= month_start - timedelta(days=1)),
+        )
+        .order_by(MilitaryRestriction.restriction_type.asc(), MilitaryRestriction.id.asc())
+        .all()
+    ) if military_ids else []
+    unavailabilities = (
+        Unavailability.query.filter(
+            Unavailability.military_id.in_(military_ids),
+            Unavailability.is_active.is_(True),
+            Unavailability.status != UnavailabilityStatus.CANCELLED.value,
+            Unavailability.start_date <= month_end,
+            Unavailability.end_date >= month_start - timedelta(days=1),
+        )
+        .order_by(Unavailability.status.asc(), Unavailability.start_date.asc(), Unavailability.id.asc())
+        .all()
+    ) if military_ids else []
     return GenerationContext(
         schedule_month=schedule_month,
         schedule_version=schedule_version,
@@ -381,6 +517,11 @@ def build_generation_context(schedule_version: ScheduleVersion, lookback_months:
         militaries=militaries,
         assignments=assignments,
         historical_assignments=historical_assignments,
+        teams_by_id={team.id: team for team in teams},
+        memberships_by_military=_group_by_military(memberships),
+        references_by_team=_group_by_team(references),
+        restrictions_by_military=_group_by_military(restrictions),
+        unavailabilities_by_military=_group_by_military(unavailabilities),
     )
 
 
@@ -431,11 +572,11 @@ def exclusion_reason(
     ):
         return "Ja existe atribuicao nesta data."
     if military.functional_type == FunctionalType.PATRULHEIRO.value:
-        team = membership_service.get_team_for_military_on_date(military.id, assignment_date)
+        team = context.team_for_military_on_date(military.id, assignment_date)
         if team is None:
             return "Patrulheiro sem equipa valida na data."
         try:
-            cycle_day = cycle_calculator.calculate_team_day(team, assignment_date)
+            cycle_day = context.cycle_day_for_team(team, assignment_date)
         except cycle_calculator.MissingTeamReferenceError:
             return "Equipa sem referencia de ciclo valida."
         if cycle_day.code in {"DS", "DC"}:
@@ -443,10 +584,13 @@ def exclusion_reason(
     elif military.functional_type not in {FunctionalType.SEC.value, FunctionalType.SI.value}:
         return "Tipo funcional nao elegivel para AT/PO."
 
-    availability = evaluate_service_interval(military.id, service_start, service_end)
-    if not availability.allowed:
-        return availability.reason
-    planned = planned_unavailability_overlap(military.id, service_start, service_end)
+    confirmed = context.confirmed_unavailabilities_for_interval(military.id, service_start, service_end)
+    if confirmed:
+        return "Existe indisponibilidade confirmada sobreposta ao intervalo."
+    restriction_reason = context.restriction_block_reason(military.id, service_start, service_end)
+    if restriction_reason:
+        return restriction_reason
+    planned = context.planned_unavailability_for_interval(military.id, service_start, service_end)
     if planned is not None:
         return f"Indisponibilidade planeada {planned.code}."
     rest_gap = minimum_rest_gap(context, military.id, service_start, service_end)
@@ -461,7 +605,7 @@ def build_metrics(context: GenerationContext, military: Military, assignment_dat
         for item in context.historical_assignments + context.planned_assignments
         if item.military_id == military.id and item.is_visible and item.code in GENERATION_SERVICE_CODES
     ]
-    current_team = membership_service.get_team_for_military_on_date(military.id, assignment_date)
+    current_team = context.team_for_military_on_date(military.id, assignment_date)
     team_id = current_team.id if current_team else 0
     return CandidateMetrics(
         specific_count=sum(1 for item in assignments if item.code == service_code),
@@ -559,7 +703,7 @@ def persist_system_assignment(context: GenerationContext, military: Military, as
             reason="Geracao automatica inicial AT/PO.",
         )
     )
-    team = membership_service.get_team_for_military_on_date(military.id, assignment_date)
+    team = context.team_for_military_on_date(military.id, assignment_date)
     if team:
         key = (assignment_date, service_code, team.id)
         context.team_load[key] = context.team_load.get(key, 0) + 1
@@ -631,6 +775,20 @@ def first_day_months_before(month_start: date, months: int) -> date:
             month = 12
             year -= 1
     return date(year, month, 1)
+
+
+def _group_by_military(items: list) -> dict[int, list]:
+    grouped: dict[int, list] = {}
+    for item in items:
+        grouped.setdefault(item.military_id, []).append(item)
+    return grouped
+
+
+def _group_by_team(items: list) -> dict[int, list]:
+    grouped: dict[int, list] = {}
+    for item in items:
+        grouped.setdefault(item.team_id, []).append(item)
+    return grouped
 
 
 def latest_generation_run(schedule_version_id: int) -> GenerationRun | None:

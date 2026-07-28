@@ -1,5 +1,48 @@
 # Changelog
 
+## v1.2 - 2026-07-28
+
+### Adicionado
+- Criados testes de regressão de desempenho e queries em `tests/test_performance.py`.
+- Adicionados caches locais por execução para equipa por militar/data e ciclo por equipa/data.
+- Adicionados mapas em memória para pertenças, referências, restrições e indisponibilidades durante geração, grelha e diagnóstico.
+
+### Alterado
+- Otimizado `ScheduleGenerator` para evitar queries por candidato/turno.
+- Otimizado `CandidateSelector` através de `GenerationContext` pré-carregado.
+- Otimizado `ScheduleRegenerationService` por reutilizar o gerador otimizado.
+- Otimizado `MonthlyGridBuilder` para evitar queries por célula.
+- Otimizado `ScheduleDiagnosticService` para evitar consultas repetidas por atribuição.
+
+### Medições
+- Geração 25: `28.581s / 51.232 queries` -> `2.978s / 6.973 queries`.
+- Geração 50: `56.994s / 108.080 queries` -> `5.359s / 12.134 queries`.
+- Regeneração 50: `58.627s / 108.071 queries` -> `6.638s / 12.149 queries`.
+- Grelha 50: `3.991s / 8.132 queries` -> `0.117s / 287 queries`.
+- Diagnóstico 50: `0.800s / 1.220 queries` -> `0.082s / 384 queries`.
+- Geração 100: `102.909s / 182.353 queries` -> `10.344s / 22.754 queries`.
+- Suite completa: `200 passed in 171.65s` -> `203 passed in 53.24s`.
+
+### Migração
+- Não foi criada migração na v1.2.
+- Não foram adicionados índices novos.
+- A revisão Alembic mantém-se em `a999dc4dceba`.
+- Não foi necessário backup novo, porque não houve migração.
+
+### Regras
+- Não foram alteradas regras operacionais.
+- A ordem de seleção foi preservada.
+- A explicabilidade e os detalhes de seleção foram preservados.
+- Não foi introduzida cache global.
+
+### Testes
+- Suite completa validada com `203 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real permaneceu sem militares, versões, atribuições, gerações ou diagnósticos de teste.
+- Não foram criados dados fictícios ou demonstrativos.
+
 ## v1.1 - 2026-07-28
 
 ### Adicionado

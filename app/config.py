@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 class BaseConfig:
     APP_NAME = "Escala de Serviço"
-    APP_VERSION = "v1.1"
+    APP_VERSION = "v1.2"
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     LOG_DIR = BASE_DIR / "logs"

@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v1.1 - Regeneração Segura de Atribuições Automáticas AT/PO`.
+Versão atual: `v1.2 - Otimização e Desempenho do Motor AT/PO`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -361,6 +361,40 @@ Decisões de arquitetura da v1.1:
 * rollback remove a nova versão se a regeneração falhar antes do commit;
 * não há remoção destrutiva de automáticos na versão atual.
 
+## v1.2 - Otimização e Desempenho do Motor AT/PO
+
+A v1.2 está concluída com:
+
+* `GenerationContext` reforçado com dados pré-carregados;
+* caches locais por execução para equipa por militar/data e ciclo por equipa/data;
+* pré-carregamento de pertenças, referências, restrições e indisponibilidades no gerador;
+* seleção de candidatos sem queries por candidato/turno para ciclo, restrições e indisponibilidades;
+* `MonthlyGridBuilder` otimizado com carregamento em lote por mês;
+* `DiagnosticContext` otimizado com mapas em memória;
+* testes de regressão de queries em `tests/test_performance.py`;
+* nenhuma alteração de regras operacionais;
+* nenhuma migração nova.
+
+Medições principais v1.2:
+
+```text
+Geração 25: 28.581s / 51.232 queries -> 2.978s / 6.973 queries
+Geração 50: 56.994s / 108.080 queries -> 5.359s / 12.134 queries
+Regeneração 50: 58.627s / 108.071 queries -> 6.638s / 12.149 queries
+Grelha 50: 3.991s / 8.132 queries -> 0.117s / 287 queries
+Diagnóstico 50: 0.800s / 1.220 queries -> 0.082s / 384 queries
+Geração 100: 102.909s / 182.353 queries -> 10.344s / 22.754 queries
+Suite completa: 200 testes em 171.65s -> 203 testes em 53.24s
+```
+
+Decisões da v1.2:
+
+* não foram criados índices novos;
+* não foi criada migração;
+* não foi criada cache global;
+* os testes continuam a usar base SQLite em memória;
+* a base real não foi usada para benchmarks.
+
 ## Ainda Não Existe
 
 Ainda não existem:
@@ -434,7 +468,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 * A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs` e `assignment_selection_details`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração nem detalhes de seleção após a v1.1.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração nem detalhes de seleção após a v1.2.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
@@ -454,11 +488,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-200 passed
+203 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v1.1 - Regeneração Segura de Atribuições Automáticas AT/PO`.
+`v1.2 - Otimização e Desempenho do Motor AT/PO`.

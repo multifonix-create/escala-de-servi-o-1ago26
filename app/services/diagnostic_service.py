@@ -30,7 +30,7 @@ from app.models import (
     UnavailabilityStatus,
 )
 from app.models.military import utc_now
-from app.services import cycle_calculator, membership_service, restriction_service
+from app.services import cycle_calculator
 from app.services.assignment_codes import ALLOWED_ASSIGNMENT_CODES, OPERATIONAL_ASSIGNMENT_CODES, UNAVAILABILITY_ASSIGNMENT_CODES
 from app.services.service_code_catalog import COVERAGE_TARGETS, SERVICE_TIME_WINDOWS
 from app.services.unavailability_evaluator import interval_for_unavailability
@@ -120,6 +120,52 @@ class DiagnosticContext:
     team_references: list[TeamCycleReference]
     unavailabilities: list[Unavailability]
     restrictions: list[MilitaryRestriction]
+    teams_by_id: dict[int, Team] = field(default_factory=dict)
+    memberships_by_military: dict[int, list[MilitaryTeamHistory]] = field(default_factory=dict)
+    references_by_team: dict[int, list[TeamCycleReference]] = field(default_factory=dict)
+    team_date_cache: dict[tuple[int, date], Team | None] = field(default_factory=dict)
+    cycle_cache: dict[tuple[int, date], cycle_calculator.CycleDay] = field(default_factory=dict)
+
+    def team_for_military_on_date(self, military_id: int, assignment_date: date) -> Team | None:
+        key = (military_id, assignment_date)
+        if key not in self.team_date_cache:
+            membership = next(
+                (
+                    item
+                    for item in self.memberships_by_military.get(military_id, [])
+                    if item.start_date <= assignment_date and (item.end_date is None or item.end_date >= assignment_date)
+                ),
+                None,
+            )
+            self.team_date_cache[key] = self.teams_by_id.get(membership.team_id) if membership else None
+        return self.team_date_cache[key]
+
+    def cycle_day_for_team(self, team: Team, assignment_date: date) -> cycle_calculator.CycleDay:
+        key = (team.id, assignment_date)
+        if key in self.cycle_cache:
+            return self.cycle_cache[key]
+        reference = next(
+            (
+                item
+                for item in self.references_by_team.get(team.id, [])
+                if item.valid_from <= assignment_date and (item.valid_until is None or item.valid_until >= assignment_date)
+            ),
+            None,
+        )
+        if reference is None:
+            raise cycle_calculator.MissingTeamReferenceError(
+                {"reference": "A equipa nao possui referencia valida para a data indicada."}
+            )
+        phase = cycle_calculator.calculate_phase(reference.reference_phase, reference.reference_date, assignment_date)
+        code = cycle_calculator.day_off_code_for_phase(phase, assignment_date)
+        self.cycle_cache[key] = cycle_calculator.CycleDay(
+            day=assignment_date,
+            weekday_name=cycle_calculator.WEEKDAY_NAMES[assignment_date.weekday()],
+            phase=phase,
+            code=code,
+            explanation=cycle_calculator.explain_calculation(reference, assignment_date, phase, code),
+        )
+        return self.cycle_cache[key]
 
 
 class ScheduleDiagnosticService:
@@ -180,6 +226,18 @@ def build_context(schedule_version: ScheduleVersion) -> DiagnosticContext:
         .order_by(Military.name.asc(), Military.nim.asc())
         .all()
     )
+    military_ids = [military.id for military in militaries]
+    memberships = (
+        MilitaryTeamHistory.query.filter(
+            MilitaryTeamHistory.military_id.in_(military_ids),
+            MilitaryTeamHistory.start_date <= month_end,
+            or_(MilitaryTeamHistory.end_date.is_(None), MilitaryTeamHistory.end_date >= month_start),
+        )
+        .order_by(MilitaryTeamHistory.start_date.desc(), MilitaryTeamHistory.id.desc())
+        .all()
+    ) if military_ids else []
+    teams = Team.query.order_by(Team.code.asc()).all()
+    team_references = TeamCycleReference.query.all()
     return DiagnosticContext(
         schedule_month=schedule_month,
         schedule_version=schedule_version,
@@ -187,8 +245,8 @@ def build_context(schedule_version: ScheduleVersion) -> DiagnosticContext:
         month_end=month_end,
         militaries=militaries,
         assignments=Assignment.query.filter_by(schedule_version_id=schedule_version.id).all(),
-        teams=Team.query.order_by(Team.code.asc()).all(),
-        team_references=TeamCycleReference.query.all(),
+        teams=teams,
+        team_references=team_references,
         unavailabilities=Unavailability.query.filter(
             Unavailability.start_date <= month_end,
             Unavailability.end_date >= month_start,
@@ -197,6 +255,9 @@ def build_context(schedule_version: ScheduleVersion) -> DiagnosticContext:
             MilitaryRestriction.start_date <= month_end,
             or_(MilitaryRestriction.end_date.is_(None), MilitaryRestriction.end_date >= month_start),
         ).all(),
+        teams_by_id={team.id: team for team in teams},
+        memberships_by_military=_group_by_military(memberships),
+        references_by_team=_group_by_team(team_references),
     )
 
 
@@ -240,12 +301,12 @@ class CycleDiagnosticValidator(BaseDiagnosticValidator):
             military = assignment.military
             if military.functional_type != FunctionalType.PATRULHEIRO.value:
                 continue
-            team = membership_service.get_team_for_military_on_date(military.id, assignment.assignment_date)
+            team = context.team_for_military_on_date(military.id, assignment.assignment_date)
             if team is None:
                 problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.CYCLE, "MILITARY_WITHOUT_TEAM", "Atribuicao sem equipa", "Nao existe equipa valida para calcular o ciclo.", assignment, military_id=military.id))
                 continue
             try:
-                cycle_day = cycle_calculator.calculate_team_day(team, assignment.assignment_date)
+                cycle_day = context.cycle_day_for_team(team, assignment.assignment_date)
             except cycle_calculator.MissingTeamReferenceError:
                 problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.CYCLE, "TEAM_MISSING_REFERENCE", "Referencia de ciclo em falta", "Nao foi possivel calcular DS/DC.", assignment, military_id=military.id, team_id=team.id, is_blocking=True))
                 continue
@@ -283,7 +344,10 @@ class RestrictionDiagnosticValidator(BaseDiagnosticValidator):
                 continue
             restrictions = [
                 restriction
-                for restriction in restriction_service.get_active_restrictions_for_military_on_date(assignment.military_id, assignment.assignment_date)
+                for restriction in context.restrictions
+                if restriction.military_id == assignment.military_id
+                and restriction.start_date <= assignment.assignment_date
+                and (restriction.end_date is None or restriction.end_date >= assignment.assignment_date)
                 if restriction.applies_to_weekday(assignment.assignment_date.weekday())
             ]
             if restrictions:
@@ -523,3 +587,17 @@ def _assignment_interval(assignment: Assignment) -> tuple[datetime, datetime]:
     end_date = assignment.assignment_date + timedelta(days=1) if window.crosses_midnight else assignment.assignment_date
     end = datetime.combine(end_date, window.end_time)
     return start, end
+
+
+def _group_by_military(items: list) -> dict[int, list]:
+    grouped: dict[int, list] = {}
+    for item in items:
+        grouped.setdefault(item.military_id, []).append(item)
+    return grouped
+
+
+def _group_by_team(items: list) -> dict[int, list]:
+    grouped: dict[int, list] = {}
+    for item in items:
+        grouped.setdefault(item.team_id, []).append(item)
+    return grouped

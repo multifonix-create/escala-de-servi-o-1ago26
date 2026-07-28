@@ -901,4 +901,23 @@ Não coberto por implementação nesta versão:
 
 ---
 
+## 39-D. Casos de Otimização v1.2
+
+Casos automatizados implementados na v1.2:
+
+| ID | Caso | Domínio | Resultado esperado |
+|---|---|---|---|
+| PERF-101 | Geração sem explosão de queries | GEN/PERF | Geração com 25 militares fica abaixo de limite razoável de queries. |
+| PERF-102 | Grelha sem query por célula | GRID/PERF | Grelha mensal usa carregamento em lote. |
+| PERF-103 | Diagnóstico em lote | DIAG/PERF | Diagnóstico de versão gerada evita queries repetidas por atribuição. |
+
+Critérios:
+
+* limites de queries possuem margem ampla baseada nas medições da v1.2;
+* os testes não usam tempos rígidos;
+* a base real não é usada para desempenho;
+* a equivalência funcional continua coberta pelos testes GEN, REGEN, DIAG, GRID e MANUAL existentes.
+
+---
+
 **Fim do documento — TEST_CASES.md**

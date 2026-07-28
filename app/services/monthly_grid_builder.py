@@ -9,12 +9,16 @@ from app.models import (
     CompensationStatus,
     FunctionalType,
     Military,
+    MilitaryRestriction,
+    MilitaryTeamHistory,
     ScheduleMonth,
     ScheduleVersion,
+    Team,
+    TeamCycleReference,
     Unavailability,
     UnavailabilityStatus,
 )
-from app.services import cycle_calculator, membership_service, restriction_service
+from app.services import cycle_calculator
 from app.services.unavailability_evaluator import interval_for_unavailability, overlaps
 
 
@@ -142,9 +146,10 @@ def build_monthly_grid(
 
     selected_version = version or schedule_month.latest_version
     assignments = _assignments_by_cell(selected_version) if selected_version else {}
+    context = _build_grid_context(militaries, month_start, month_end)
 
     rows = [
-        _build_row(military, days, month_start, month_end, warnings, assignments)
+        _build_row(military, days, month_start, month_end, warnings, assignments, context)
         for military in militaries
     ]
     rows.sort(key=_row_sort_key)
@@ -192,10 +197,11 @@ def _build_row(
     month_end: date,
     global_warnings: list[str],
     assignments: dict[tuple[int, date], Assignment],
+    context: dict,
 ) -> MonthlyGridRow:
-    group_label = _group_label_for_military(military, month_start, month_end)
+    group_label = _group_label_for_military(military, month_start, month_end, context)
     cells = [
-        _build_cell(military, grid_day, global_warnings, assignments)
+        _build_cell(military, grid_day, global_warnings, assignments, context)
         for grid_day in days
     ]
     return MonthlyGridRow(military=military, group_label=group_label, cells=cells)
@@ -206,6 +212,7 @@ def _build_cell(
     grid_day: MonthlyGridDay,
     global_warnings: list[str],
     assignments: dict[tuple[int, date], Assignment],
+    context: dict,
 ) -> MonthlyGridCell:
     current = grid_day.date
     outside_period = current < military.start_date or (
@@ -220,15 +227,15 @@ def _build_cell(
     if outside_period:
         return cell
 
-    team = membership_service.get_team_for_military_on_date(military.id, current)
+    team = _team_for_military_on_date(context, military.id, current)
     if team is not None:
         cell.team_code = team.code
 
     if military.functional_type == FunctionalType.PATRULHEIRO.value:
-        _apply_cycle(cell, military, team, current, global_warnings)
+        _apply_cycle(cell, military, team, current, global_warnings, context)
 
-    _apply_unavailability(cell, military, current)
-    _apply_restrictions(cell, military, current)
+    _apply_unavailability(cell, military, current, context)
+    _apply_restrictions(cell, military, current, context)
     _apply_assignment(cell, assignments.get((military.id, current)))
     return cell
 
@@ -252,6 +259,7 @@ def _apply_cycle(
     team,
     current: date,
     global_warnings: list[str],
+    context: dict,
 ) -> None:
     if team is None:
         message = f"{military.name} sem equipa valida em {current.isoformat()}."
@@ -259,7 +267,7 @@ def _apply_cycle(
         global_warnings.append(message)
         return
     try:
-        cycle_day = cycle_calculator.calculate_team_day(team, current)
+        cycle_day = _cycle_day_for_team(context, team, current)
     except cycle_calculator.MissingTeamReferenceError:
         message = f"Equipa {team.code} sem referencia de ciclo valida em {current.isoformat()}."
         cell.warnings.append(message)
@@ -271,11 +279,11 @@ def _apply_cycle(
         cell.primary_code = cycle_day.code
 
 
-def _apply_unavailability(cell: MonthlyGridCell, military: Military, current: date) -> None:
+def _apply_unavailability(cell: MonthlyGridCell, military: Military, current: date, context: dict) -> None:
     day_start = datetime.combine(current, time.min)
     day_end = day_start + timedelta(days=1)
     matches = []
-    for unavailability in _unavailabilities_for_day(military.id, current):
+    for unavailability in context["unavailabilities_by_military"].get(military.id, []):
         interval = interval_for_unavailability(unavailability)
         if overlaps(interval.effective_start, interval.effective_end, day_start, day_end):
             matches.append(unavailability)
@@ -289,10 +297,11 @@ def _apply_unavailability(cell: MonthlyGridCell, military: Military, current: da
     cell.is_partial_unavailability = start > day_start or end < day_end
 
 
-def _apply_restrictions(cell: MonthlyGridCell, military: Military, current: date) -> None:
+def _apply_restrictions(cell: MonthlyGridCell, military: Military, current: date, context: dict) -> None:
     restrictions = [
         restriction
-        for restriction in restriction_service.get_active_restrictions_for_military_on_date(military.id, current)
+        for restriction in context["restrictions_by_military"].get(military.id, [])
+        if restriction.start_date <= current and (restriction.end_date is None or restriction.end_date >= current)
         if restriction.applies_to_weekday(current.weekday())
     ]
     cell.restriction_count = len(restrictions)
@@ -318,16 +327,125 @@ def _unavailability_priority(unavailability: Unavailability) -> tuple[int, date,
     return status_priority, unavailability.start_date, unavailability.id
 
 
-def _group_label_for_military(military: Military, month_start: date, month_end: date) -> str:
+def _group_label_for_military(military: Military, month_start: date, month_end: date, context: dict) -> str:
     if military.functional_type in GROUP_ORDER:
         return military.functional_type
     current = month_start
     while current <= month_end:
-        team = membership_service.get_team_for_military_on_date(military.id, current)
+        team = _team_for_military_on_date(context, military.id, current)
         if team is not None:
             return f"Equipa {team.code}"
         current += timedelta(days=1)
     return "Patrulheiros sem equipa"
+
+
+def _build_grid_context(militaries: list[Military], month_start: date, month_end: date) -> dict:
+    military_ids = [military.id for military in militaries]
+    teams = Team.query.all()
+    memberships = (
+        MilitaryTeamHistory.query.filter(
+            MilitaryTeamHistory.military_id.in_(military_ids),
+            MilitaryTeamHistory.start_date <= month_end,
+            or_(MilitaryTeamHistory.end_date.is_(None), MilitaryTeamHistory.end_date >= month_start),
+        )
+        .order_by(MilitaryTeamHistory.start_date.desc(), MilitaryTeamHistory.id.desc())
+        .all()
+    ) if military_ids else []
+    references = (
+        TeamCycleReference.query.filter(
+            TeamCycleReference.valid_from <= month_end,
+            or_(TeamCycleReference.valid_until.is_(None), TeamCycleReference.valid_until >= month_start),
+        )
+        .order_by(TeamCycleReference.valid_from.desc(), TeamCycleReference.id.desc())
+        .all()
+    )
+    unavailabilities = (
+        Unavailability.query.filter(
+            Unavailability.military_id.in_(military_ids),
+            Unavailability.is_active.is_(True),
+            Unavailability.status != UnavailabilityStatus.CANCELLED.value,
+            Unavailability.start_date <= month_end,
+            Unavailability.end_date >= month_start - timedelta(days=1),
+        )
+        .order_by(Unavailability.start_date.asc(), Unavailability.id.asc())
+        .all()
+    ) if military_ids else []
+    restrictions = (
+        MilitaryRestriction.query.filter(
+            MilitaryRestriction.military_id.in_(military_ids),
+            MilitaryRestriction.is_active.is_(True),
+            MilitaryRestriction.start_date <= month_end,
+            or_(MilitaryRestriction.end_date.is_(None), MilitaryRestriction.end_date >= month_start),
+        )
+        .order_by(MilitaryRestriction.restriction_type.asc(), MilitaryRestriction.id.asc())
+        .all()
+    ) if military_ids else []
+    return {
+        "teams_by_id": {team.id: team for team in teams},
+        "memberships_by_military": _group_by_military(memberships),
+        "references_by_team": _group_by_team(references),
+        "unavailabilities_by_military": _group_by_military(unavailabilities),
+        "restrictions_by_military": _group_by_military(restrictions),
+        "team_date_cache": {},
+        "cycle_cache": {},
+    }
+
+
+def _team_for_military_on_date(context: dict, military_id: int, current: date):
+    key = (military_id, current)
+    if key not in context["team_date_cache"]:
+        membership = next(
+            (
+                item
+                for item in context["memberships_by_military"].get(military_id, [])
+                if item.start_date <= current and (item.end_date is None or item.end_date >= current)
+            ),
+            None,
+        )
+        context["team_date_cache"][key] = context["teams_by_id"].get(membership.team_id) if membership else None
+    return context["team_date_cache"][key]
+
+
+def _cycle_day_for_team(context: dict, team, current: date):
+    key = (team.id, current)
+    if key in context["cycle_cache"]:
+        return context["cycle_cache"][key]
+    reference = next(
+        (
+            item
+            for item in context["references_by_team"].get(team.id, [])
+            if item.valid_from <= current and (item.valid_until is None or item.valid_until >= current)
+        ),
+        None,
+    )
+    if reference is None:
+        raise cycle_calculator.MissingTeamReferenceError(
+            {"reference": "A equipa nao possui referencia valida para a data indicada."}
+        )
+    phase = cycle_calculator.calculate_phase(reference.reference_phase, reference.reference_date, current)
+    code = cycle_calculator.day_off_code_for_phase(phase, current)
+    context["cycle_cache"][key] = cycle_calculator.CycleDay(
+        day=current,
+        weekday_name=cycle_calculator.WEEKDAY_NAMES[current.weekday()],
+        phase=phase,
+        code=code,
+        explanation=cycle_calculator.explain_calculation(reference, current, phase, code),
+    )
+    return context["cycle_cache"][key]
+
+
+def _group_by_military(items: list) -> dict[int, list]:
+    grouped: dict[int, list] = {}
+    for item in items:
+        grouped.setdefault(item.military_id, []).append(item)
+    return grouped
+
+
+def _group_by_team(items: list) -> dict[int, list]:
+    grouped: dict[int, list] = {}
+    for item in items:
+        grouped.setdefault(item.team_id, []).append(item)
+    return grouped
 
 
 def _row_sort_key(row: MonthlyGridRow) -> tuple[int, str, str, str]:

@@ -1936,6 +1936,34 @@ Decisões:
 * rollback remove a nova versão se houver falha antes da conclusão;
 * não existe regeneração destrutiva na mesma versão.
 
+## 33-F. Estado implementado da otimização na v1.2
+
+A v1.2 otimiza desempenho sem alterar regras operacionais.
+
+Áreas otimizadas:
+
+* geração AT/PO;
+* regeneração;
+* construção da grelha mensal;
+* diagnóstico;
+* seleção de candidatos.
+
+Decisões:
+
+* usar contexto pré-carregado por execução;
+* usar caches locais apenas durante a execução;
+* evitar queries por candidato/turno;
+* evitar queries por célula da grelha;
+* evitar queries repetidas por atribuição no diagnóstico;
+* não criar cache global;
+* não criar migração ou índices novos nesta versão.
+
+Estruturas relevantes:
+
+* `GenerationContext` com mapas de militares, pertenças, referências, restrições e indisponibilidades;
+* contexto interno do `MonthlyGridBuilder`;
+* `DiagnosticContext` com mapas equivalentes para análise.
+
 ---
 
 ## 33. Decisões que dependem de regras futuras
