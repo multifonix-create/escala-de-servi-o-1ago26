@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v0.8 - Edição Manual e Preservação de Alterações`.
+Versão atual: `v0.9 - Diagnóstico Inicial da Escala`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -253,6 +253,39 @@ Decisões de arquitetura da v0.8:
 * a escrita manual de `FF` ou `FC` não cria nem consome créditos;
 * a grelha apresenta primeiro a atribuição manual persistida e mantém os dados subjacentes.
 
+## v0.9 - Diagnóstico Inicial da Escala
+
+A v0.9 está concluída com:
+
+* modelo `DiagnosticRun`;
+* modelo `DiagnosticIssue`;
+* tabelas `diagnostic_runs` e `diagnostic_issues`;
+* migração `1a69c7554b89_create_diagnostic_runs_and_issues.py`;
+* serviço central `app/services/diagnostic_service.py`;
+* catálogo de horários formalizados `app/services/service_code_catalog.py`;
+* níveis `ERROR`, `WARNING` e `INFO`;
+* categorias `CONFIGURATION`, `MILITARY`, `TEAM`, `CYCLE`, `UNAVAILABILITY`, `RESTRICTION`, `ASSIGNMENT`, `SCHEDULE_STATE`, `COVERAGE`, `REST`, `COMPENSATION` e `SYSTEM`;
+* persistência de execuções e problemas de diagnóstico;
+* reexecução preservando histórico;
+* diagnóstico de configuração, militares, ciclo, indisponibilidades, restrições, atribuições, estados, cobertura parcial e descanso parcial;
+* páginas de diagnóstico, filtros e detalhe de problema;
+* indicador discreto `D` na grelha para células afetadas pelo último diagnóstico.
+
+Rotas principais da v0.9:
+
+* `GET /escala/<year>/<month>/versoes/<version_id>/diagnostico`;
+* `POST /escala/<year>/<month>/versoes/<version_id>/diagnostico/executar`;
+* `GET /escala/<year>/<month>/versoes/<version_id>/diagnostico/<run_id>`;
+* `GET /escala/<year>/<month>/versoes/<version_id>/diagnostico/<run_id>/problemas/<issue_id>`.
+
+Decisões de arquitetura da v0.9:
+
+* o diagnóstico é independente da geração e não altera a escala;
+* os resultados são persistidos para histórico e comparação futura;
+* cobertura é apenas parcial e informativa sobre códigos manuais;
+* descanso usa apenas horários formalizados de AT1-AT3 e PO1-PO3;
+* códigos sem horário geram informação de diagnóstico não disponível.
+
 ## Ainda Não Existe
 
 Ainda não existem:
@@ -329,9 +362,9 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 ## Decisões e Limitações Atuais
 
-* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments` e `assignment_changes`.
+* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs` e `diagnostic_issues`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições nem alterações de atribuição após a v0.8.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico nem problemas de diagnóstico após a v0.9.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
@@ -351,11 +384,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-170 passed
+178 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v0.9 - Diagnóstico Inicial da Escala`.
+`v1.0 - Geração Automática Inicial de AT e PO`.

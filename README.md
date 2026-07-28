@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v0.8 - Edição Manual e Preservação de Alterações
+v0.9 - Diagnóstico Inicial da Escala
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha e edição manual controlada das células.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células e diagnóstico inicial da escala.
 
 ## Requisitos
 
@@ -74,6 +74,8 @@ Rotas principais:
 /escala/<year>/<month>/versoes
 /escala/<year>/<month>/versoes/<version_id>/militares/<military_id>/dias/<date>
 /escala/<year>/<month>/versoes/<version_id>/militares/<military_id>/dias/<date>/historico
+/escala/<year>/<month>/versoes/<version_id>/diagnostico
+/escala/<year>/<month>/versoes/<version_id>/diagnostico/<run_id>
 /equipas/<id>/ciclo
 /equipas/<id>/ciclo/nova-referencia
 /equipas/<id>/ciclo/historico
@@ -94,7 +96,7 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v0.8
+## Estado da v0.9
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -113,6 +115,9 @@ pytest
 - Atribuições manuais persistidas com origem MANUAL.
 - Histórico de alterações por célula.
 - Bloqueio, desbloqueio, limpeza lógica e override explícito.
+- Diagnóstico central com níveis ERROR, WARNING e INFO.
+- Diagnóstico persistido por execução e problema.
+- Diagnóstico parcial de cobertura manual e descanso com horários formalizados.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.
@@ -122,4 +127,5 @@ pytest
 - Sem motor de geração.
 - Sem geração automática de AT/PO/PT.
 - Sem criação automática de FF ou FC.
+- Sem correção automática de problemas de diagnóstico.
 - Sem autenticação completa.

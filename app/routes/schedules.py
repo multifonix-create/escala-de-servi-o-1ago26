@@ -4,7 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 
 from app.extensions import db
 from app.services import ScheduleServiceError
-from app.models import Military
+from app.models import DiagnosticIssue, DiagnosticRun, Military
 from app.services.assignment_codes import ASSIGNMENT_CODE_DEFINITIONS
 from app.services.assignment_service import (
     AssignmentServiceError,
@@ -16,6 +16,7 @@ from app.services.assignment_service import (
     unlock_assignment,
     validate_assignment,
 )
+from app.services.diagnostic_service import ScheduleDiagnosticService, latest_run
 from app.services.monthly_grid_builder import build_monthly_grid
 from app.services.schedule_service import (
     create_schedule_month,
@@ -111,6 +112,8 @@ def version_detail(year: int, month: int, version_id: int):
         return redirect(url_for("schedules.month_detail", year=year, month=month))
     version = get_version_for_month_or_404(schedule_month, version_id)
     grid = build_monthly_grid(schedule_month, version=version)
+    diagnostic_run = latest_run(version.id)
+    diagnostic_cells = _diagnostic_cells(diagnostic_run)
     previous_year, previous_month_number = previous_month(year, month)
     next_year, next_month_number = next_month(year, month)
     return render_template(
@@ -120,10 +123,93 @@ def version_detail(year: int, month: int, version_id: int):
         schedule_month=schedule_month,
         grid=grid,
         selected_version=version,
+        diagnostic_run=diagnostic_run,
+        diagnostic_cells=diagnostic_cells,
         previous_year=previous_year,
         previous_month=previous_month_number,
         next_year=next_year,
         next_month=next_month_number,
+    )
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/diagnostico")
+def diagnostic_index(year: int, month: int, version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    run = latest_run(version.id)
+    return render_template(
+        "schedules/diagnostic.html",
+        schedule_month=schedule_month,
+        version=version,
+        run=run,
+        issues=run.issues if run else [],
+        selected_level=request.args.get("level", ""),
+        selected_category=request.args.get("category", ""),
+    )
+
+
+@schedules_bp.post("/<int:year>/<int:month>/versoes/<int:version_id>/diagnostico/executar")
+def run_diagnostic(year: int, month: int, version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    diagnostic_run = ScheduleDiagnosticService().run_and_persist(version)
+    flash("Diagnostico executado.", "success")
+    return redirect(
+        url_for(
+            "schedules.diagnostic_run_detail",
+            year=year,
+            month=month,
+            version_id=version.id,
+            run_id=diagnostic_run.id,
+        )
+    )
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/diagnostico/<int:run_id>")
+def diagnostic_run_detail(year: int, month: int, version_id: int, run_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    run = db.get_or_404(DiagnosticRun, run_id)
+    if run.schedule_version_id != version.id:
+        abort(404)
+    level = request.args.get("level", "")
+    category = request.args.get("category", "")
+    issues = run.issues
+    if level:
+        issues = [issue for issue in issues if issue.level == level]
+    if category:
+        issues = [issue for issue in issues if issue.category == category]
+    return render_template(
+        "schedules/diagnostic.html",
+        schedule_month=schedule_month,
+        version=version,
+        run=run,
+        issues=issues,
+        selected_level=level,
+        selected_category=category,
+    )
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/diagnostico/<int:run_id>/problemas/<int:issue_id>")
+def diagnostic_issue_detail(year: int, month: int, version_id: int, run_id: int, issue_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    issue = db.get_or_404(DiagnosticIssue, issue_id)
+    if issue.diagnostic_run_id != run_id or issue.diagnostic_run.schedule_version_id != version.id:
+        abort(404)
+    return render_template(
+        "schedules/diagnostic_issue.html",
+        schedule_month=schedule_month,
+        version=version,
+        issue=issue,
     )
 
 
@@ -288,3 +374,13 @@ def _assignment_route_context(year: int, month: int, version_id: int, military_i
     except ValueError:
         parsed_date = None
     return schedule_month, version, military, parsed_date
+
+
+def _diagnostic_cells(diagnostic_run: DiagnosticRun | None) -> set[tuple[int, str]]:
+    if diagnostic_run is None:
+        return set()
+    return {
+        (issue.military_id, issue.assignment_date.isoformat())
+        for issue in diagnostic_run.issues
+        if issue.military_id is not None and issue.assignment_date is not None
+    }

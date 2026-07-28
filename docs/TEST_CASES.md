@@ -743,6 +743,23 @@ Não são definidos limites rígidos de tempo sem aprovação funcional/técnica
 
 ---
 
+## 36-C. Casos do Diagnóstico Inicial v0.9
+
+| ID | Título | Regra de origem | Tipo | Prioridade | Procedimento e resultado esperado |
+| --- | --- | --- | --- | --- | --- |
+| DIAG-001 | Execução vazia | ESCALA_RULES 143-145 | Serviço | Alta | Diagnóstico de versão sem atribuições devolve informação e não altera a escala. |
+| DIAG-002 | Persistência da execução | Pedido v0.9 | Base de dados | Crítica | Executar diagnóstico cria `DiagnosticRun` e `DiagnosticIssue`, preservando execuções anteriores. |
+| DIAG-003 | Referência de ciclo em falta | ESCALA_RULES 12, 148 | Ciclo | Crítica | Patrulheiro com equipa sem referência gera erro de configuração/ciclo. |
+| DIAG-004 | Serviço em DS | ESCALA_RULES 18 | Ciclo | Alta | Atribuição manual em dia DS gera aviso e preserva o ciclo subjacente. |
+| DIAG-005 | Indisponibilidade confirmada | ESCALA_RULES 32-41, 149 | Indisponibilidade | Crítica | Atribuição manual sobre indisponibilidade confirmada é diagnosticada. |
+| DIAG-006 | Override existente | ESCALA_RULES 155-158 | Auditoria | Alta | Override fundamentado aparece como informação/aviso sem remover a atribuição. |
+| DIAG-007 | Descanso parcial | ESCALA_RULES 19 | Descanso | Alta | AT/PO consecutivos com menos de oito horas geram aviso. |
+| DIAG-008 | Cobertura parcial | ESCALA_RULES 146 | Cobertura | Média | Contagem manual AT/PO é informativa e não seleciona candidatos. |
+| DIAG-009 | Rotas de diagnóstico | Pedido v0.9 | Interface | Alta | Página, execução, filtros e detalhe respondem sem criar dados fictícios. |
+| DIAG-010 | Caso real prioritário | Pedido v0.9 | Integração | Crítica | PO2 manual em DS com indisponibilidade e override gera diagnósticos esperados e não cria FF/FC. |
+
+---
+
 ## 37. Matriz de Rastreabilidade
 
 | Secção do ESCALA_RULES.md | Domínio | Casos | Estado |

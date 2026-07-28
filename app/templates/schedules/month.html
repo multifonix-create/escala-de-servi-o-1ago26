@@ -45,7 +45,19 @@
 
     <div class="toolbar">
       <a class="button button--secondary" href="{{ url_for('schedules.versions', year=year, month=month) }}">Ver versoes</a>
+      {% if grid.version %}
+        <a class="button button--secondary" href="{{ url_for('schedules.diagnostic_index', year=year, month=month, version_id=grid.version.id) }}">Diagnostico</a>
+      {% endif %}
     </div>
+
+    {% if diagnostic_run %}
+      <section class="content-section">
+        <h2>Ultimo diagnostico</h2>
+        <p class="notice">
+          {{ diagnostic_run.status }} · Erros: {{ diagnostic_run.total_errors }} · Avisos: {{ diagnostic_run.total_warnings }} · Infos: {{ diagnostic_run.total_infos }}
+        </p>
+      </section>
+    {% endif %}
 
     {% if grid.warnings %}
       <section class="content-section">

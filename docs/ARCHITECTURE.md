@@ -1852,6 +1852,29 @@ Decisão técnica da v0.8:
 
 ---
 
+## 33-C. Estado implementado do diagnóstico na v0.9
+
+A v0.9 introduz o diagnóstico inicial centralizado da escala.
+
+Componentes implementados:
+
+* modelo `DiagnosticRun`;
+* modelo `DiagnosticIssue`;
+* serviço `app/services/diagnostic_service.py`;
+* catálogo `app/services/service_code_catalog.py`;
+* páginas de diagnóstico em `app/templates/schedules/`.
+
+Decisão técnica da v0.9:
+
+* os diagnósticos são persistidos para preservar histórico;
+* cada execução cria novo `DiagnosticRun`;
+* problemas são preservados em `DiagnosticIssue`;
+* o diagnóstico não altera células, estados, ciclo, indisponibilidades ou restrições;
+* cobertura e descanso são parciais nesta fase;
+* apenas AT1, AT2, AT3, PO1, PO2 e PO3 possuem horários usados pelo diagnóstico de descanso.
+
+---
+
 ## 33. Decisões que dependem de regras futuras
 
 Alguns comportamentos só podem ser implementados automaticamente depois de serem formalizados no `ESCALA_RULES.md`.

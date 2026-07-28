@@ -34,10 +34,40 @@ class AssignmentChangeType(StrEnum):
     OVERRIDE_REMOVED = "OVERRIDE_REMOVED"
 
 
+class DiagnosticLevel(StrEnum):
+    ERROR = "ERROR"
+    WARNING = "WARNING"
+    INFO = "INFO"
+
+
+class DiagnosticCategory(StrEnum):
+    CONFIGURATION = "CONFIGURATION"
+    MILITARY = "MILITARY"
+    TEAM = "TEAM"
+    CYCLE = "CYCLE"
+    UNAVAILABILITY = "UNAVAILABILITY"
+    RESTRICTION = "RESTRICTION"
+    ASSIGNMENT = "ASSIGNMENT"
+    SCHEDULE_STATE = "SCHEDULE_STATE"
+    COVERAGE = "COVERAGE"
+    REST = "REST"
+    COMPENSATION = "COMPENSATION"
+    SYSTEM = "SYSTEM"
+
+
+class DiagnosticRunStatus(StrEnum):
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 ALLOWED_SCHEDULE_MONTH_STATUSES = tuple(item.value for item in ScheduleMonthStatus)
 ALLOWED_SCHEDULE_VERSION_SOURCES = tuple(item.value for item in ScheduleVersionSource)
 ALLOWED_ASSIGNMENT_SOURCES = tuple(item.value for item in AssignmentSource)
 ALLOWED_ASSIGNMENT_CHANGE_TYPES = tuple(item.value for item in AssignmentChangeType)
+ALLOWED_DIAGNOSTIC_LEVELS = tuple(item.value for item in DiagnosticLevel)
+ALLOWED_DIAGNOSTIC_CATEGORIES = tuple(item.value for item in DiagnosticCategory)
+ALLOWED_DIAGNOSTIC_RUN_STATUSES = tuple(item.value for item in DiagnosticRunStatus)
 
 
 class ScheduleMonth(db.Model):
@@ -245,3 +275,80 @@ class AssignmentChange(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
 
     assignment = db.relationship("Assignment", back_populates="changes")
+
+
+class DiagnosticRun(db.Model):
+    __tablename__ = "diagnostic_runs"
+    __table_args__ = (
+        db.CheckConstraint(
+            "status in ('RUNNING', 'COMPLETED', 'FAILED')",
+            name="ck_diagnostic_runs_status",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    schedule_version_id = db.Column(
+        db.Integer,
+        db.ForeignKey("schedule_versions.id"),
+        nullable=False,
+        index=True,
+    )
+    started_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default=DiagnosticRunStatus.RUNNING.value,
+        index=True,
+    )
+    total_errors = db.Column(db.Integer, nullable=False, default=0)
+    total_warnings = db.Column(db.Integer, nullable=False, default=0)
+    total_infos = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    schedule_version = db.relationship("ScheduleVersion")
+    issues = db.relationship(
+        "DiagnosticIssue",
+        back_populates="diagnostic_run",
+        order_by="DiagnosticIssue.level.asc(), DiagnosticIssue.category.asc(), DiagnosticIssue.code.asc(), DiagnosticIssue.id.asc()",
+    )
+
+
+class DiagnosticIssue(db.Model):
+    __tablename__ = "diagnostic_issues"
+    __table_args__ = (
+        db.CheckConstraint(
+            "level in ('ERROR', 'WARNING', 'INFO')",
+            name="ck_diagnostic_issues_level",
+        ),
+        db.CheckConstraint(
+            "category in ('CONFIGURATION', 'MILITARY', 'TEAM', 'CYCLE', 'UNAVAILABILITY', 'RESTRICTION', 'ASSIGNMENT', 'SCHEDULE_STATE', 'COVERAGE', 'REST', 'COMPENSATION', 'SYSTEM')",
+            name="ck_diagnostic_issues_category",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    diagnostic_run_id = db.Column(
+        db.Integer,
+        db.ForeignKey("diagnostic_runs.id"),
+        nullable=False,
+        index=True,
+    )
+    level = db.Column(db.String(20), nullable=False, index=True)
+    category = db.Column(db.String(40), nullable=False, index=True)
+    code = db.Column(db.String(80), nullable=False, index=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    assignment_date = db.Column(db.Date, nullable=True, index=True)
+    military_id = db.Column(db.Integer, db.ForeignKey("militaries.id"), nullable=True, index=True)
+    team_id = db.Column(db.Integer, db.ForeignKey("teams.id"), nullable=True, index=True)
+    assignment_id = db.Column(db.Integer, db.ForeignKey("assignments.id"), nullable=True, index=True)
+    is_blocking = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    suggested_action = db.Column(db.Text, nullable=True)
+    details_json = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    diagnostic_run = db.relationship("DiagnosticRun", back_populates="issues")
+    military = db.relationship("Military")
+    team = db.relationship("Team")
+    assignment = db.relationship("Assignment")

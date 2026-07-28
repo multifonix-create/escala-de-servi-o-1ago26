@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Diagnostico {{ schedule_month.label }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Diagnostico</p>
+      <h1>Diagnostico {{ schedule_month.label }} - versao {{ version.version_number }}</h1>
+      <p class="notice">O diagnostico analisa a escala e nao altera celulas, estados ou dados operacionais.</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar a grelha</a>
+      <form method="post" action="{{ url_for('schedules.run_diagnostic', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">
+        <button class="button" type="submit">Executar diagnostico</button>
+      </form>
+    </div>
+  </header>
+
+  {% if run %}
+    <dl class="summary-grid">
+      <div><dt>Estado</dt><dd>{{ run.status }}</dd></div>
+      <div><dt>Erros</dt><dd>{{ run.total_errors }}</dd></div>
+      <div><dt>Avisos</dt><dd>{{ run.total_warnings }}</dd></div>
+      <div><dt>Infos</dt><dd>{{ run.total_infos }}</dd></div>
+      <div><dt>Executado em</dt><dd>{{ run.completed_at.strftime("%Y-%m-%d %H:%M") if run.completed_at else "-" }}</dd></div>
+      <div><dt>Problemas filtrados</dt><dd>{{ issues|length }}</dd></div>
+    </dl>
+
+    <form class="filters" method="get" action="{{ url_for('schedules.diagnostic_run_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id, run_id=run.id) }}">
+      <label>
+        Nivel
+        <select name="level">
+          <option value="">Todos</option>
+          {% for level in ["ERROR", "WARNING", "INFO"] %}
+            <option value="{{ level }}" {% if selected_level == level %}selected{% endif %}>{{ level }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Categoria
+        <select name="category">
+          <option value="">Todas</option>
+          {% for category in ["CONFIGURATION", "MILITARY", "TEAM", "CYCLE", "UNAVAILABILITY", "RESTRICTION", "ASSIGNMENT", "SCHEDULE_STATE", "COVERAGE", "REST", "COMPENSATION", "SYSTEM"] %}
+            <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="form-actions"><button class="button" type="submit">Filtrar</button></div>
+    </form>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nivel</th>
+            <th>Categoria</th>
+            <th>Codigo</th>
+            <th>Titulo</th>
+            <th>Data</th>
+            <th>Detalhe</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for issue in issues %}
+            <tr>
+              <td>{{ issue.level }}</td>
+              <td>{{ issue.category }}</td>
+              <td>{{ issue.code }}</td>
+              <td>{{ issue.title }}</td>
+              <td>{{ issue.assignment_date or "-" }}</td>
+              <td><a href="{{ url_for('schedules.diagnostic_issue_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id, run_id=run.id, issue_id=issue.id) }}">Abrir</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <section class="empty-state">
+      <h2>Sem diagnostico executado</h2>
+      <p class="notice">Execute o diagnostico quando quiser analisar esta versao. A execucao nao altera a escala.</p>
+    </section>
+  {% endif %}
+{% endblock %}

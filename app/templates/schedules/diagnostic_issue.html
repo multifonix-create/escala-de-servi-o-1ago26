@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Problema {{ issue.code }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">{{ issue.level }} · {{ issue.category }}</p>
+      <h1>{{ issue.title }}</h1>
+      <p class="notice">{{ issue.code }}</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.diagnostic_run_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id, run_id=issue.diagnostic_run_id) }}">Voltar ao diagnostico</a>
+    </div>
+  </header>
+
+  <section class="content-section">
+    <h2>Descricao</h2>
+    <p>{{ issue.description }}</p>
+    <dl class="detail-grid">
+      <div><dt>Bloqueante</dt><dd>{{ "Sim" if issue.is_blocking else "Nao" }}</dd></div>
+      <div><dt>Data</dt><dd>{{ issue.assignment_date or "-" }}</dd></div>
+      <div><dt>Militar</dt><dd>{{ issue.military.name if issue.military else "-" }}</dd></div>
+      <div><dt>Equipa</dt><dd>{{ issue.team.code if issue.team else "-" }}</dd></div>
+      <div><dt>Atribuicao</dt><dd>{{ issue.assignment.code if issue.assignment else "-" }}</dd></div>
+      <div><dt>Sugestao</dt><dd>{{ issue.suggested_action or "-" }}</dd></div>
+    </dl>
+    {% if issue.details_json %}
+      <h2>Detalhes tecnicos</h2>
+      <pre class="technical-details">{{ issue.details_json }}</pre>
+    {% endif %}
+  </section>
+{% endblock %}

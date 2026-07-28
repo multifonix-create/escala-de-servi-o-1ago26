@@ -1,5 +1,55 @@
 # Changelog
 
+## v0.9 - 2026-07-28
+
+### Adicionado
+- Criado sistema centralizado de diagnóstico inicial da escala.
+- Adicionados modelos `DiagnosticRun` e `DiagnosticIssue`.
+- Adicionado serviço `app/services/diagnostic_service.py`.
+- Adicionado catálogo `app/services/service_code_catalog.py` com horários formalizados de AT1-AT3 e PO1-PO3.
+- Criadas páginas para diagnóstico, reexecução, filtros e detalhe de problema.
+- Integrado indicador discreto `D` na grelha para células afetadas pelo último diagnóstico.
+
+### Regras
+- Níveis suportados: `ERROR`, `WARNING` e `INFO`.
+- Categorias suportadas: `CONFIGURATION`, `MILITARY`, `TEAM`, `CYCLE`, `UNAVAILABILITY`, `RESTRICTION`, `ASSIGNMENT`, `SCHEDULE_STATE`, `COVERAGE`, `REST`, `COMPENSATION` e `SYSTEM`.
+- O diagnóstico analisa e explica; não corrige automaticamente.
+- Execuções novas preservam execuções anteriores.
+- Cobertura é parcial e baseada apenas em atribuições manuais existentes.
+- Descanso é parcial e usa apenas horários formalizados.
+
+### Migração
+- Criada e aplicada a migração `1a69c7554b89_create_diagnostic_runs_and_issues.py`.
+- Criadas apenas as tabelas `diagnostic_runs` e `diagnostic_issues`.
+- Não foram alteradas migrações anteriores.
+- Não foram inseridos diagnósticos.
+- Criada cópia de segurança prévia da base real em `instance/backups/escala_20260728_125251_v09_pre_migration.db`.
+
+### Testes
+- Adicionados testes de execução vazia, persistência, referência de ciclo em falta, serviço em DS, override, indisponibilidade confirmada, descanso curto, rotas e caso real prioritário.
+- Suite completa validada com `178 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` pertenças.
+- A base real ficou com `0` referências do ciclo.
+- A base real ficou com `0` restrições individuais.
+- A base real ficou com `0` indisponibilidades.
+- A base real ficou com `0` eventos de indisponibilidade.
+- A base real ficou com `0` meses de escala.
+- A base real ficou com `0` versões de escala.
+- A base real ficou com `0` atribuições.
+- A base real ficou com `0` alterações de atribuição.
+- A base real ficou com `0` execuções de diagnóstico.
+- A base real ficou com `0` problemas de diagnóstico.
+- Revisão Alembic atual: `1a69c7554b89`.
+- Não foram criados dados fictícios ou demonstrativos.
+
+### Limitações
+- Sem geração automática, seleção automática de militares, equidade, cobertura AT/PO real gerada, descanso completo para todos os códigos, FF/FC funcionais, Ronda, CR, remunerados, exportações, autenticação completa e auditoria funcional genérica.
+
 ## v0.8 - 2026-07-28
 
 ### Adicionado

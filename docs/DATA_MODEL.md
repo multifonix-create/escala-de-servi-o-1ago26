@@ -2133,6 +2133,65 @@ Decisão da v0.8:
 
 ---
 
+# PARTE XX-C — ESTADO IMPLEMENTADO NA v0.9
+
+## 47-C. Tabelas criadas na v0.9
+
+A v0.9 criou apenas as tabelas:
+
+* `diagnostic_runs`;
+* `diagnostic_issues`.
+
+Campos principais de `diagnostic_runs`:
+
+* `id`;
+* `schedule_version_id`;
+* `started_at`;
+* `completed_at`;
+* `status`;
+* `total_errors`;
+* `total_warnings`;
+* `total_infos`;
+* `created_at`.
+
+Estados:
+
+* `RUNNING`;
+* `COMPLETED`;
+* `FAILED`.
+
+Campos principais de `diagnostic_issues`:
+
+* `id`;
+* `diagnostic_run_id`;
+* `level`;
+* `category`;
+* `code`;
+* `title`;
+* `description`;
+* `assignment_date`;
+* `military_id`;
+* `team_id`;
+* `assignment_id`;
+* `is_blocking`;
+* `suggested_action`;
+* `details_json`;
+* `created_at`.
+
+Níveis:
+
+* `ERROR`;
+* `WARNING`;
+* `INFO`.
+
+Decisão da v0.9:
+
+* diagnósticos são históricos e não são apagados por nova execução;
+* `details_json` guarda detalhe técnico estruturado;
+* o diagnóstico não corrige dados nem executa geração.
+
+---
+
 # PARTE XXI — TESTES DO MODELO
 
 ## 48. Testes obrigatórios
