@@ -255,6 +255,12 @@ class Assignment(db.Model):
     start_time = db.Column(db.Time, nullable=True)
     end_time = db.Column(db.Time, nullable=True)
     duration_minutes = db.Column(db.Integer, nullable=True)
+    holiday_leave_credit_id = db.Column(
+        db.Integer,
+        db.ForeignKey("holiday_leave_credits.id"),
+        nullable=True,
+        index=True,
+    )
     is_cleared = db.Column(db.Boolean, nullable=False, default=False, index=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(
@@ -266,6 +272,10 @@ class Assignment(db.Model):
 
     schedule_version = db.relationship("ScheduleVersion", back_populates="assignments")
     military = db.relationship("Military")
+    holiday_leave_credit = db.relationship(
+        "HolidayLeaveCredit",
+        foreign_keys=[holiday_leave_credit_id],
+    )
     changes = db.relationship(
         "AssignmentChange",
         back_populates="assignment",

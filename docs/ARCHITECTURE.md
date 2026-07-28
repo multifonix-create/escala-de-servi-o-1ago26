@@ -1999,6 +1999,43 @@ Decisões:
 
 ---
 
+## 33-H. Estado implementado da FF na v1.4
+
+A v1.4 introduz a gestão funcional inicial de FF por trabalho em feriado.
+
+Componentes:
+
+* `Holiday`;
+* `HolidayLeaveCredit`;
+* `HolidayLeaveCreditEvent`;
+* `Assignment.holiday_leave_credit_id`;
+* `app/services/holiday_credit_service.py`;
+* `app/routes/holidays.py`;
+* templates `holidays/*` e `ff/*`;
+* validador FF no `ScheduleDiagnosticService`.
+
+Fluxo:
+
+1. registar feriados manualmente;
+2. identificar atribuições elegíveis em feriados ativos;
+3. criar crédito FF apenas por confirmação explícita ou versão consolidada;
+4. preservar o código real no dia do feriado;
+5. agendar FF numa versão `DRAFT` através de célula manual bloqueada;
+6. preservar a ligação ao crédito em regeneração segura;
+7. cancelar/reagendar/confirmar gozo através do serviço de FF;
+8. diagnosticar incoerências sem corrigir automaticamente.
+
+Decisões:
+
+* não existem feriados pré-carregados;
+* a origem do crédito é obrigatória e idempotente por atribuição;
+* a FF não altera o ciclo `DS/DC`;
+* a FF não é agendada em `DS/DC` nem sobre indisponibilidade ativa nesta versão;
+* edição/limpeza genérica de célula FF ligada a crédito fica bloqueada;
+* sem FC, Ronda, CR, remunerados ou exportações nesta versão.
+
+---
+
 ## 33. Decisões que dependem de regras futuras
 
 Alguns comportamentos só podem ser implementados automaticamente depois de serem formalizados no `ESCALA_RULES.md`.

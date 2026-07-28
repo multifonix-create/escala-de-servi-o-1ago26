@@ -2363,6 +2363,43 @@ adaa03cbb54b_add_pt_assignment_timing_fields.py
 
 ---
 
+## 57-D. Estado implementado na v1.4
+
+A v1.4 acrescentou a gestão funcional inicial de FF por trabalho em feriado.
+
+Tabelas criadas:
+
+```text
+holidays
+holiday_leave_credits
+holiday_leave_credit_events
+```
+
+Campo acrescentado a `assignments`:
+
+```text
+holiday_leave_credit_id
+```
+
+Decisões:
+
+* `holidays` não recebe dados iniciais nem feriados fictícios;
+* `holiday_leave_credits.source_assignment_id` é único para impedir duplicação da mesma FF;
+* a origem da FF preserva militar, feriado, atribuição, versão de origem e código de serviço;
+* serviços elegíveis nesta fase: `AT1`, `AT2`, `AT3`, `PO1`, `PO2`, `PO3` e `PT`;
+* o dia do feriado mantém o código real executado;
+* a célula `FF` agendada fica ligada ao crédito através de `assignments.holiday_leave_credit_id`;
+* os eventos de FF registam criação, agendamento, reagendamento, cancelamento de agendamento, gozo e cancelamento do direito;
+* `FC`, Ronda, CR, remunerados e exportações continuam fora do âmbito.
+
+Migração:
+
+```text
+621f28c3f5b5_add_holiday_leave_credits_v1_4.py
+```
+
+---
+
 # PARTE XXII — DECISÕES PENDENTES
 
 ## 49. Regras ainda por formalizar

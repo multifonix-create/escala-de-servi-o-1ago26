@@ -179,6 +179,10 @@ def save_manual_assignment(
 ) -> tuple[Assignment, AssignmentValidationResult]:
     normalized_code = normalize_code(code)
     assignment = get_assignment(schedule_version.id, military.id, assignment_date)
+    if assignment and assignment.is_visible and assignment.holiday_leave_credit_id is not None:
+        raise AssignmentServiceError(
+            {"holiday_leave_credit": "A celula esta ligada a uma FF. Use as opcoes de FF para cancelar ou reagendar."}
+        )
     if assignment and assignment.is_locked and not assignment.is_cleared:
         raise AssignmentServiceError({"locked": "A celula esta bloqueada. Desbloqueie antes de alterar."})
 
@@ -238,6 +242,10 @@ def save_manual_assignment(
 
 
 def clear_assignment(assignment: Assignment, reason: str | None = None) -> Assignment:
+    if assignment.holiday_leave_credit_id is not None:
+        raise AssignmentServiceError(
+            {"holiday_leave_credit": "A celula esta ligada a uma FF. Use as opcoes de FF para cancelar ou reagendar."}
+        )
     if assignment.is_locked:
         raise AssignmentServiceError({"locked": "A celula esta bloqueada. Desbloqueie antes de limpar."})
     previous_code = assignment.code

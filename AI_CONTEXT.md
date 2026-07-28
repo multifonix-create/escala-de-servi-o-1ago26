@@ -428,6 +428,35 @@ Decisões da v1.3:
 * horários de PT não são globais nem inventados: dependem dos parâmetros da execução;
 * `FF`, `FC`, Ronda, CR, remunerados e exportações continuam fora do âmbito.
 
+## Estado Atual da v1.4
+
+A v1.4 implementa a gestão funcional inicial de `FF` por trabalho em feriado.
+
+Existe atualmente:
+
+* modelo `Holiday` para registo manual de feriados;
+* modelo `HolidayLeaveCredit` para direitos FF adquiridos;
+* modelo `HolidayLeaveCreditEvent` para histórico de eventos;
+* ligação explícita `assignments.holiday_leave_credit_id`;
+* criação idempotente de crédito FF a partir de atribuição elegível em feriado;
+* manutenção do código real no dia do feriado;
+* agendamento de FF através de célula `FF` manual, bloqueada e ligada ao crédito;
+* reagendamento, cancelamento de agendamento, confirmação de gozo e cancelamento fundamentado do direito;
+* saldo por militar com adquiridas, disponíveis, agendadas, gozadas e canceladas;
+* preservação da FF em regeneração segura quando a célula é manual/importada;
+* bloqueio de limpeza/edição genérica de células ligadas a crédito FF;
+* diagnósticos específicos de incoerência FF;
+* rotas `/feriados`, `/ff` e `/escala/<year>/<month>/versoes/<version_id>/ff/processar`.
+
+Decisões da v1.4:
+
+* não existem feriados pré-carregados;
+* não há criação automática de FF a partir de rascunhos sem confirmação explícita;
+* serviços elegíveis nesta fase: `AT1`, `AT2`, `AT3`, `PO1`, `PO2`, `PO3` e `PT`;
+* a FF não altera o ciclo `DS/DC`;
+* por defeito, a FF não pode ser agendada em `DS/DC` nem sobre indisponibilidade ativa;
+* `FC`, Ronda, CR, remunerados e exportações continuam fora do âmbito.
+
 ## Ainda Não Existe
 
 Ainda não existem:
@@ -435,7 +464,6 @@ Ainda não existem:
 * registos diários;
 * autenticação completa;
 * auditoria funcional genérica;
-* FF;
 * FC;
 * remunerados;
 * exportações operacionais.
@@ -498,9 +526,9 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 ## Decisões e Limitações Atuais
 
-* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs` e `assignment_selection_details`.
+* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs`, `assignment_selection_details`, `holidays`, `holiday_leave_credits` e `holiday_leave_credit_events`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração nem detalhes de seleção após a v1.3.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração, detalhes de seleção, feriados, créditos FF nem eventos FF após a v1.4.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
@@ -508,6 +536,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 * Indisponibilidades registadas alimentam a geração automática AT/PO.
 * A grelha mensal consulta DS/DC, indisponibilidades e restrições dinamicamente e sobrepõe atribuições manuais persistidas quando existirem.
 * A compensação por DS/DC é apenas registada; não cria FF nem FC.
+* A FF por trabalho em feriado existe como crédito funcional autónomo e exige feriado/atribuição de origem.
 * Não foi implementada autenticação completa.
 * Não foi implementada CSRF; os formulários usam POST e estão preparados para integração futura.
 * Auditoria funcional genérica fica para versão futura.
@@ -520,11 +549,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-215 passed
+223 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v1.4 - Observabilidade Técnica e Métricas de Execução`.
+`v1.5 - Gestão de FC`, apenas depois de decisão funcional suficiente.

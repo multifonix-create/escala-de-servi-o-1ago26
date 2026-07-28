@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.3 - Geração Automática de PT e Serviços Adicionais
+v1.4 - Gestão Funcional de FF por Trabalho em Feriado
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho e geração automática opcional de PT.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT e gestão funcional inicial de FF por trabalho em feriado.
 
 ## Requisitos
 
@@ -81,6 +81,14 @@ Rotas principais:
 /escala/<year>/<month>/versoes/<version_id>/geracoes/<run_id>
 /escala/<year>/<month>/versoes/<version_id>/regenerar
 /escala/<year>/<month>/versoes/<version_id>/comparar/<other_version_id>
+/escala/<year>/<month>/versoes/<version_id>/ff/processar
+/feriados
+/feriados/novo
+/ff
+/ff/<credit_id>
+/ff/<credit_id>/agendar
+/ff/<credit_id>/reagendar
+/ff/<credit_id>/historico
 /equipas/<id>/ciclo
 /equipas/<id>/ciclo/nova-referencia
 /equipas/<id>/ciclo/historico
@@ -101,7 +109,7 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v1.3
+## Estado da v1.4
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -150,13 +158,22 @@ pytest
 - PT manual é preservado e conta para o limite diário.
 - Regeneração recalcula PT automático e preserva PT manual.
 - Diagnóstico inclui regras específicas para PT.
-- Migração v1.3: `adaa03cbb54b_add_pt_assignment_timing_fields.py`.
+- Feriados configuráveis manualmente, sem registos pré-carregados.
+- Créditos FF adquiridos por trabalho em feriado, com origem em atribuição existente.
+- O código real no feriado permanece inalterado.
+- FF pendente não ocupa célula da escala.
+- FF agendada cria célula `FF` manual, bloqueada e ligada ao crédito.
+- Reagendamento, cancelamento de agendamento, confirmação de gozo e cancelamento fundamentado do direito.
+- Saldo de FF por militar.
+- Regeneração segura preserva célula FF manual/importada e a ligação ao mesmo crédito.
+- Diagnóstico inclui incoerências FF.
+- Migração v1.4: `621f28c3f5b5_add_holiday_leave_credits_v1_4.py`.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.
 - Sem restrições fictícias.
 - Sem indisponibilidades fictícias.
 - Sem escalas fictícias.
-- Sem criação automática de FF ou FC.
+- Sem criação automática de FC.
 - Sem correção automática de problemas de diagnóstico.
 - Sem autenticação completa.

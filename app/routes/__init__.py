@@ -1,4 +1,5 @@
 from app.routes.cycle import cycle_bp, team_cycle_bp
+from app.routes.holidays import holidays_bp
 from app.routes.main import main_bp
 from app.routes.militaries import militaries_bp
 from app.routes.restrictions import military_restrictions_bp, restrictions_bp
@@ -9,6 +10,7 @@ from app.routes.unavailabilities import military_unavailabilities_bp, unavailabi
 
 __all__ = [
     "cycle_bp",
+    "holidays_bp",
     "main_bp",
     "militaries_bp",
     "military_teams_bp",

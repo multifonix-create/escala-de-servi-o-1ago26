@@ -1,5 +1,56 @@
 # Changelog
 
+## v1.4 - 2026-07-28
+
+### Adicionado
+- Criada gestão funcional inicial de `FF` por trabalho em feriado.
+- Adicionados modelos `Holiday`, `HolidayLeaveCredit` e `HolidayLeaveCreditEvent`.
+- Adicionada ligação explícita `assignments.holiday_leave_credit_id`.
+- Criado serviço `app/services/holiday_credit_service.py`.
+- Criadas rotas e páginas para feriados, créditos FF, processamento de candidatos, agendamento, reagendamento, cancelamento e confirmação de gozo.
+- Adicionado diagnóstico específico de incoerências FF.
+- Adicionados testes de integração em `tests/test_holiday_leave.py`.
+
+### Regras
+- O dia do feriado mantém o código real executado (`AT1-AT3`, `PO1-PO3` ou `PT`).
+- A FF nasce como crédito autónomo e pendente.
+- A criação é idempotente por `source_assignment_id`.
+- Rascunhos exigem confirmação explícita de serviço prestado.
+- A célula `FF` agendada é manual, bloqueada e ligada ao crédito.
+- Regeneração segura preserva a ligação ao crédito FF.
+- Limpeza ou edição genérica de célula FF ligada a crédito fica bloqueada.
+- FF não altera o ciclo `DS/DC`.
+- FF não é agendada em `DS/DC` nem sobre indisponibilidade ativa nesta versão.
+
+### Migração
+- Criada e aplicada a migração `621f28c3f5b5_add_holiday_leave_credits_v1_4.py`.
+- Criadas as tabelas `holidays`, `holiday_leave_credits` e `holiday_leave_credit_events`.
+- Adicionado campo opcional `holiday_leave_credit_id` em `assignments`.
+- Não foram alteradas migrações anteriores.
+- Não foram inseridos feriados, créditos ou eventos FF.
+- Backup prévio da base real: `instance/backups/escala_20260728_160219_v14_pre_migration.db`.
+
+### Testes
+- Suite nova FF validada com `7 passed`.
+- Suite completa validada com `223 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` feriados.
+- A base real ficou com `0` créditos FF.
+- A base real ficou com `0` eventos FF.
+- A base real ficou com `0` meses, versões, atribuições, gerações e diagnósticos.
+- Revisão Alembic atual: `621f28c3f5b5`.
+- Não foram criados dados fictícios ou demonstrativos.
+
+### Limitações
+- Sem FC funcional.
+- Sem Ronda, CR, remunerados ou exportações.
+- Sem confirmação operacional diária geral de serviços executados.
+- Sem permissões/autenticação completa.
+
 ## v1.3 - 2026-07-28
 
 ### Adicionado

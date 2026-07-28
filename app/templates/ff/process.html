@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Processar FF - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <div class="section-header">
+    <div>
+      <h1>Processar FF</h1>
+      <p class="muted">{{ schedule_month.label }} - versao {{ version.version_number }}</p>
+    </div>
+    <a class="button" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar a escala</a>
+  </div>
+
+  {% if candidates %}
+    <form method="post">
+      {% if version.status == "DRAFT" %}
+        <label class="check-row">
+          <input type="checkbox" name="confirm_service_performed">
+          Confirmo que os servicos selecionados foram efetivamente prestados.
+        </label>
+      {% endif %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Selecionar</th>
+            <th>Data</th>
+            <th>Militar</th>
+            <th>Servico</th>
+            <th>Feriado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for candidate in candidates %}
+            <tr>
+              <td>
+                {% if candidate.is_new %}
+                  <input type="checkbox" name="assignment_id" value="{{ candidate.assignment.id }}">
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>{{ candidate.assignment.assignment_date.strftime("%d/%m/%Y") }}</td>
+              <td>{{ candidate.assignment.military.name }}</td>
+              <td>{{ candidate.assignment.code }}</td>
+              <td>{{ candidate.holiday.name }}</td>
+              <td>{{ "Novo" if candidate.is_new else "Ja existe credito #" ~ candidate.existing_credit.id }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="form-actions">
+        <button type="submit">Criar creditos selecionados</button>
+      </div>
+    </form>
+  {% else %}
+    <p class="empty-state">Nao existem atribuicoes elegiveis em feriados ativos nesta versao.</p>
+  {% endif %}
+</section>
+{% endblock %}

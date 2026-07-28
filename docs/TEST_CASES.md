@@ -947,4 +947,32 @@ Critérios:
 
 ---
 
+## 39-F. Casos da Gestão Funcional de FF v1.4
+
+Casos automatizados implementados na v1.4:
+
+| ID | Caso | Domínio | Resultado esperado |
+|---|---|---|---|
+| FF-101 | Feriado manual | FF/DB | Criar feriado não cria militares, escalas ou créditos automaticamente. |
+| FF-102 | Crédito por serviço em feriado | FF/ASSIGNMENT | Serviço elegível em feriado cria crédito pendente e mantém o código real no feriado. |
+| FF-103 | Idempotência | FF/DB | A mesma atribuição de origem não cria dois créditos FF. |
+| FF-104 | Processamento explícito | FF/UI | Rota de processamento cria apenas créditos selecionados e exige confirmação em `DRAFT`. |
+| FF-105 | Agendamento | FF/MANUAL | Agendar FF cria célula `FF` manual, bloqueada e ligada ao crédito. |
+| FF-106 | Regeneração | FF/REGEN | Regeneração segura preserva a célula FF e a ligação ao mesmo crédito. |
+| FF-107 | Cancelamento de agendamento | FF/AUDIT | Cancelar agendamento limpa logicamente as células ligadas e devolve o crédito a `PENDING`. |
+| FF-108 | Bloqueios de calendário | FF/CYCLE/UNAV | FF não é agendada em `DS/DC` nem em indisponibilidade ativa. |
+| FF-109 | Proteção de célula | FF/MANUAL | Limpeza genérica de célula ligada a crédito FF é bloqueada. |
+| FF-110 | Diagnóstico FF | FF/DIAG | Diagnóstico deteta direito potencial não processado e célula `FF` sem crédito. |
+
+Não coberto por implementação nesta versão:
+
+* FC;
+* Ronda;
+* CR;
+* remunerados;
+* exportações operacionais;
+* confirmação operacional diária geral de serviços executados.
+
+---
+
 **Fim do documento — TEST_CASES.md**

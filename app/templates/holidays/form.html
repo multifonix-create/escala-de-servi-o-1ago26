@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Feriado - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section content-section--narrow">
+  <h1>{{ "Editar feriado" if holiday else "Novo feriado" }}</h1>
+  <form method="post" class="form-card">
+    <label>
+      Data
+      <input type="date" name="holiday_date" value="{{ holiday.holiday_date.isoformat() if holiday else request.form.get('holiday_date', '') }}" required>
+      {% if errors.get("holiday_date") %}<span class="field-error">{{ errors.holiday_date }}</span>{% endif %}
+    </label>
+    <label>
+      Nome
+      <input type="text" name="name" value="{{ holiday.name if holiday else request.form.get('name', '') }}" required>
+      {% if errors.get("name") %}<span class="field-error">{{ errors.name }}</span>{% endif %}
+    </label>
+    <label>
+      Ambito
+      <select name="scope" required>
+        {% set selected_scope = holiday.scope if holiday else request.form.get('scope', 'NATIONAL') %}
+        {% for value, label in scope_labels.items() %}
+          <option value="{{ value }}" {% if selected_scope == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if errors.get("scope") %}<span class="field-error">{{ errors.scope }}</span>{% endif %}
+    </label>
+    <label>
+      Notas
+      <textarea name="notes" rows="4">{{ holiday.notes if holiday else request.form.get('notes', '') }}</textarea>
+    </label>
+    <div class="form-actions">
+      <button type="submit">Guardar</button>
+      <a href="{{ url_for('holidays.list_holidays_route') }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Feriados - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <div class="section-header">
+    <div>
+      <h1>Feriados</h1>
+      <p class="muted">Registo controlado de feriados usados para apurar direitos FF.</p>
+    </div>
+    <a class="button" href="{{ url_for('holidays.create_holiday_route') }}">Novo feriado</a>
+  </div>
+
+  {% if holidays %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Nome</th>
+          <th>Ambito</th>
+          <th>Estado</th>
+          <th>Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for holiday in holidays %}
+          <tr>
+            <td>{{ holiday.holiday_date.strftime("%d/%m/%Y") }}</td>
+            <td>{{ holiday.name }}</td>
+            <td>{{ scope_labels.get(holiday.scope, holiday.scope) }}</td>
+            <td>{{ "Ativo" if holiday.is_active else "Inativo" }}</td>
+            <td class="actions">
+              <a href="{{ url_for('holidays.edit_holiday_route', holiday_id=holiday.id) }}">Editar</a>
+              {% if holiday.is_active %}
+                <form method="post" action="{{ url_for('holidays.deactivate_holiday_route', holiday_id=holiday.id) }}">
+                  <button type="submit">Desativar</button>
+                </form>
+              {% else %}
+                <form method="post" action="{{ url_for('holidays.activate_holiday_route', holiday_id=holiday.id) }}">
+                  <button type="submit">Ativar</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty-state">Ainda nao existem feriados registados.</p>
+  {% endif %}
+</section>
+{% endblock %}

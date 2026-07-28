@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar FF - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section content-section--narrow">
+  <h1>Agendar FF #{{ credit.id }}</h1>
+  <p class="muted">{{ credit.military.name }} - origem {{ credit.service_code }} em {{ credit.service_date.strftime("%d/%m/%Y") }}</p>
+  <form method="post" class="form-card">
+    <label>
+      Versao DRAFT
+      <select name="schedule_version_id" required>
+        {% for version in versions %}
+          <option value="{{ version.id }}">Versao {{ version.version_number }} - {{ version.schedule_month.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Data
+      <input type="date" name="scheduled_date" value="{{ request.form.get('scheduled_date', '') }}" required>
+    </label>
+    <label>
+      Notas
+      <textarea name="notes" rows="3">{{ request.form.get('notes', '') }}</textarea>
+    </label>
+    <div class="form-actions">
+      <button type="submit">Guardar</button>
+      <a href="{{ url_for('holidays.credit_detail', credit_id=credit.id) }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

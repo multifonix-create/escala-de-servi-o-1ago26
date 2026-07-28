@@ -97,6 +97,8 @@ class MonthlyGridCell:
             parts.append(f"Manual: {self.manual_code}")
         if self.assignment and self.assignment.is_visible:
             parts.append(f"Origem: {self.assignment.source}")
+            if self.assignment.holiday_leave_credit_id:
+                parts.append(f"Credito FF: {self.assignment.holiday_leave_credit_id}")
             if self.assignment.start_time and self.assignment.end_time:
                 parts.append(f"Horario: {self.assignment.start_time.strftime('%H:%M')}-{self.assignment.end_time.strftime('%H:%M')}")
             if self.assignment.duration_minutes:
@@ -483,6 +485,8 @@ def _build_legend(rows: list[MonthlyGridRow]) -> list[str]:
                 legend.add("Manual")
             if cell.assignment and cell.assignment.code:
                 legend.add(cell.assignment.code)
+                if cell.assignment.holiday_leave_credit_id:
+                    legend.add("Credito FF")
             if cell.is_locked:
                 legend.add("Bloqueada")
             if cell.has_override:

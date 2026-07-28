@@ -17,8 +17,10 @@
           <a href="{{ url_for('restrictions.list_restrictions') }}">Restrições</a>
           <a href="{{ url_for('unavailabilities.list_unavailabilities') }}">Indisponibilidades</a>
           <a href="{{ url_for('schedules.index') }}">Escala</a>
+          <a href="{{ url_for('holidays.list_holidays_route') }}">Feriados</a>
+          <a href="{{ url_for('holidays.credits_index') }}">FF</a>
         </nav>
-        <span class="version">v0.7</span>
+        <span class="version">{{ config.APP_VERSION }}</span>
       </div>
     </header>
     <main class="page">

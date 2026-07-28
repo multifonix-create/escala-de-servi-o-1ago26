@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Historico FF - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <h1>Historico FF #{{ credit.id }}</h1>
+  {% if credit.events %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Evento</th>
+          <th>Estado anterior</th>
+          <th>Novo estado</th>
+          <th>Descricao</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in credit.events %}
+          <tr>
+            <td>{{ event.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+            <td>{{ event.event_type }}</td>
+            <td>{{ event.previous_status or "-" }}</td>
+            <td>{{ event.new_status or "-" }}</td>
+            <td>{{ event.description or "-" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty-state">Sem eventos registados.</p>
+  {% endif %}
+</section>
+{% endblock %}

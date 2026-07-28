@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhe FF - Escala de Servico{% endblock %}
+
+{% block content %}
+<section class="content-section">
+  <div class="section-header">
+    <div>
+      <h1>FF #{{ credit.id }}</h1>
+      <p class="muted">{{ credit.military.name }} - {{ status_labels.get(credit.status, credit.status) }}</p>
+    </div>
+    <a class="button" href="{{ url_for('holidays.credit_history', credit_id=credit.id) }}">Historico</a>
+  </div>
+
+  <dl class="details-list">
+    <dt>Feriado</dt><dd>{{ credit.holiday.holiday_date.strftime("%d/%m/%Y") }} - {{ credit.holiday.name }}</dd>
+    <dt>Servico prestado</dt><dd>{{ credit.service_code }} em {{ credit.service_date.strftime("%d/%m/%Y") }}</dd>
+    <dt>Atribuicao de origem</dt><dd>#{{ credit.source_assignment_id }}</dd>
+    <dt>Versao de origem</dt><dd>#{{ credit.source_schedule_version_id }}</dd>
+    <dt>Data agendada</dt><dd>{{ credit.scheduled_date.strftime("%d/%m/%Y") if credit.scheduled_date else "-" }}</dd>
+    <dt>Data efetiva</dt><dd>{{ credit.effective_date.strftime("%d/%m/%Y") if credit.effective_date else "-" }}</dd>
+    <dt>Notas</dt><dd>{{ credit.notes or "-" }}</dd>
+  </dl>
+
+  <div class="actions">
+    <a href="{{ url_for('holidays.schedule_credit_route', credit_id=credit.id) }}">Agendar</a>
+    <a href="{{ url_for('holidays.reschedule_credit_route', credit_id=credit.id) }}">Reagendar</a>
+    <form method="post" action="{{ url_for('holidays.cancel_schedule_route', credit_id=credit.id) }}">
+      <input type="text" name="reason" placeholder="Motivo">
+      <button type="submit">Cancelar agendamento</button>
+    </form>
+    <form method="post" action="{{ url_for('holidays.confirm_used_route', credit_id=credit.id) }}">
+      <button type="submit">Confirmar gozo</button>
+    </form>
+    <form method="post" action="{{ url_for('holidays.cancel_right_route', credit_id=credit.id) }}">
+      <input type="text" name="reason" placeholder="Motivo obrigatorio">
+      <button type="submit">Cancelar direito</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
