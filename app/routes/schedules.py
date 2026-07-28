@@ -4,7 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 
 from app.extensions import db
 from app.services import ScheduleServiceError
-from app.models import DiagnosticIssue, DiagnosticRun, Military
+from app.models import DiagnosticIssue, DiagnosticRun, GenerationRun, Military, ScheduleMonthStatus
 from app.services.assignment_codes import ASSIGNMENT_CODE_DEFINITIONS
 from app.services.assignment_service import (
     AssignmentServiceError,
@@ -18,6 +18,7 @@ from app.services.assignment_service import (
 )
 from app.services.diagnostic_service import ScheduleDiagnosticService, latest_run
 from app.services.monthly_grid_builder import build_monthly_grid
+from app.services.schedule_generator import ScheduleGenerationError, ScheduleGenerator, latest_generation_run
 from app.services.schedule_service import (
     create_schedule_month,
     current_month,
@@ -66,12 +67,14 @@ def month_detail(year: int, month: int):
     previous_year, previous_month_number = previous_month(year, month)
     next_year, next_month_number = next_month(year, month)
     grid = build_monthly_grid(schedule_month) if schedule_month else None
+    generation_run = latest_generation_run(grid.version.id) if grid and grid.version else None
     return render_template(
         "schedules/month.html",
         year=year,
         month=month,
         schedule_month=schedule_month,
         grid=grid,
+        generation_run=generation_run,
         previous_year=previous_year,
         previous_month=previous_month_number,
         next_year=next_year,
@@ -113,6 +116,7 @@ def version_detail(year: int, month: int, version_id: int):
     version = get_version_for_month_or_404(schedule_month, version_id)
     grid = build_monthly_grid(schedule_month, version=version)
     diagnostic_run = latest_run(version.id)
+    generation_run = latest_generation_run(version.id)
     diagnostic_cells = _diagnostic_cells(diagnostic_run)
     previous_year, previous_month_number = previous_month(year, month)
     next_year, next_month_number = next_month(year, month)
@@ -124,11 +128,80 @@ def version_detail(year: int, month: int, version_id: int):
         grid=grid,
         selected_version=version,
         diagnostic_run=diagnostic_run,
+        generation_run=generation_run,
         diagnostic_cells=diagnostic_cells,
         previous_year=previous_year,
         previous_month=previous_month_number,
         next_year=next_year,
         next_month=next_month_number,
+    )
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/geracoes")
+def generation_index(year: int, month: int, version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    runs = (
+        GenerationRun.query.filter_by(schedule_version_id=version.id)
+        .order_by(GenerationRun.created_at.desc(), GenerationRun.id.desc())
+        .all()
+    )
+    return render_template(
+        "schedules/generations.html",
+        schedule_month=schedule_month,
+        version=version,
+        runs=runs,
+        can_generate=version.status == ScheduleMonthStatus.DRAFT.value,
+    )
+
+
+@schedules_bp.post("/<int:year>/<int:month>/versoes/<int:version_id>/gerar")
+def run_generation(year: int, month: int, version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    try:
+        generation_run = ScheduleGenerator().generate_at_po(version)
+    except ScheduleGenerationError as exc:
+        for message in exc.errors.values() or [str(exc)]:
+            flash(message, "warning")
+        return redirect(url_for("schedules.generation_index", year=year, month=month, version_id=version.id))
+    flash("Geracao AT/PO concluida.", "success")
+    return redirect(
+        url_for(
+            "schedules.generation_detail",
+            year=year,
+            month=month,
+            version_id=version.id,
+            run_id=generation_run.id,
+        )
+    )
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/geracoes/<int:run_id>")
+def generation_detail(year: int, month: int, version_id: int, run_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    generation_run = db.get_or_404(GenerationRun, run_id)
+    if generation_run.schedule_version_id != version.id:
+        abort(404)
+    details = generation_run.selection_details
+    selected = [item for item in details if item.is_selected]
+    excluded = [item for item in details if not item.is_eligible and item.military_id is not None]
+    incomplete = [item for item in details if item.military_id is None]
+    return render_template(
+        "schedules/generation_detail.html",
+        schedule_month=schedule_month,
+        version=version,
+        generation_run=generation_run,
+        selected_details=selected,
+        excluded_details=excluded,
+        incomplete_details=incomplete,
     )
 
 

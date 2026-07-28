@@ -838,4 +838,36 @@ Devem permanecer bloqueadas ou marcadas como `PENDENTE DE DECISÃO FUNCIONAL`:
 
 ---
 
+## 39-B. Casos da Geração Automática Inicial v1.0
+
+Casos automatizados implementados na v1.0:
+
+| ID | Caso | Domínio | Resultado esperado |
+|---|---|---|---|
+| GEN-001 | Geração AT/PO inicial | GEN/COVERAGE | AT1, AT2, AT3, PO1, PO2 e PO3 são preenchidos quando há efetivo elegível. |
+| GEN-002 | Preservação manual | MANUAL | Atribuição manual existente não é substituída e conta para cobertura. |
+| GEN-003 | Exclusão de CMD | GEN/STATE | CMD nunca recebe AT/PO. |
+| GEN-004 | Patrulheiros antes de SEC/SI | GEN/EQUITY | SEC/SI não são usados quando patrulheiros elegíveis chegam. |
+| GEN-005 | SEC/SI por insuficiência | GEN/EQUITY | SEC/SI podem ser usados quando patrulheiros elegíveis não chegam. |
+| GEN-006 | Indisponibilidades | UNAV | Confirmadas e planeadas excluem candidatos automáticos. |
+| GEN-007 | Restrições individuais | RESTR | Restrições aplicáveis excluem candidatos automáticos. |
+| GEN-008 | Descanso mínimo | REST | Exatamente 8h é válido e menos de 8h exclui. |
+| GEN-009 | Determinismo | EQUITY | A mesma entrada mantém a mesma ordenação/saída. |
+| GEN-010 | Estado da versão | STATE | Versões não `DRAFT` bloqueiam geração. |
+| GEN-011 | Rotas | UI | POST de geração e detalhe respondem corretamente. |
+| GEN-012 | Diagnóstico final | DIAG | A geração cria diagnóstico final associado. |
+
+Não coberto por implementação nesta versão:
+
+* PT;
+* FF;
+* FC;
+* Ronda;
+* CR;
+* remunerados;
+* exportações;
+* regeneração de automáticos.
+
+---
+
 **Fim do documento — TEST_CASES.md**

@@ -1873,6 +1873,39 @@ Decisão técnica da v0.9:
 * cobertura e descanso são parciais nesta fase;
 * apenas AT1, AT2, AT3, PO1, PO2 e PO3 possuem horários usados pelo diagnóstico de descanso.
 
+## 33-D. Estado implementado da geração na v1.0
+
+A v1.0 introduz a geração automática inicial, limitada a AT e PO.
+
+Componentes:
+
+* `app/services/schedule_generator.py`;
+* `ScheduleGenerator`;
+* `CandidateSelector`;
+* `GenerationRun`;
+* `AssignmentSelectionDetail`.
+
+Responsabilidades:
+
+* validar versão `DRAFT`;
+* contar cobertura já existente;
+* preservar atribuições manuais;
+* excluir candidatos inelegíveis;
+* ordenar candidatos de forma determinística;
+* criar apenas atribuições `SYSTEM`;
+* guardar detalhes de seleção e exclusão;
+* executar diagnóstico final.
+
+Decisões:
+
+* ordem fixa: `AT1`, `PO1`, `AT2`, `PO2`, `AT3`, `PO3`;
+* modo único: completar células vazias;
+* sem aleatoriedade;
+* sem criação automática de nova versão;
+* sem remoção de automáticos anteriores;
+* sem PT, FF, FC, Ronda, CR ou remunerados;
+* falta de cobertura é registada e explicada, não tratada como erro técnico.
+
 ---
 
 ## 33. Decisões que dependem de regras futuras

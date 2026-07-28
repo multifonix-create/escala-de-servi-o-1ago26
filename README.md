@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v0.9 - Diagnóstico Inicial da Escala
+v1.0 - Geração Automática Inicial de AT e PO
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células e diagnóstico inicial da escala.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial da escala e geração automática inicial limitada a AT e PO.
 
 ## Requisitos
 
@@ -76,6 +76,9 @@ Rotas principais:
 /escala/<year>/<month>/versoes/<version_id>/militares/<military_id>/dias/<date>/historico
 /escala/<year>/<month>/versoes/<version_id>/diagnostico
 /escala/<year>/<month>/versoes/<version_id>/diagnostico/<run_id>
+/escala/<year>/<month>/versoes/<version_id>/gerar
+/escala/<year>/<month>/versoes/<version_id>/geracoes
+/escala/<year>/<month>/versoes/<version_id>/geracoes/<run_id>
 /equipas/<id>/ciclo
 /equipas/<id>/ciclo/nova-referencia
 /equipas/<id>/ciclo/historico
@@ -96,7 +99,7 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v0.9
+## Estado da v1.0
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -117,15 +120,24 @@ pytest
 - Bloqueio, desbloqueio, limpeza lógica e override explícito.
 - Diagnóstico central com níveis ERROR, WARNING e INFO.
 - Diagnóstico persistido por execução e problema.
-- Diagnóstico parcial de cobertura manual e descanso com horários formalizados.
+- Diagnóstico de cobertura completo para versões com geração concluída.
+- Descanso com horários formalizados para AT1-AT3 e PO1-PO3.
+- Geração automática inicial de AT1, AT2, AT3, PO1, PO2 e PO3.
+- Geração determinística, sem aleatoriedade.
+- Execuções persistidas em `generation_runs`.
+- Detalhes de elegibilidade, exclusão e seleção persistidos em `assignment_selection_details`.
+- Preservação de todas as atribuições manuais.
+- Atribuições automáticas criadas com origem SYSTEM.
+- CMD excluído de AT/PO.
+- SEC e SI usados apenas quando patrulheiros elegíveis não chegam.
+- Falta de cobertura registada como aviso/diagnóstico, sem inventar militares.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.
 - Sem restrições fictícias.
 - Sem indisponibilidades fictícias.
 - Sem escalas fictícias.
-- Sem motor de geração.
-- Sem geração automática de AT/PO/PT.
+- Sem geração automática de PT.
 - Sem criação automática de FF ou FC.
 - Sem correção automática de problemas de diagnóstico.
 - Sem autenticação completa.

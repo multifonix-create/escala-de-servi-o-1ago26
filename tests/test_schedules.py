@@ -154,12 +154,10 @@ def test_create_month_route_creates_draft_month(client, app):
         assert len(schedule_month.versions) == 1
 
 
-def test_schedule_routes_do_not_expose_generation_controls(client):
+def test_schedule_routes_expose_safe_at_po_generation_controls(client):
     client.post("/escala/2026/7/criar")
     response = client.get("/escala/2026/7")
 
     assert response.status_code == 200
-    assert b"AT1" not in response.data
-    assert b"PO1" not in response.data
     assert b"PT" not in response.data
-    assert b"Gerar escala" not in response.data
+    assert b"Gerar AT e PO" in response.data

@@ -64,6 +64,9 @@
                 {% if cell.manual_code %}
                   <span class="cell-marker">M</span>
                 {% endif %}
+                {% if cell.source == "SYSTEM" %}
+                  <span class="cell-marker">S</span>
+                {% endif %}
                 {% if cell.is_locked %}
                   <span class="cell-marker">B</span>
                 {% endif %}

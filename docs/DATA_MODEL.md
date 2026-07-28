@@ -2216,6 +2216,86 @@ Devem existir testes para confirmar:
 
 ---
 
+# PARTE XX-C — ESTADO IMPLEMENTADO NA v1.0
+
+## 49-C. Tabelas criadas na v1.0
+
+A v1.0 criou apenas as tabelas:
+
+```text
+generation_runs
+assignment_selection_details
+```
+
+## 50-C. generation_runs
+
+Campos principais:
+
+```text
+id
+schedule_version_id
+diagnostic_run_id
+status
+started_at
+completed_at
+total_created
+total_preserved_manual
+total_unfilled
+total_warnings
+parameters_json
+summary_json
+created_at
+```
+
+Estados:
+
+```text
+RUNNING
+COMPLETED
+COMPLETED_WITH_WARNINGS
+FAILED
+```
+
+## 51-C. assignment_selection_details
+
+Campos principais:
+
+```text
+id
+generation_run_id
+assignment_date
+service_code
+military_id
+is_eligible
+is_selected
+reason
+position
+metrics_json
+created_at
+```
+
+`service_code` está limitado a:
+
+```text
+AT1
+AT2
+AT3
+PO1
+PO2
+PO3
+```
+
+## 52-C. Decisões da v1.0
+
+* A geração cria atribuições na tabela `assignments`.
+* Atribuições automáticas usam `source=SYSTEM`, `is_manual=False`, `is_locked=False` e `has_override=False`.
+* Cada atribuição automática cria um `AssignmentChange` do tipo `CREATED`.
+* A geração preserva atribuições manuais existentes.
+* A geração não cria PT, FF, FC, Ronda, CR ou remunerados.
+* A geração não insere dados fictícios.
+
+---
+
 # PARTE XXII — DECISÕES PENDENTES
 
 ## 49. Regras ainda por formalizar

@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v0.9 - Diagnóstico Inicial da Escala`.
+Versão atual: `v1.0 - Geração Automática Inicial de AT e PO`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -286,19 +286,55 @@ Decisões de arquitetura da v0.9:
 * descanso usa apenas horários formalizados de AT1-AT3 e PO1-PO3;
 * códigos sem horário geram informação de diagnóstico não disponível.
 
+## v1.0 - Geração Automática Inicial de AT e PO
+
+A v1.0 está concluída com:
+
+* modelo `GenerationRun`;
+* modelo `AssignmentSelectionDetail`;
+* tabelas `generation_runs` e `assignment_selection_details`;
+* migração `a284728b2308_create_generation_runs_and_selection_.py`;
+* serviço central `app/services/schedule_generator.py`;
+* `ScheduleGenerator` para execução transacional da geração;
+* `CandidateSelector` para elegibilidade, exclusões, ordenação e explicação;
+* geração limitada a `AT1`, `AT2`, `AT3`, `PO1`, `PO2` e `PO3`;
+* mínimos diários `AT=1` por turno e `PO=2` por turno;
+* ordem fixa `AT1`, `PO1`, `AT2`, `PO2`, `AT3`, `PO3`;
+* ordenação determinística sem `random`;
+* período de equidade por defeito: mês atual mais três meses anteriores existentes;
+* preservação de todas as atribuições manuais, bloqueadas ou não;
+* criação de atribuições automáticas com `source=SYSTEM`, `is_manual=False`, `is_locked=False` e `has_override=False`;
+* criação de `AssignmentChange` do tipo `CREATED` para atribuições automáticas;
+* exclusão de `CMD` para AT/PO;
+* uso de `SEC` e `SI` apenas quando não há patrulheiros elegíveis suficientes;
+* respeito por DS/DC, indisponibilidades confirmadas e planeadas, restrições e descanso mínimo de oito horas;
+* execução de diagnóstico final após a geração;
+* diagnóstico de cobertura completo para versões com geração concluída;
+* páginas de confirmação, lista e detalhe de gerações.
+
+Rotas principais da v1.0:
+
+* `POST /escala/<year>/<month>/versoes/<version_id>/gerar`;
+* `GET /escala/<year>/<month>/versoes/<version_id>/geracoes`;
+* `GET /escala/<year>/<month>/versoes/<version_id>/geracoes/<run_id>`.
+
+Decisões de arquitetura da v1.0:
+
+* a geração atua sobre uma versão `DRAFT` existente;
+* não cria nova versão automaticamente;
+* o modo implementado é apenas completar células vazias;
+* automáticos anteriores não são removidos nesta versão;
+* falta de cobertura não é falha técnica e fica explicada;
+* não existe correção automática de diagnósticos.
+
 ## Ainda Não Existe
 
 Ainda não existem:
 
-* geração da escala;
-* atribuição de AT;
-* atribuição de PO;
 * atribuição de PT;
 * registos diários;
-* motor de geração;
 * autenticação completa;
 * auditoria funcional genérica;
-* diagnósticos completos;
 * FF;
 * FC;
 * remunerados;
@@ -362,14 +398,14 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 ## Decisões e Limitações Atuais
 
-* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs` e `diagnostic_issues`.
+* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities`, `unavailability_events`, `schedule_months`, `schedule_versions`, `assignments`, `assignment_changes`, `diagnostic_runs`, `diagnostic_issues`, `generation_runs` e `assignment_selection_details`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico nem problemas de diagnóstico após a v0.9.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades, eventos de indisponibilidade, meses de escala, versões de escala, atribuições, alterações de atribuição, execuções de diagnóstico, problemas de diagnóstico, execuções de geração nem detalhes de seleção após a v1.0.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
-* Restrições individuais não são ainda usadas por um motor de geração de escala.
-* Indisponibilidades já são registáveis e visíveis na grelha mensal, mas ainda não alimentam geração automática de escala.
+* Restrições individuais já são usadas pela geração automática AT/PO.
+* Indisponibilidades registadas alimentam a geração automática AT/PO.
 * A grelha mensal consulta DS/DC, indisponibilidades e restrições dinamicamente e sobrepõe atribuições manuais persistidas quando existirem.
 * A compensação por DS/DC é apenas registada; não cria FF nem FC.
 * Não foi implementada autenticação completa.
@@ -384,7 +420,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-178 passed
+191 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.

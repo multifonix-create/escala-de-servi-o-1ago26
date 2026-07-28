@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Execucao {{ generation_run.id }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Detalhe da geracao</p>
+      <h1>Execucao {{ generation_run.id }}</h1>
+      <p class="notice">{{ schedule_month.label }} Â· versao {{ version.version_number }} Â· {{ generation_run.status }}</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.generation_index', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Geracoes</a>
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Grelha</a>
+      {% if generation_run.diagnostic_run_id %}
+        <a class="button button--secondary" href="{{ url_for('schedules.diagnostic_run_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id, run_id=generation_run.diagnostic_run_id) }}">Diagnostico final</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <dl class="summary-grid">
+    <div>
+      <dt>Criadas</dt>
+      <dd>{{ generation_run.total_created }}</dd>
+    </div>
+    <div>
+      <dt>Manuais preservadas</dt>
+      <dd>{{ generation_run.total_preserved_manual }}</dd>
+    </div>
+    <div>
+      <dt>Faltas</dt>
+      <dd>{{ generation_run.total_unfilled }}</dd>
+    </div>
+    <div>
+      <dt>Avisos</dt>
+      <dd>{{ generation_run.total_warnings }}</dd>
+    </div>
+  </dl>
+
+  <section class="content-section">
+    <h2>Parametros</h2>
+    <pre class="technical-details">{{ generation_run.parameters_json or "{}" }}</pre>
+  </section>
+
+  <section class="content-section">
+    <h2>Atribuicoes criadas</h2>
+    {% if selected_details %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Codigo</th>
+            <th>Militar</th>
+            <th>Posicao</th>
+            <th>Metricas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for detail in selected_details %}
+            <tr>
+              <td>{{ detail.assignment_date.isoformat() }}</td>
+              <td>{{ detail.service_code }}</td>
+              <td>{% if detail.military %}{{ detail.military.name }}{% else %}-{% endif %}</td>
+              <td>{{ detail.position or "-" }}</td>
+              <td><code>{{ detail.metrics_json or "{}" }}</code></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="notice">Nao foram criadas atribuicoes nesta execucao.</p>
+    {% endif %}
+  </section>
+
+  <section class="content-section">
+    <h2>Turnos incompletos e avisos</h2>
+    {% if incomplete_details %}
+      <ul class="compact-list">
+        {% for detail in incomplete_details %}
+          <li>{{ detail.assignment_date.isoformat() }} Â· {{ detail.service_code }}: {{ detail.reason }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="notice">Nao existem turnos incompletos registados.</p>
+    {% endif %}
+  </section>
+
+  <section class="content-section">
+    <h2>Candidatos excluidos</h2>
+    {% if excluded_details %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Codigo</th>
+            <th>Militar</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for detail in excluded_details[:200] %}
+            <tr>
+              <td>{{ detail.assignment_date.isoformat() }}</td>
+              <td>{{ detail.service_code }}</td>
+              <td>{% if detail.military %}{{ detail.military.name }}{% else %}-{% endif %}</td>
+              <td>{{ detail.reason }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="notice">Nao existem exclusoes registadas.</p>
+    {% endif %}
+  </section>
+{% endblock %}

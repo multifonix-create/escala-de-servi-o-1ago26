@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Geracoes AT/PO {{ schedule_month.label }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Geracao automatica inicial</p>
+      <h1>Gerar AT e PO</h1>
+      <p class="notice">Versao {{ version.version_number }} de {{ schedule_month.label }}. Esta operacao preserva atribuicoes manuais e completa apenas minimos AT/PO quando existirem candidatos elegiveis.</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar a grelha</a>
+    </div>
+  </header>
+
+  <section class="content-section">
+    <h2>Confirmacao</h2>
+    <ul class="compact-list">
+      <li>Mes: {{ schedule_month.label }}</li>
+      <li>Versao: {{ version.version_number }} ({{ version.status }})</li>
+      <li>Apenas AT1, AT2, AT3, PO1, PO2 e PO3.</li>
+      <li>As alteracoes manuais, bloqueadas ou nao, sao preservadas.</li>
+      <li>A cobertura pode ficar incompleta se nao existirem militares elegiveis.</li>
+    </ul>
+    {% if can_generate %}
+      <form class="form-actions" method="post" action="{{ url_for('schedules.run_generation', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">
+        <button class="button" type="submit">Gerar AT e PO</button>
+      </form>
+    {% else %}
+      <p class="notice">Esta versao nao esta em DRAFT e nao permite geracao.</p>
+    {% endif %}
+  </section>
+
+  <section class="content-section">
+    <h2>Execucoes</h2>
+    {% if runs %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Estado</th>
+            <th>Criados</th>
+            <th>Faltas</th>
+            <th>Avisos</th>
+            <th>Data</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for run in runs %}
+            <tr>
+              <td>{{ run.id }}</td>
+              <td>{{ run.status }}</td>
+              <td>{{ run.total_created }}</td>
+              <td>{{ run.total_unfilled }}</td>
+              <td>{{ run.total_warnings }}</td>
+              <td>{{ run.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+              <td><a href="{{ url_for('schedules.generation_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id, run_id=run.id) }}">Detalhe</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="notice">Ainda nao existem execucoes de geracao para esta versao.</p>
+    {% endif %}
+  </section>
+{% endblock %}

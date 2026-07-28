@@ -237,7 +237,7 @@ def _apply_assignment(cell: MonthlyGridCell, assignment: Assignment | None) -> N
     if assignment is None or not assignment.is_visible:
         return
     cell.assignment = assignment
-    cell.manual_code = assignment.code
+    cell.manual_code = assignment.code if assignment.is_manual else None
     cell.primary_code = assignment.code
     cell.source = assignment.source
     cell.is_locked = assignment.is_locked

@@ -16,6 +16,8 @@ from app.models import (
     DiagnosticRun,
     DiagnosticRunStatus,
     FunctionalType,
+    GenerationRun,
+    GenerationRunStatus,
     Military,
     MilitaryRestriction,
     MilitaryTeamHistory,
@@ -59,6 +61,9 @@ DIAG_CODES = {
     "STATE_NOT_EDITABLE": "STATE-NOT-EDITABLE",
     "STATE_NOT_GENERATED_WITH_VERSION": "STATE-NOT-GENERATED-WITH-VERSION",
     "COVERAGE_PARTIAL": "COVERAGE-PARTIAL-MANUAL",
+    "COVERAGE_COMPLETE": "COVERAGE-COMPLETE",
+    "COVERAGE_MISSING": "COVERAGE-MISSING",
+    "COVERAGE_EXCESS": "COVERAGE-EXCESS",
     "REST_TOO_SHORT": "REST-TOO-SHORT",
     "REST_NOT_YET_VALIDATED": "REST-NOT-YET-VALIDATED",
     "SYSTEM_EMPTY_ASSIGNMENTS": "SYSTEM-MONTH-WITHOUT-ASSIGNMENTS",
@@ -339,6 +344,19 @@ class CoverageDiagnosticValidator(BaseDiagnosticValidator):
             if assignment.code in COVERAGE_TARGETS:
                 key = (assignment.assignment_date, assignment.code)
                 by_day_code[key] = by_day_code.get(key, 0) + 1
+        if _has_completed_generation(context.schedule_version.id):
+            current = context.month_start
+            while current <= context.month_end:
+                for code, target in COVERAGE_TARGETS.items():
+                    count = by_day_code.get((current, code), 0)
+                    if count < target:
+                        problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.COVERAGE, "COVERAGE_MISSING", "Cobertura AT/PO incompleta", f"{code}: {count}/{target}.", assignment_date=current, is_blocking=True, details={"code": code, "count": count, "target": target, "missing": target - count}))
+                    elif count > target:
+                        problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.COVERAGE, "COVERAGE_EXCESS", "Cobertura AT/PO acima do minimo", f"{code}: {count}/{target}.", assignment_date=current, details={"code": code, "count": count, "target": target}))
+                    else:
+                        problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.COVERAGE, "COVERAGE_COMPLETE", "Cobertura AT/PO completa", f"{code}: {count}/{target}.", assignment_date=current, details={"code": code, "count": count, "target": target}))
+                current += timedelta(days=1)
+            return problems
         for (assignment_date, code), count in sorted(by_day_code.items()):
             target = COVERAGE_TARGETS[code]
             level = DiagnosticLevel.INFO if count <= target else DiagnosticLevel.WARNING
@@ -431,6 +449,20 @@ def latest_run(schedule_version_id: int) -> DiagnosticRun | None:
         .order_by(DiagnosticRun.created_at.desc(), DiagnosticRun.id.desc())
         .first()
     )
+
+
+def _has_completed_generation(schedule_version_id: int) -> bool:
+    return db.session.query(
+        GenerationRun.query.filter(
+            GenerationRun.schedule_version_id == schedule_version_id,
+            GenerationRun.status.in_(
+                [
+                    GenerationRunStatus.COMPLETED.value,
+                    GenerationRunStatus.COMPLETED_WITH_WARNINGS.value,
+                ]
+            ),
+        ).exists()
+    ).scalar()
 
 
 def problem_sort_key(item: DiagnosticProblem) -> tuple:

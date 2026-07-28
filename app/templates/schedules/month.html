@@ -47,8 +47,19 @@
       <a class="button button--secondary" href="{{ url_for('schedules.versions', year=year, month=month) }}">Ver versoes</a>
       {% if grid.version %}
         <a class="button button--secondary" href="{{ url_for('schedules.diagnostic_index', year=year, month=month, version_id=grid.version.id) }}">Diagnostico</a>
+        <a class="button button--secondary" href="{{ url_for('schedules.generation_index', year=year, month=month, version_id=grid.version.id) }}">Gerar AT e PO</a>
       {% endif %}
     </div>
+
+    {% if generation_run %}
+      <section class="content-section">
+        <h2>Ultima geracao AT/PO</h2>
+        <p class="notice">
+          {{ generation_run.status }} Â· Criados: {{ generation_run.total_created }} Â· Faltas: {{ generation_run.total_unfilled }} Â· Avisos: {{ generation_run.total_warnings }}
+        </p>
+        <a class="button button--secondary" href="{{ url_for('schedules.generation_detail', year=year, month=month, version_id=grid.version.id, run_id=generation_run.id) }}">Ver detalhe</a>
+      </section>
+    {% endif %}
 
     {% if diagnostic_run %}
       <section class="content-section">

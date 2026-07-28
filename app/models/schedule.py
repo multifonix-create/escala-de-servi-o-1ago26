@@ -61,6 +61,13 @@ class DiagnosticRunStatus(StrEnum):
     FAILED = "FAILED"
 
 
+class GenerationRunStatus(StrEnum):
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    COMPLETED_WITH_WARNINGS = "COMPLETED_WITH_WARNINGS"
+    FAILED = "FAILED"
+
+
 ALLOWED_SCHEDULE_MONTH_STATUSES = tuple(item.value for item in ScheduleMonthStatus)
 ALLOWED_SCHEDULE_VERSION_SOURCES = tuple(item.value for item in ScheduleVersionSource)
 ALLOWED_ASSIGNMENT_SOURCES = tuple(item.value for item in AssignmentSource)
@@ -68,6 +75,7 @@ ALLOWED_ASSIGNMENT_CHANGE_TYPES = tuple(item.value for item in AssignmentChangeT
 ALLOWED_DIAGNOSTIC_LEVELS = tuple(item.value for item in DiagnosticLevel)
 ALLOWED_DIAGNOSTIC_CATEGORIES = tuple(item.value for item in DiagnosticCategory)
 ALLOWED_DIAGNOSTIC_RUN_STATUSES = tuple(item.value for item in DiagnosticRunStatus)
+ALLOWED_GENERATION_RUN_STATUSES = tuple(item.value for item in GenerationRunStatus)
 
 
 class ScheduleMonth(db.Model):
@@ -352,3 +360,80 @@ class DiagnosticIssue(db.Model):
     military = db.relationship("Military")
     team = db.relationship("Team")
     assignment = db.relationship("Assignment")
+
+
+class GenerationRun(db.Model):
+    __tablename__ = "generation_runs"
+    __table_args__ = (
+        db.CheckConstraint(
+            "status in ('RUNNING', 'COMPLETED', 'COMPLETED_WITH_WARNINGS', 'FAILED')",
+            name="ck_generation_runs_status",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    schedule_version_id = db.Column(
+        db.Integer,
+        db.ForeignKey("schedule_versions.id"),
+        nullable=False,
+        index=True,
+    )
+    diagnostic_run_id = db.Column(
+        db.Integer,
+        db.ForeignKey("diagnostic_runs.id"),
+        nullable=True,
+        index=True,
+    )
+    status = db.Column(
+        db.String(40),
+        nullable=False,
+        default=GenerationRunStatus.RUNNING.value,
+        index=True,
+    )
+    started_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    total_created = db.Column(db.Integer, nullable=False, default=0)
+    total_preserved_manual = db.Column(db.Integer, nullable=False, default=0)
+    total_unfilled = db.Column(db.Integer, nullable=False, default=0)
+    total_warnings = db.Column(db.Integer, nullable=False, default=0)
+    parameters_json = db.Column(db.Text, nullable=True)
+    summary_json = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    schedule_version = db.relationship("ScheduleVersion")
+    diagnostic_run = db.relationship("DiagnosticRun")
+    selection_details = db.relationship(
+        "AssignmentSelectionDetail",
+        back_populates="generation_run",
+        order_by="AssignmentSelectionDetail.assignment_date.asc(), AssignmentSelectionDetail.service_code.asc(), AssignmentSelectionDetail.position.asc(), AssignmentSelectionDetail.id.asc()",
+    )
+
+
+class AssignmentSelectionDetail(db.Model):
+    __tablename__ = "assignment_selection_details"
+    __table_args__ = (
+        db.CheckConstraint(
+            "service_code in ('AT1', 'AT2', 'AT3', 'PO1', 'PO2', 'PO3')",
+            name="ck_assignment_selection_details_service_code",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    generation_run_id = db.Column(
+        db.Integer,
+        db.ForeignKey("generation_runs.id"),
+        nullable=False,
+        index=True,
+    )
+    assignment_date = db.Column(db.Date, nullable=False, index=True)
+    service_code = db.Column(db.String(30), nullable=False, index=True)
+    military_id = db.Column(db.Integer, db.ForeignKey("militaries.id"), nullable=True, index=True)
+    is_eligible = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    is_selected = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    reason = db.Column(db.Text, nullable=False)
+    position = db.Column(db.Integer, nullable=True)
+    metrics_json = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    generation_run = db.relationship("GenerationRun", back_populates="selection_details")
+    military = db.relationship("Military")

@@ -1,5 +1,70 @@
 # Changelog
 
+## v1.0 - 2026-07-28
+
+### Adicionado
+- Criada geração automática inicial limitada aos serviços `AT1`, `AT2`, `AT3`, `PO1`, `PO2` e `PO3`.
+- Adicionados modelos `GenerationRun` e `AssignmentSelectionDetail`.
+- Adicionado serviço central `app/services/schedule_generator.py`.
+- Adicionados `ScheduleGenerator` e `CandidateSelector`.
+- Criadas páginas de confirmação, lista e detalhe das execuções de geração.
+- Integrado resumo da última geração na página mensal.
+- Integrado marcador `S` na grelha para atribuições geradas pelo sistema.
+
+### Regras
+- Mínimos diários: `AT1=1`, `AT2=1`, `AT3=1`, `PO1=2`, `PO2=2`, `PO3=2`.
+- Ordem fixa de geração: `AT1`, `PO1`, `AT2`, `PO2`, `AT3`, `PO3`.
+- Seleção determinística, sem `random`.
+- Período de equidade: mês atual e até três meses anteriores existentes.
+- A geração preserva todas as atribuições manuais, bloqueadas ou não.
+- A geração cria apenas atribuições `SYSTEM`, `is_manual=False`, `is_locked=False` e `has_override=False`.
+- `CMD` nunca recebe AT/PO.
+- `SEC` e `SI` só são usados quando não existem patrulheiros elegíveis suficientes.
+- DS/DC, indisponibilidades confirmadas e planeadas, restrições e descanso mínimo de oito horas são respeitados.
+- Falta de cobertura não cria militares, não duplica militares e não falha tecnicamente; fica explicada.
+
+### Diagnóstico
+- Após uma geração concluída, é executado diagnóstico final.
+- A cobertura AT/PO passa a ser validada de forma completa para versões com geração concluída.
+- O diagnóstico continua a não corrigir automaticamente.
+
+### Migração
+- Criada e aplicada a migração `a284728b2308_create_generation_runs_and_selection_.py`.
+- Criadas apenas as tabelas `generation_runs` e `assignment_selection_details`.
+- Não foram alteradas migrações anteriores.
+- Não foram inseridas gerações, seleções ou atribuições.
+- Criada cópia de segurança prévia da base real em `instance/backups/escala_20260728_131456_v10_pre_migration.db`.
+
+### Testes
+- Adicionados testes de cobertura AT/PO, preservação manual, exclusão de CMD, uso controlado de SEC/SI, indisponibilidades, restrições, descanso, determinismo, rotas e diagnóstico final.
+- Suite completa validada com `191 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` pertenças.
+- A base real ficou com `0` referências do ciclo.
+- A base real ficou com `0` restrições individuais.
+- A base real ficou com `0` indisponibilidades.
+- A base real ficou com `0` eventos de indisponibilidade.
+- A base real ficou com `0` meses de escala.
+- A base real ficou com `0` versões de escala.
+- A base real ficou com `0` atribuições.
+- A base real ficou com `0` alterações de atribuição.
+- A base real ficou com `0` execuções de diagnóstico.
+- A base real ficou com `0` problemas de diagnóstico.
+- A base real ficou com `0` execuções de geração.
+- A base real ficou com `0` detalhes de seleção.
+- Revisão Alembic atual: `a284728b2308`.
+- Não foram criados dados fictícios ou demonstrativos.
+
+### Limitações
+- A geração atua sobre uma versão `DRAFT` existente e não cria automaticamente nova versão.
+- O único modo implementado é completar células vazias.
+- Não remove nem regenera automáticos anteriores.
+- Sem PT, FF, FC, Ronda, CR, remunerados, exportações, publicação automática, autenticação completa ou correção automática.
+
 ## v0.9 - 2026-07-28
 
 ### Adicionado
