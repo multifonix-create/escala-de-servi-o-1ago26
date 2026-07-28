@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Publicar versao {{ version.version_number }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Publicacao</p>
+      <h1>Publicar versao {{ version.version_number }} - {{ schedule_month.label }}</h1>
+      <p class="notice">A publicacao exige validacao atual e torna esta versao a referencia oficial do mes.</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar</a>
+    </div>
+  </header>
+
+  {% if current_published and current_published.id != version.id %}
+    <section class="content-section">
+      <h2>Versao atualmente publicada</h2>
+      <p class="notice">Versao {{ current_published.version_number }}. Ao publicar esta versao, a anterior regressa a VALIDATED.</p>
+    </section>
+  {% endif %}
+
+  <form class="form-card" method="post">
+    <label>
+      <span>Notas</span>
+      <textarea name="notes" rows="4"></textarea>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" name="confirm_replace">
+      <span>Confirmo a substituicao da versao publicada existente, se existir.</span>
+    </label>
+    <div class="form-actions">
+      <button class="button" type="submit">Publicar escala</button>
+    </div>
+  </form>
+{% endblock %}

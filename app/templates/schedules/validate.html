@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Validar versao {{ version.version_number }}{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Validacao</p>
+      <h1>Validar versao {{ version.version_number }} - {{ schedule_month.label }}</h1>
+      <p class="notice">A validacao executa sempre um novo diagnostico antes de alterar o estado.</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar</a>
+    </div>
+  </header>
+
+  {% if blockers %}
+    <section class="content-section">
+      <h2>Erros bloqueantes</h2>
+      <ul class="compact-list">
+        {% for issue in blockers %}
+          <li>{{ issue.code }} - {{ issue.title }}{% if issue.assignment_date %} ({{ issue.assignment_date }}){% endif %}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if warnings %}
+    <section class="content-section">
+      <h2>Avisos</h2>
+      <p class="notice">Foram encontrados {{ warnings|length }} avisos. A validacao pode prosseguir apenas com confirmacao explicita.</p>
+      <ul class="compact-list">
+        {% for issue in warnings %}
+          <li>{{ issue.code }} - {{ issue.title }}{% if issue.assignment_date %} ({{ issue.assignment_date }}){% endif %}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <form class="form-card" method="post">
+    <label>
+      <span>Notas</span>
+      <textarea name="notes" rows="4"></textarea>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" name="confirm_warnings">
+      <span>Confirmo explicitamente os avisos apresentados nesta validacao.</span>
+    </label>
+    <div class="form-actions">
+      <button class="button" type="submit">Executar diagnostico e validar</button>
+    </div>
+  </form>
+{% endblock %}

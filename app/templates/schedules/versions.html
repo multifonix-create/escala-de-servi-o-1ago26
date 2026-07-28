@@ -19,6 +19,8 @@
         <tr>
           <th>Versao</th>
           <th>Estado</th>
+          <th>Revisao</th>
+          <th>Oficial</th>
           <th>Origem</th>
           <th>Descricao</th>
           <th>Criada em</th>
@@ -30,11 +32,15 @@
           <tr>
             <td>{{ version.version_number }}</td>
             <td>{{ version.status }}</td>
+            <td>{{ version.content_revision }}</td>
+            <td>{% if schedule_month.published_version_id == version.id %}Sim{% else %}-{% endif %}</td>
             <td>{{ version.source }}</td>
             <td>{{ version.description or "-" }}</td>
             <td>{{ version.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
             <td>
               <a href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Abrir</a>
+              &middot;
+              <a href="{{ url_for('schedules.state_history', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Estado</a>
             </td>
           </tr>
         {% endfor %}

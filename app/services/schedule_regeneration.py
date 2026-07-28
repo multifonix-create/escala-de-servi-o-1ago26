@@ -23,6 +23,8 @@ from app.services.schedule_generator import (
     ScheduleGenerator,
     generation_parameters,
 )
+from app.services.schedule_version_policy import ScheduleVersionPolicy
+from app.services.schedule_version_workflow import touch_version_content
 from app.services.service_code_catalog import COVERAGE_TARGETS
 
 
@@ -101,6 +103,8 @@ class ScheduleRegenerationService:
             db.session.flush()
 
             copied_count, skipped_automatic_count = copy_preserved_assignments(source_version, result_version)
+            if copied_count:
+                touch_version_content(result_version)
             run = GenerationRun(
                 schedule_version_id=result_version.id,
                 source_version_id=source_version.id,
@@ -135,7 +139,7 @@ class ScheduleRegenerationService:
 def validate_regeneration_source(source_version: ScheduleVersion | None) -> None:
     if source_version is None:
         raise ScheduleRegenerationError("Versao inexistente.", {"version": "Versao inexistente."})
-    if source_version.status not in ALLOWED_REGENERATION_SOURCE_STATUSES:
+    if not ScheduleVersionPolicy(source_version).can_regenerate():
         raise ScheduleRegenerationError(
             "Estado da versao nao permite regeneracao.",
             {"status": "Apenas versoes DRAFT ou VALIDATED podem originar nova versao nesta fase."},

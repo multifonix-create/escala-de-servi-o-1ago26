@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Criar versao de correcao{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Correcao</p>
+      <h1>Criar versao de correcao</h1>
+      <p class="notice">A versao fechada permanece intacta. A nova versao nasce em DRAFT com copia operacional visivel.</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar</a>
+    </div>
+  </header>
+
+  <form class="form-card" method="post">
+    <label>
+      <span>Motivo obrigatório</span>
+      <textarea name="reason" rows="3" required></textarea>
+    </label>
+    <label>
+      <span>Notas</span>
+      <textarea name="notes" rows="3"></textarea>
+    </label>
+    <div class="form-actions">
+      <button class="button" type="submit">Criar versao de correcao</button>
+    </div>
+  </form>
+{% endblock %}

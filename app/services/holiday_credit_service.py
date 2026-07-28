@@ -26,6 +26,8 @@ from app.models import (
     UnavailabilityStatus,
 )
 from app.services import cycle_calculator, membership_service
+from app.services.schedule_version_policy import ScheduleVersionPolicy
+from app.services.schedule_version_workflow import touch_version_content
 from app.services.unavailability_evaluator import interval_for_unavailability, overlaps
 
 
@@ -244,6 +246,7 @@ def schedule_credit(
         credit.status = HolidayLeaveCreditStatus.RESCHEDULED.value if event_type == HolidayLeaveCreditEventType.RESCHEDULED.value else HolidayLeaveCreditStatus.SCHEDULED.value
         credit.scheduled_date = scheduled_date
         credit.effective_date = None
+        touch_version_content(schedule_version)
         _add_event(
             credit,
             event_type,
@@ -425,7 +428,7 @@ def _validate_schedule_target(
 ) -> None:
     if credit.status not in (allowed_statuses or FF_SCHEDULE_STATUSES):
         raise HolidayCreditServiceError("Estado da FF nao permite agendamento.", {"status": "A FF nao esta pendente."})
-    if schedule_version.status != ScheduleMonthStatus.DRAFT.value:
+    if not ScheduleVersionPolicy(schedule_version).can_schedule_ff():
         raise HolidayCreditServiceError("Versao nao editavel.", {"status": "A FF so pode ser agendada em versao DRAFT."})
     if not _date_belongs_to_version(schedule_version, scheduled_date):
         raise HolidayCreditServiceError("Data fora do mes.", {"scheduled_date": "A data nao pertence ao mes da versao."})
@@ -447,6 +450,7 @@ def _validate_schedule_target(
 
 
 def _clear_linked_assignment(credit: HolidayLeaveCredit, reason: str) -> None:
+    touched_versions = set()
     for assignment in _linked_visible_ff_assignments(credit):
         previous_code = assignment.code
         previous_override = assignment.has_override
@@ -465,6 +469,9 @@ def _clear_linked_assignment(credit: HolidayLeaveCredit, reason: str) -> None:
             False,
             reason,
         )
+        if assignment.schedule_version_id not in touched_versions:
+            touch_version_content(assignment.schedule_version)
+            touched_versions.add(assignment.schedule_version_id)
 
 
 def _linked_visible_ff_assignment(credit: HolidayLeaveCredit) -> Assignment | None:

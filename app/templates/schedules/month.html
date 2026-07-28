@@ -28,13 +28,29 @@
     <dl class="summary-grid">
       <div>
         <dt>Estado</dt>
-        <dd>{{ schedule_month.status }}</dd>
+        <dd>
+          {% set version = selected_version if selected_version is defined else grid.version %}
+          {% if version %}{{ version.status }}{% else %}{{ schedule_month.status }}{% endif %}
+        </dd>
       </div>
       <div>
         <dt>Versao</dt>
         <dd>
-          {% set version = selected_version if selected_version is defined else grid.version %}
           {% if version %}{{ version.version_number }}{% else %}Sem versao{% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt>Revisao</dt>
+        <dd>{% if version %}{{ version.content_revision }}{% else %}-{% endif %}</dd>
+      </div>
+      <div>
+        <dt>Oficial</dt>
+        <dd>
+          {% if schedule_month.published_version %}
+            V{{ schedule_month.published_version.version_number }}
+          {% else %}
+            -
+          {% endif %}
         </dd>
       </div>
       <div>
@@ -47,9 +63,31 @@
       <a class="button button--secondary" href="{{ url_for('schedules.versions', year=year, month=month) }}">Ver versoes</a>
       {% if grid.version %}
         <a class="button button--secondary" href="{{ url_for('schedules.diagnostic_index', year=year, month=month, version_id=grid.version.id) }}">Diagnostico</a>
-        <a class="button button--secondary" href="{{ url_for('schedules.generation_index', year=year, month=month, version_id=grid.version.id) }}">Completar celulas vazias</a>
-        <a class="button button--secondary" href="{{ url_for('schedules.regeneration_confirm', year=year, month=month, version_id=grid.version.id) }}">Regenerar automaticos</a>
-        <a class="button button--secondary" href="{{ url_for('holidays.process_ff_candidates', year=year, month=month, version_id=grid.version.id) }}">Processar FF</a>
+        <a class="button button--secondary" href="{{ url_for('schedules.state_history', year=year, month=month, version_id=grid.version.id) }}">Historico de estado</a>
+        {% if version_permissions.generate %}
+          <a class="button button--secondary" href="{{ url_for('schedules.generation_index', year=year, month=month, version_id=grid.version.id) }}">Completar celulas vazias</a>
+        {% endif %}
+        {% if version_permissions.regenerate %}
+          <a class="button button--secondary" href="{{ url_for('schedules.regeneration_confirm', year=year, month=month, version_id=grid.version.id) }}">Regenerar automaticos</a>
+        {% endif %}
+        {% if version_permissions.schedule_ff %}
+          <a class="button button--secondary" href="{{ url_for('holidays.process_ff_candidates', year=year, month=month, version_id=grid.version.id) }}">Processar FF</a>
+        {% endif %}
+        {% if version_permissions.validate %}
+          <a class="button button--secondary" href="{{ url_for('schedules.validate_version_confirm', year=year, month=month, version_id=grid.version.id) }}">Validar</a>
+        {% endif %}
+        {% if version_permissions.revoke_validation %}
+          <a class="button button--secondary" href="{{ url_for('schedules.revoke_validation_confirm', year=year, month=month, version_id=grid.version.id) }}">Revogar validacao</a>
+        {% endif %}
+        {% if version_permissions.publish %}
+          <a class="button button--secondary" href="{{ url_for('schedules.publish_version_confirm', year=year, month=month, version_id=grid.version.id) }}">Publicar</a>
+        {% endif %}
+        {% if version_permissions.close %}
+          <a class="button button--secondary" href="{{ url_for('schedules.close_version_confirm', year=year, month=month, version_id=grid.version.id) }}">Encerrar</a>
+        {% endif %}
+        {% if version_permissions.create_correction %}
+          <a class="button button--secondary" href="{{ url_for('schedules.correction_version_confirm', year=year, month=month, version_id=grid.version.id) }}">Criar correcao</a>
+        {% endif %}
       {% endif %}
     </div>
 

@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v1.3 - Geração Automática de PT e Serviços Adicionais`.
+Versão atual: `v1.5 - Validacao, Publicacao e Encerramento da Escala`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -428,7 +428,7 @@ Decisões da v1.3:
 * horários de PT não são globais nem inventados: dependem dos parâmetros da execução;
 * `FF`, `FC`, Ronda, CR, remunerados e exportações continuam fora do âmbito.
 
-## Estado Atual da v1.4
+## Estado Atual da v1.5
 
 A v1.4 implementa a gestão funcional inicial de `FF` por trabalho em feriado.
 
@@ -456,6 +456,45 @@ Decisões da v1.4:
 * a FF não altera o ciclo `DS/DC`;
 * por defeito, a FF não pode ser agendada em `DS/DC` nem sobre indisponibilidade ativa;
 * `FC`, Ronda, CR, remunerados e exportações continuam fora do âmbito.
+
+## Complemento v1.5 - Workflow de Estado
+
+A v1.5 acrescenta a validacao, publicacao, encerramento e correcao de versoes de escala sobre a infraestrutura existente.
+
+Existe atualmente:
+
+* campos de revisao em `schedule_versions`: `content_revision`, `validated_revision`, `validated_at`, `validated_diagnostic_run_id`, `published_at`, `closed_at` e `state_notes`;
+* ponteiro `schedule_months.published_version_id` para a versao oficial do mes;
+* tabela `schedule_version_state_events`;
+* politica central `ScheduleVersionPolicy`;
+* servico central `ScheduleVersionWorkflow`;
+* rotas `/validar`, `/revogar-validacao`, `/publicar`, `/encerrar`, `/criar-correcao` e `/historico-estado`;
+* diagnostico de incoerencias de estado da escala;
+* revisao de conteudo incrementada em alteracoes funcionais de atribuicoes, geracao e FF;
+* validacao sempre com novo diagnostico;
+* publicacao com garantia funcional de apenas uma versao `PUBLISHED` por mes;
+* encerramento de versoes `PUBLISHED`;
+* criacao de versao de correcao `DRAFT` a partir de versao `CLOSED`.
+
+Decisoes da v1.5:
+
+* estados oficiais mantidos: `NOT_GENERATED`, `DRAFT`, `VALIDATED`, `PUBLISHED` e `CLOSED`;
+* `VALIDATED`, `PUBLISHED` e `CLOSED` bloqueiam edicao normal, geracao normal e agendamento direto de FF;
+* avisos de diagnostico permitem validacao apenas com confirmacao explicita;
+* publicacao exige que `validated_revision` seja igual a `content_revision`;
+* publicar uma nova versao substitui a anterior publicada, que regressa a `VALIDATED`;
+* `CLOSED` e imutavel; correcoes devem nascer em nova versao `DRAFT`;
+* a versao de correcao copia atribuicoes visiveis sem duplicar creditos FF.
+
+Continuam fora do ambito:
+
+* FC;
+* Ronda;
+* CR;
+* remunerados;
+* exportacoes operacionais;
+* autenticacao completa;
+* notificacoes.
 
 ## Ainda Não Existe
 
@@ -549,11 +588,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-223 passed
+229 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v1.5 - Gestão de FC`, apenas depois de decisão funcional suficiente.
+`v1.6 - Gestao de FC`, apenas depois de decisao funcional suficiente.

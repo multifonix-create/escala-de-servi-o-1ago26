@@ -4,7 +4,7 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.4 - Gestão Funcional de FF por Trabalho em Feriado
+v1.5 - Validacao, Publicacao e Encerramento da Escala
 
 Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT e gestão funcional inicial de FF por trabalho em feriado.
 
@@ -41,7 +41,7 @@ flask db upgrade
 
 ```powershell
 $env:FLASK_APP = "run.py"
-flask run --host 127.0.0.1 --port 5000
+flask run --host 127.0.0.1 --port 5001
 ```
 
 Tambem pode ser executada com:
@@ -53,7 +53,7 @@ python run.py
 A aplicação fica disponível em:
 
 ```text
-http://127.0.0.1:5000/
+http://127.0.0.1:5001/
 ```
 
 Rotas principais:
@@ -81,6 +81,12 @@ Rotas principais:
 /escala/<year>/<month>/versoes/<version_id>/geracoes/<run_id>
 /escala/<year>/<month>/versoes/<version_id>/regenerar
 /escala/<year>/<month>/versoes/<version_id>/comparar/<other_version_id>
+/escala/<year>/<month>/versoes/<version_id>/validar
+/escala/<year>/<month>/versoes/<version_id>/revogar-validacao
+/escala/<year>/<month>/versoes/<version_id>/publicar
+/escala/<year>/<month>/versoes/<version_id>/encerrar
+/escala/<year>/<month>/versoes/<version_id>/criar-correcao
+/escala/<year>/<month>/versoes/<version_id>/historico-estado
 /escala/<year>/<month>/versoes/<version_id>/ff/processar
 /feriados
 /feriados/novo
@@ -109,7 +115,7 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v1.4
+## Estado da v1.5
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -167,7 +173,14 @@ pytest
 - Saldo de FF por militar.
 - Regeneração segura preserva célula FF manual/importada e a ligação ao mesmo crédito.
 - Diagnóstico inclui incoerências FF.
-- Migração v1.4: `621f28c3f5b5_add_holiday_leave_credits_v1_4.py`.
+- Estados oficiais de versao: NOT_GENERATED, DRAFT, VALIDATED, PUBLISHED e CLOSED.
+- Validacao executa sempre novo diagnostico e bloqueia erros criticos.
+- Avisos exigem confirmacao explicita para validar.
+- Publicacao exige revisao validada atual e mantem apenas uma versao PUBLISHED por mes.
+- Encerramento executa diagnostico final e torna a versao imutavel.
+- Versoes CLOSED so podem ser corrigidas por nova versao DRAFT de correcao.
+- Historico de estado registado em `schedule_version_state_events`.
+- Migração v1.5: `d34f6a9b8c21_add_schedule_validation_publication_v1_5.py`.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.

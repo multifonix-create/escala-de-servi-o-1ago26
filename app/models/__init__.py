@@ -20,6 +20,7 @@ from app.models.schedule import (
     ALLOWED_DIAGNOSTIC_RUN_STATUSES,
     ALLOWED_GENERATION_RUN_STATUSES,
     ALLOWED_GENERATION_MODES,
+    ALLOWED_SCHEDULE_VERSION_STATE_EVENT_TYPES,
     ALLOWED_SCHEDULE_MONTH_STATUSES,
     ALLOWED_SCHEDULE_VERSION_SOURCES,
     Assignment,
@@ -38,6 +39,8 @@ from app.models.schedule import (
     ScheduleMonth,
     ScheduleMonthStatus,
     ScheduleVersion,
+    ScheduleVersionStateEvent,
+    ScheduleVersionStateEventType,
     ScheduleVersionSource,
 )
 from app.models.military_team_history import MilitaryTeamHistory
@@ -72,6 +75,7 @@ __all__ = [
     "ALLOWED_DIAGNOSTIC_RUN_STATUSES",
     "ALLOWED_GENERATION_RUN_STATUSES",
     "ALLOWED_GENERATION_MODES",
+    "ALLOWED_SCHEDULE_VERSION_STATE_EVENT_TYPES",
     "ALLOWED_HOLIDAY_LEAVE_CREDIT_EVENT_TYPES",
     "ALLOWED_HOLIDAY_LEAVE_CREDIT_STATUSES",
     "ALLOWED_HOLIDAY_SCOPES",
@@ -111,6 +115,8 @@ __all__ = [
     "ScheduleMonth",
     "ScheduleMonthStatus",
     "ScheduleVersion",
+    "ScheduleVersionStateEvent",
+    "ScheduleVersionStateEventType",
     "ScheduleVersionSource",
     "Team",
     "TeamCycleReference",

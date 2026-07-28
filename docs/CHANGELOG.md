@@ -1,5 +1,53 @@
 # Changelog
 
+## v1.5 - 2026-07-28
+
+### Adicionado
+- Criado workflow de estado das versoes da escala: `DRAFT`, `VALIDATED`, `PUBLISHED` e `CLOSED`.
+- Adicionados campos de revisao, validacao, publicacao e encerramento em `schedule_versions`.
+- Adicionado ponteiro `schedule_months.published_version_id` para a versao oficial do mes.
+- Criada tabela `schedule_version_state_events`.
+- Criado servico central `app/services/schedule_version_workflow.py`.
+- Criada politica central `app/services/schedule_version_policy.py`.
+- Criadas rotas e paginas para validar, revogar validacao, publicar, encerrar, criar versao de correcao e consultar historico de estado.
+- Adicionado diagnostico de incoerencias do workflow de estado.
+- Integrada revisao de conteudo em edicao manual, geracao automatica, regeneracao e FF.
+
+### Regras
+- Validacao executa sempre novo diagnostico.
+- Erros bloqueantes impedem validacao, publicacao e encerramento.
+- Avisos exigem confirmacao explicita para validar.
+- Publicacao exige validacao atual e revisao sem alteracoes posteriores.
+- Apenas uma versao pode ficar `PUBLISHED` por mes.
+- Publicar uma nova versao faz a anterior publicada regressar a `VALIDATED`.
+- Versoes `CLOSED` sao imutaveis.
+- Correcao de versao fechada cria nova versao `DRAFT`, preservando a versao original.
+- A copia de correcao preserva atribuicoes visiveis e ligacoes FF sem duplicar creditos.
+
+### Migracao
+- Criada migracao `d34f6a9b8c21_add_schedule_validation_publication_v1_5.py`.
+- Nao foram alteradas migracoes anteriores.
+- Nao foram inseridos estados, eventos, meses, versoes, atribuicoes ou dados operacionais durante a migracao.
+- Backup previo da base real: `instance/backups/escala_20260728_164217_v15_pre_migration.db`.
+
+### Testes
+- Adicionados testes de workflow em `tests/test_schedule_workflow.py`.
+- Suite v1.5 validada com `6 passed`.
+- Suite completa validada com `229 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A migracao adiciona infraestrutura de estado e historico.
+- Nao foram criados militares ficticios.
+- Nao foram criadas equipas ficticias.
+- Nao foram criadas escalas ficticias.
+- Nao foram criados dados demonstrativos.
+
+### Limitacoes
+- Sem FC funcional.
+- Sem Ronda, CR, remunerados, exportacoes, notificacoes ou autenticacao completa.
+- Sem correcao automatica de problemas de diagnostico.
+
 ## v1.4 - 2026-07-28
 
 ### Adicionado

@@ -28,6 +28,8 @@ from app.models import (
     ScheduleMonth,
     ScheduleMonthStatus,
     ScheduleVersion,
+    ScheduleVersionStateEvent,
+    ScheduleVersionStateEventType,
     Team,
     TeamCycleReference,
     Unavailability,
@@ -64,6 +66,19 @@ DIAG_CODES = {
     "STATE_DRAFT": "STATE-DRAFT-EDITABLE",
     "STATE_NOT_EDITABLE": "STATE-NOT-EDITABLE",
     "STATE_NOT_GENERATED_WITH_VERSION": "STATE-NOT-GENERATED-WITH-VERSION",
+    "STATE_VALIDATED": "STATE-VALIDATED",
+    "STATE_PUBLISHED": "STATE-PUBLISHED",
+    "STATE_CLOSED": "STATE-CLOSED",
+    "STATE_VALIDATION_WITHOUT_DIAGNOSTIC": "STATE-VALIDATION-WITHOUT-DIAGNOSTIC",
+    "STATE_PUBLICATION_WITHOUT_VALIDATION": "STATE-PUBLICATION-WITHOUT-VALIDATION",
+    "STATE_REVISION_CHANGED": "STATE-VALIDATED-REVISION-CHANGED",
+    "STATE_TWO_PUBLISHED": "STATE-TWO-PUBLISHED",
+    "STATE_CLOSED_WITHOUT_EVENT": "STATE-CLOSED-WITHOUT-EVENT",
+    "STATE_MONTH_PUBLISHED_INCOHERENT": "STATE-PUBLISHED-VERSION-INCOHERENT",
+    "STATE_VALIDATED_LONG": "STATE-VALIDATED-LONG",
+    "STATE_MONTH_ENDED_NOT_CLOSED": "STATE-MONTH-ENDED-NOT-CLOSED",
+    "STATE_EARLY_CLOSE": "STATE-EARLY-CLOSE",
+    "STATE_OFFICIAL_VERSION": "STATE-OFFICIAL-VERSION",
     "COVERAGE_PARTIAL": "COVERAGE-PARTIAL-MANUAL",
     "COVERAGE_COMPLETE": "COVERAGE-COMPLETE",
     "COVERAGE_MISSING": "COVERAGE-MISSING",
@@ -533,12 +548,55 @@ class PTDiagnosticValidator(BaseDiagnosticValidator):
 
 class ScheduleStateDiagnosticValidator(BaseDiagnosticValidator):
     def validate(self, context: DiagnosticContext) -> list[DiagnosticProblem]:
+        problems = []
         status = context.schedule_version.status
         if status == ScheduleMonthStatus.DRAFT.value:
-            return [problem(DiagnosticLevel.INFO, DiagnosticCategory.SCHEDULE_STATE, "STATE_DRAFT", "Versao em rascunho", "A versao permite edicao manual.")]
+            problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.SCHEDULE_STATE, "STATE_DRAFT", "Versao em rascunho", "A versao permite edicao manual."))
         if status == ScheduleMonthStatus.NOT_GENERATED.value and context.assignments:
-            return [problem(DiagnosticLevel.ERROR, DiagnosticCategory.SCHEDULE_STATE, "STATE_NOT_GENERATED_WITH_VERSION", "Estado incoerente", "Versao NOT_GENERATED possui atribuicoes.", is_blocking=True)]
-        return [problem(DiagnosticLevel.INFO, DiagnosticCategory.SCHEDULE_STATE, "STATE_NOT_EDITABLE", "Versao nao editavel", "A edicao normal esta bloqueada neste estado.")]
+            problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.SCHEDULE_STATE, "STATE_NOT_GENERATED_WITH_VERSION", "Estado incoerente", "Versao NOT_GENERATED possui atribuicoes.", is_blocking=True))
+        if status == ScheduleMonthStatus.VALIDATED.value:
+            problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.SCHEDULE_STATE, "STATE_VALIDATED", "Versao validada", "A versao foi validada e bloqueia edicao normal."))
+        if status == ScheduleMonthStatus.PUBLISHED.value:
+            problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.SCHEDULE_STATE, "STATE_PUBLISHED", "Versao publicada", "A versao e a referencia oficial do mes quando coerente."))
+        if status == ScheduleMonthStatus.CLOSED.value:
+            problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.SCHEDULE_STATE, "STATE_CLOSED", "Versao encerrada", "A versao esta fechada e imutavel."))
+        if status in {ScheduleMonthStatus.VALIDATED.value, ScheduleMonthStatus.PUBLISHED.value, ScheduleMonthStatus.CLOSED.value}:
+            if context.schedule_version.validated_diagnostic_run_id is None:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.SCHEDULE_STATE, "STATE_VALIDATION_WITHOUT_DIAGNOSTIC", "Validacao sem diagnostico", "A versao nao possui diagnostico associado a validacao.", is_blocking=True))
+            if context.schedule_version.validated_revision != (context.schedule_version.content_revision or 0):
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.SCHEDULE_STATE, "STATE_REVISION_CHANGED", "Revisao alterada apos validacao", "A revisao de conteudo diverge da revisao validada.", is_blocking=True))
+        if status == ScheduleMonthStatus.PUBLISHED.value and context.schedule_version.validated_at is None:
+            problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.SCHEDULE_STATE, "STATE_PUBLICATION_WITHOUT_VALIDATION", "Publicacao sem validacao", "A versao publicada nao possui validacao registada.", is_blocking=True))
+        published_versions = [
+            version
+            for version in context.schedule_month.versions
+            if version.status == ScheduleMonthStatus.PUBLISHED.value
+        ]
+        if len(published_versions) > 1:
+            problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.SCHEDULE_STATE, "STATE_TWO_PUBLISHED", "Mais do que uma versao publicada", "O mes possui varias versoes publicadas.", is_blocking=True))
+        if context.schedule_month.published_version_id:
+            official_ids = {version.id for version in published_versions}
+            if context.schedule_month.published_version_id not in official_ids:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.SCHEDULE_STATE, "STATE_MONTH_PUBLISHED_INCOHERENT", "Versao oficial incoerente", "O mes aponta para uma versao que nao esta publicada.", is_blocking=True))
+            elif context.schedule_version.id == context.schedule_month.published_version_id:
+                problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.SCHEDULE_STATE, "STATE_OFFICIAL_VERSION", "Versao oficial", "Esta versao e a versao oficial publicada do mes."))
+        if status == ScheduleMonthStatus.CLOSED.value:
+            close_event = ScheduleVersionStateEvent.query.filter_by(
+                schedule_version_id=context.schedule_version.id,
+                event_type=ScheduleVersionStateEventType.CLOSED.value,
+            ).first()
+            if close_event is None:
+                problems.append(problem(DiagnosticLevel.ERROR, DiagnosticCategory.SCHEDULE_STATE, "STATE_CLOSED_WITHOUT_EVENT", "Encerramento sem evento", "A versao fechada nao possui evento de encerramento.", is_blocking=True))
+            elif context.schedule_version.closed_at and context.schedule_version.closed_at.date() <= context.month_end:
+                problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.SCHEDULE_STATE, "STATE_EARLY_CLOSE", "Encerramento antecipado", "A escala foi encerrada antes do fim do mes."))
+        if status == ScheduleMonthStatus.VALIDATED.value and context.schedule_version.validated_at:
+            if utc_now() - context.schedule_version.validated_at > timedelta(days=30):
+                problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.SCHEDULE_STATE, "STATE_VALIDATED_LONG", "Validada sem publicacao", "A versao esta validada ha mais de 30 dias sem publicacao."))
+        if context.month_end < date.today() and status == ScheduleMonthStatus.PUBLISHED.value:
+            problems.append(problem(DiagnosticLevel.WARNING, DiagnosticCategory.SCHEDULE_STATE, "STATE_MONTH_ENDED_NOT_CLOSED", "Mes terminado sem encerramento", "A versao publicada ainda nao foi encerrada."))
+        if status not in {ScheduleMonthStatus.DRAFT.value, ScheduleMonthStatus.NOT_GENERATED.value}:
+            problems.append(problem(DiagnosticLevel.INFO, DiagnosticCategory.SCHEDULE_STATE, "STATE_NOT_EDITABLE", "Versao nao editavel", "A edicao normal esta bloqueada neste estado."))
+        return problems
 
 
 class CoverageDiagnosticValidator(BaseDiagnosticValidator):

@@ -22,6 +22,8 @@ from app.services.assignment_codes import (
     UNAVAILABILITY_ASSIGNMENT_CODES,
 )
 from app.services.unavailability_evaluator import interval_for_unavailability, overlaps
+from app.services.schedule_version_policy import ScheduleVersionPolicy
+from app.services.schedule_version_workflow import touch_version_content
 
 
 EDITABLE_VERSION_STATUSES = {ScheduleMonthStatus.DRAFT.value}
@@ -82,7 +84,7 @@ def validate_assignment(
 
     if schedule_version is None:
         blocking_errors["schedule_version"] = "Versao inexistente."
-    elif schedule_version.status not in EDITABLE_VERSION_STATUSES:
+    elif not ScheduleVersionPolicy(schedule_version).can_edit():
         blocking_errors["status"] = "A versao selecionada nao permite edicao."
     elif not _date_belongs_to_version(schedule_version, assignment_date):
         blocking_errors["assignment_date"] = "A data nao pertence ao mes da versao."
@@ -234,6 +236,7 @@ def save_manual_assignment(
                 _add_change(assignment, AssignmentChangeType.OVERRIDE_APPLIED.value, previous_code, assignment.code, previous_locked, assignment.is_locked, False, True, override_reason)
             if previous_override and not assignment.has_override:
                 _add_change(assignment, AssignmentChangeType.OVERRIDE_REMOVED.value, previous_code, assignment.code, previous_locked, assignment.is_locked, True, False, "Conflito removido pela nova atribuicao.")
+        touch_version_content(schedule_version)
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -242,6 +245,8 @@ def save_manual_assignment(
 
 
 def clear_assignment(assignment: Assignment, reason: str | None = None) -> Assignment:
+    if not ScheduleVersionPolicy(assignment.schedule_version).can_edit():
+        raise AssignmentServiceError({"status": "A versao selecionada nao permite edicao."})
     if assignment.holiday_leave_credit_id is not None:
         raise AssignmentServiceError(
             {"holiday_leave_credit": "A celula esta ligada a uma FF. Use as opcoes de FF para cancelar ou reagendar."}
@@ -256,6 +261,7 @@ def clear_assignment(assignment: Assignment, reason: str | None = None) -> Assig
         assignment.override_reason = None
         assignment.is_cleared = True
         _add_change(assignment, AssignmentChangeType.CLEARED.value, previous_code, None, assignment.is_locked, assignment.is_locked, previous_override, False, reason)
+        touch_version_content(assignment.schedule_version)
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -264,11 +270,14 @@ def clear_assignment(assignment: Assignment, reason: str | None = None) -> Assig
 
 
 def lock_assignment(assignment: Assignment, reason: str | None = None) -> Assignment:
+    if not ScheduleVersionPolicy(assignment.schedule_version).can_edit():
+        raise AssignmentServiceError({"status": "A versao selecionada nao permite edicao."})
     if assignment.is_locked:
         return assignment
     try:
         assignment.is_locked = True
         _add_change(assignment, AssignmentChangeType.LOCKED.value, assignment.code, assignment.code, False, True, assignment.has_override, assignment.has_override, reason)
+        touch_version_content(assignment.schedule_version)
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -277,11 +286,14 @@ def lock_assignment(assignment: Assignment, reason: str | None = None) -> Assign
 
 
 def unlock_assignment(assignment: Assignment, reason: str | None = None) -> Assignment:
+    if not ScheduleVersionPolicy(assignment.schedule_version).can_edit():
+        raise AssignmentServiceError({"status": "A versao selecionada nao permite edicao."})
     if not assignment.is_locked:
         return assignment
     try:
         assignment.is_locked = False
         _add_change(assignment, AssignmentChangeType.UNLOCKED.value, assignment.code, assignment.code, True, False, assignment.has_override, assignment.has_override, reason)
+        touch_version_content(assignment.schedule_version)
         db.session.commit()
     except Exception:
         db.session.rollback()

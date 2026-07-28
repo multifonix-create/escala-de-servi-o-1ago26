@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 class BaseConfig:
     APP_NAME = "Escala de Serviço"
-    APP_VERSION = "v1.4"
+    APP_VERSION = "v1.5"
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     LOG_DIR = BASE_DIR / "logs"
@@ -15,7 +15,7 @@ class BaseConfig:
     LOG_MAX_BYTES = 1_000_000
     LOG_BACKUP_COUNT = 3
     HOST = os.environ.get("FLASK_RUN_HOST", "127.0.0.1")
-    PORT = int(os.environ.get("FLASK_RUN_PORT", "5000"))
+    PORT = int(os.environ.get("FLASK_RUN_PORT", "5001"))
 
 
 class DevelopmentConfig(BaseConfig):

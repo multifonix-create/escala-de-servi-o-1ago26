@@ -73,6 +73,15 @@ class GenerationMode(StrEnum):
     REGENERATE_AUTOMATIC = "REGENERATE_AUTOMATIC"
 
 
+class ScheduleVersionStateEventType(StrEnum):
+    VALIDATED = "VALIDATED"
+    VALIDATION_REVOKED = "VALIDATION_REVOKED"
+    PUBLISHED = "PUBLISHED"
+    UNPUBLISHED = "UNPUBLISHED"
+    CLOSED = "CLOSED"
+    REOPENED_AS_NEW_VERSION = "REOPENED_AS_NEW_VERSION"
+
+
 ALLOWED_SCHEDULE_MONTH_STATUSES = tuple(item.value for item in ScheduleMonthStatus)
 ALLOWED_SCHEDULE_VERSION_SOURCES = tuple(item.value for item in ScheduleVersionSource)
 ALLOWED_ASSIGNMENT_SOURCES = tuple(item.value for item in AssignmentSource)
@@ -82,6 +91,7 @@ ALLOWED_DIAGNOSTIC_CATEGORIES = tuple(item.value for item in DiagnosticCategory)
 ALLOWED_DIAGNOSTIC_RUN_STATUSES = tuple(item.value for item in DiagnosticRunStatus)
 ALLOWED_GENERATION_RUN_STATUSES = tuple(item.value for item in GenerationRunStatus)
 ALLOWED_GENERATION_MODES = tuple(item.value for item in GenerationMode)
+ALLOWED_SCHEDULE_VERSION_STATE_EVENT_TYPES = tuple(item.value for item in ScheduleVersionStateEventType)
 
 
 class ScheduleMonth(db.Model):
@@ -105,6 +115,12 @@ class ScheduleMonth(db.Model):
         default=ScheduleMonthStatus.DRAFT.value,
         index=True,
     )
+    published_version_id = db.Column(
+        db.Integer,
+        db.ForeignKey("schedule_versions.id"),
+        nullable=True,
+        index=True,
+    )
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(
         db.DateTime(timezone=True),
@@ -116,8 +132,14 @@ class ScheduleMonth(db.Model):
     versions = db.relationship(
         "ScheduleVersion",
         back_populates="schedule_month",
+        foreign_keys="ScheduleVersion.schedule_month_id",
         cascade="all, delete-orphan",
         order_by="ScheduleVersion.version_number.asc()",
+    )
+    published_version = db.relationship(
+        "ScheduleVersion",
+        foreign_keys=[published_version_id],
+        post_update=True,
     )
 
     @property
@@ -182,6 +204,18 @@ class ScheduleVersion(db.Model):
     )
     generation_mode = db.Column(db.String(40), nullable=True, index=True)
     description = db.Column(db.String(500), nullable=True)
+    content_revision = db.Column(db.Integer, nullable=False, default=0)
+    validated_revision = db.Column(db.Integer, nullable=True)
+    validated_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    validated_diagnostic_run_id = db.Column(
+        db.Integer,
+        db.ForeignKey("diagnostic_runs.id"),
+        nullable=True,
+        index=True,
+    )
+    published_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    closed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    state_notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(
         db.DateTime(timezone=True),
@@ -190,13 +224,67 @@ class ScheduleVersion(db.Model):
         onupdate=utc_now,
     )
 
-    schedule_month = db.relationship("ScheduleMonth", back_populates="versions")
+    schedule_month = db.relationship(
+        "ScheduleMonth",
+        back_populates="versions",
+        foreign_keys=[schedule_month_id],
+    )
     parent_version = db.relationship("ScheduleVersion", remote_side=[id])
+    validated_diagnostic_run = db.relationship(
+        "DiagnosticRun",
+        foreign_keys=[validated_diagnostic_run_id],
+    )
     assignments = db.relationship(
         "Assignment",
         back_populates="schedule_version",
         order_by="Assignment.assignment_date.asc(), Assignment.id.asc()",
     )
+    state_events = db.relationship(
+        "ScheduleVersionStateEvent",
+        back_populates="schedule_version",
+        order_by="ScheduleVersionStateEvent.created_at.asc(), ScheduleVersionStateEvent.id.asc()",
+    )
+
+
+class ScheduleVersionStateEvent(db.Model):
+    __tablename__ = "schedule_version_state_events"
+    __table_args__ = (
+        db.CheckConstraint(
+            "event_type in ('VALIDATED', 'VALIDATION_REVOKED', 'PUBLISHED', 'UNPUBLISHED', 'CLOSED', 'REOPENED_AS_NEW_VERSION')",
+            name="ck_schedule_version_state_events_type",
+        ),
+        db.CheckConstraint(
+            "previous_state is null or previous_state in ('NOT_GENERATED', 'DRAFT', 'VALIDATED', 'PUBLISHED', 'CLOSED')",
+            name="ck_schedule_version_state_events_previous_state",
+        ),
+        db.CheckConstraint(
+            "new_state is null or new_state in ('NOT_GENERATED', 'DRAFT', 'VALIDATED', 'PUBLISHED', 'CLOSED')",
+            name="ck_schedule_version_state_events_new_state",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    schedule_version_id = db.Column(
+        db.Integer,
+        db.ForeignKey("schedule_versions.id"),
+        nullable=False,
+        index=True,
+    )
+    event_type = db.Column(db.String(50), nullable=False, index=True)
+    previous_state = db.Column(db.String(30), nullable=True)
+    new_state = db.Column(db.String(30), nullable=True)
+    reason = db.Column(db.Text, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    diagnostic_run_id = db.Column(
+        db.Integer,
+        db.ForeignKey("diagnostic_runs.id"),
+        nullable=True,
+        index=True,
+    )
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    schedule_version = db.relationship("ScheduleVersion", back_populates="state_events")
+    diagnostic_run = db.relationship("DiagnosticRun")
 
 
 class Assignment(db.Model):

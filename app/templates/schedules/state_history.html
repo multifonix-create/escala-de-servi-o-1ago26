@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Historico de estado{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Historico de estado</p>
+      <h1>Versao {{ version.version_number }} - {{ schedule_month.label }}</h1>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar</a>
+    </div>
+  </header>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Evento</th>
+          <th>Estado anterior</th>
+          <th>Novo estado</th>
+          <th>Motivo</th>
+          <th>Diagnostico</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+          <tr>
+            <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+            <td>{{ event.event_type }}</td>
+            <td>{{ event.previous_state or "-" }}</td>
+            <td>{{ event.new_state or "-" }}</td>
+            <td>{{ event.reason or "-" }}</td>
+            <td>{{ event.diagnostic_run_id or "-" }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6">Sem eventos de estado registados.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

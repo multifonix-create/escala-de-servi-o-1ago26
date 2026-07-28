@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Encerrar escala{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Encerramento</p>
+      <h1>Encerrar versao {{ version.version_number }} - {{ schedule_month.label }}</h1>
+      <p class="notice">O encerramento executa diagnostico final e torna a versao imutavel.</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button--secondary" href="{{ url_for('schedules.version_detail', year=schedule_month.year, month=schedule_month.month, version_id=version.id) }}">Voltar</a>
+    </div>
+  </header>
+
+  {% if blockers %}
+    <section class="content-section">
+      <h2>Erros bloqueantes</h2>
+      <ul class="compact-list">
+        {% for issue in blockers %}
+          <li>{{ issue.code }} - {{ issue.title }}{% if issue.assignment_date %} ({{ issue.assignment_date }}){% endif %}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <form class="form-card" method="post">
+    <label>
+      <span>Motivo</span>
+      <textarea name="reason" rows="3"></textarea>
+    </label>
+    <label>
+      <span>Notas</span>
+      <textarea name="notes" rows="3"></textarea>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" name="confirm_early">
+      <span>Confirmo encerramento antecipado, se o mes ainda nao terminou.</span>
+    </label>
+    <div class="form-actions">
+      <button class="button" type="submit">Executar diagnostico e encerrar</button>
+    </div>
+  </form>
+{% endblock %}

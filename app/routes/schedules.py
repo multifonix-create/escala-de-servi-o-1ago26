@@ -5,7 +5,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 
 from app.extensions import db
 from app.services import ScheduleServiceError
-from app.models import Assignment, AssignmentSource, DiagnosticIssue, DiagnosticRun, GenerationRun, Military, ScheduleMonthStatus
+from app.models import Assignment, AssignmentSource, DiagnosticIssue, DiagnosticRun, GenerationRun, Military, ScheduleMonthStatus, ScheduleVersionStateEvent
 from app.services.assignment_codes import ASSIGNMENT_CODE_DEFINITIONS
 from app.services.assignment_service import (
     AssignmentServiceError,
@@ -25,6 +25,8 @@ from app.services.schedule_regeneration import (
     ScheduleRegenerationService,
     compare_versions,
 )
+from app.services.schedule_version_policy import ScheduleVersionPolicy
+from app.services.schedule_version_workflow import ScheduleVersionWorkflow, ScheduleWorkflowError
 from app.services.schedule_service import (
     create_schedule_month,
     current_month,
@@ -74,6 +76,7 @@ def month_detail(year: int, month: int):
     next_year, next_month_number = next_month(year, month)
     grid = build_monthly_grid(schedule_month) if schedule_month else None
     generation_run = latest_generation_run(grid.version.id) if grid and grid.version else None
+    version_permissions = ScheduleVersionPolicy(grid.version).as_dict() if grid and grid.version else {}
     return render_template(
         "schedules/month.html",
         year=year,
@@ -81,6 +84,7 @@ def month_detail(year: int, month: int):
         schedule_month=schedule_month,
         grid=grid,
         generation_run=generation_run,
+        version_permissions=version_permissions,
         previous_year=previous_year,
         previous_month=previous_month_number,
         next_year=next_year,
@@ -136,6 +140,7 @@ def version_detail(year: int, month: int, version_id: int):
         diagnostic_run=diagnostic_run,
         generation_run=generation_run,
         diagnostic_cells=diagnostic_cells,
+        version_permissions=ScheduleVersionPolicy(version).as_dict(),
         previous_year=previous_year,
         previous_month=previous_month_number,
         next_year=next_year,
@@ -364,6 +369,142 @@ def diagnostic_issue_detail(year: int, month: int, version_id: int, run_id: int,
     )
 
 
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/validar")
+def validate_version_confirm(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    return render_template("schedules/validate.html", schedule_month=schedule_month, version=version, errors={}, blockers=[], warnings=[], run=None)
+
+
+@schedules_bp.post("/<int:year>/<int:month>/versoes/<int:version_id>/validar")
+def validate_version_action(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    try:
+        run = ScheduleVersionWorkflow().validate_version(
+            version,
+            confirm_warnings=request.form.get("confirm_warnings") == "on",
+            notes=request.form.get("notes"),
+        )
+    except ScheduleWorkflowError as exc:
+        for message in exc.errors.values() or [exc.message]:
+            flash(message, "warning")
+        return render_template(
+            "schedules/validate.html",
+            schedule_month=schedule_month,
+            version=version,
+            errors=exc.errors,
+            blockers=exc.blockers,
+            warnings=exc.warnings,
+            run=exc.diagnostic_run,
+        ), 400
+    flash("Escala validada.", "success")
+    return redirect(url_for("schedules.diagnostic_run_detail", year=year, month=month, version_id=version.id, run_id=run.id))
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/revogar-validacao")
+def revoke_validation_confirm(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    return render_template("schedules/revoke_validation.html", schedule_month=schedule_month, version=version, errors={})
+
+
+@schedules_bp.post("/<int:year>/<int:month>/versoes/<int:version_id>/revogar-validacao")
+def revoke_validation_action(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    try:
+        ScheduleVersionWorkflow().revoke_validation(version, request.form.get("reason"), request.form.get("notes"))
+    except ScheduleWorkflowError as exc:
+        for message in exc.errors.values() or [exc.message]:
+            flash(message, "warning")
+        return render_template("schedules/revoke_validation.html", schedule_month=schedule_month, version=version, errors=exc.errors), 400
+    flash("Validacao revogada. A versao voltou a DRAFT.", "success")
+    return redirect(url_for("schedules.version_detail", year=year, month=month, version_id=version.id))
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/publicar")
+def publish_version_confirm(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    current_published = schedule_month.published_version
+    return render_template("schedules/publish.html", schedule_month=schedule_month, version=version, current_published=current_published, errors={})
+
+
+@schedules_bp.post("/<int:year>/<int:month>/versoes/<int:version_id>/publicar")
+def publish_version_action(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    try:
+        ScheduleVersionWorkflow().publish_version(
+            version,
+            confirm_replace=request.form.get("confirm_replace") == "on",
+            notes=request.form.get("notes"),
+        )
+    except ScheduleWorkflowError as exc:
+        for message in exc.errors.values() or [exc.message]:
+            flash(message, "warning")
+        return render_template("schedules/publish.html", schedule_month=schedule_month, version=version, current_published=schedule_month.published_version, errors=exc.errors), 400
+    flash("Escala publicada.", "success")
+    return redirect(url_for("schedules.version_detail", year=year, month=month, version_id=version.id))
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/encerrar")
+def close_version_confirm(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    return render_template("schedules/close.html", schedule_month=schedule_month, version=version, errors={}, blockers=[], warnings=[], run=None)
+
+
+@schedules_bp.post("/<int:year>/<int:month>/versoes/<int:version_id>/encerrar")
+def close_version_action(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    try:
+        run = ScheduleVersionWorkflow().close_version(
+            version,
+            confirm_early=request.form.get("confirm_early") == "on",
+            reason=request.form.get("reason"),
+            notes=request.form.get("notes"),
+        )
+    except ScheduleWorkflowError as exc:
+        for message in exc.errors.values() or [exc.message]:
+            flash(message, "warning")
+        return render_template(
+            "schedules/close.html",
+            schedule_month=schedule_month,
+            version=version,
+            errors=exc.errors,
+            blockers=exc.blockers,
+            warnings=exc.warnings,
+            run=exc.diagnostic_run,
+        ), 400
+    flash("Escala encerrada.", "success")
+    return redirect(url_for("schedules.diagnostic_run_detail", year=year, month=month, version_id=version.id, run_id=run.id))
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/criar-correcao")
+def correction_version_confirm(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    return render_template("schedules/correction.html", schedule_month=schedule_month, version=version, errors={})
+
+
+@schedules_bp.post("/<int:year>/<int:month>/versoes/<int:version_id>/criar-correcao")
+def correction_version_action(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    try:
+        correction = ScheduleVersionWorkflow().create_correction_version(version, request.form.get("reason"), request.form.get("notes"))
+    except ScheduleWorkflowError as exc:
+        for message in exc.errors.values() or [exc.message]:
+            flash(message, "warning")
+        return render_template("schedules/correction.html", schedule_month=schedule_month, version=version, errors=exc.errors), 400
+    flash("Versao de correcao criada em DRAFT.", "success")
+    return redirect(url_for("schedules.version_detail", year=year, month=month, version_id=correction.id))
+
+
+@schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/historico-estado")
+def state_history(year: int, month: int, version_id: int):
+    schedule_month, version = _version_route_context(year, month, version_id)
+    events = (
+        ScheduleVersionStateEvent.query.filter_by(schedule_version_id=version.id)
+        .order_by(ScheduleVersionStateEvent.created_at.asc(), ScheduleVersionStateEvent.id.asc())
+        .all()
+    )
+    return render_template("schedules/state_history.html", schedule_month=schedule_month, version=version, events=events)
+
+
 @schedules_bp.get("/<int:year>/<int:month>/versoes/<int:version_id>/militares/<int:military_id>/dias/<assignment_date>")
 def edit_assignment(year: int, month: int, version_id: int, military_id: int, assignment_date: str):
     schedule_month, version, military, parsed_date = _assignment_route_context(
@@ -525,6 +666,14 @@ def _assignment_route_context(year: int, month: int, version_id: int, military_i
     except ValueError:
         parsed_date = None
     return schedule_month, version, military, parsed_date
+
+
+def _version_route_context(year: int, month: int, version_id: int):
+    schedule_month = get_schedule_month(year, month)
+    if schedule_month is None:
+        abort(404)
+    version = get_version_for_month_or_404(schedule_month, version_id)
+    return schedule_month, version
 
 
 def _diagnostic_cells(diagnostic_run: DiagnosticRun | None) -> set[tuple[int, str]]:

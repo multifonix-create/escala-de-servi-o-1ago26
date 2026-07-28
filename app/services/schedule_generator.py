@@ -32,6 +32,8 @@ from app.services import cycle_calculator
 from app.services.diagnostic_service import ScheduleDiagnosticService
 from app.services.restriction_evaluator import contains, intervals_for_restriction, overlaps as restriction_overlaps
 from app.services.service_code_catalog import COVERAGE_TARGETS, SERVICE_TIME_WINDOWS
+from app.services.schedule_version_policy import ScheduleVersionPolicy
+from app.services.schedule_version_workflow import touch_version_content
 from app.services.unavailability_evaluator import interval_for_unavailability, overlaps
 
 
@@ -663,6 +665,8 @@ class ScheduleGenerator:
             run.total_unfilled = summary.total_unfilled
             run.total_warnings = summary.total_warnings
             run.summary_json = json.dumps(summary.as_dict(), sort_keys=True, default=str)
+            if summary.total_created:
+                touch_version_content(schedule_version)
             if commit:
                 db.session.commit()
         except Exception as exc:
@@ -764,7 +768,7 @@ def build_generation_context(schedule_version: ScheduleVersion, lookback_months:
 
 
 def validate_generation_target(schedule_version: ScheduleVersion) -> None:
-    if schedule_version.status not in EDITABLE_GENERATION_STATUSES:
+    if not ScheduleVersionPolicy(schedule_version).can_generate():
         raise ScheduleGenerationError(
             "A versao selecionada nao permite geracao.",
             {"status": "A geracao AT/PO so pode ocorrer em versoes DRAFT."},
