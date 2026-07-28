@@ -32,13 +32,13 @@
       <select name="functional_type">
         <option value="">Todos</option>
         {% for item in functional_types %}
-          <option value="{{ item.value }}" {% if filters.functional_type == item.value %}selected{% endif %}>{{ item.value }}</option>
+          <option value="{{ item.value }}" {% if filters.functional_type == item.value %}selected{% endif %}>{{ functional_type_labels[item.value] }}</option>
         {% endfor %}
       </select>
     </label>
     <label>
       <span>Pesquisa</span>
-      <input type="search" name="q" value="{{ filters.q }}" placeholder="Nome ou NIM">
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="Nome, sobrenome ou NIM">
     </label>
     <label>
       <span>Equipa atual</span>
@@ -58,12 +58,13 @@
       <table>
         <thead>
           <tr>
-            <th>Nome</th>
             <th>NIM</th>
-            <th>Tipo funcional</th>
-            <th>Equipa atual</th>
-            <th>Data de início</th>
-            <th>Data de fim</th>
+            <th>Nome completo</th>
+            <th>Função</th>
+            <th>Equipa</th>
+            <th>Contacto</th>
+            <th>Remunerados</th>
+            <th>Restrições ativas</th>
             <th>Estado</th>
             <th>Ações</th>
           </tr>
@@ -71,14 +72,14 @@
         <tbody>
           {% for military in militaries %}
             <tr>
+              <td>{{ military.nim }}</td>
               <td>
-                <a href="{{ url_for('militaries.detail_military', military_id=military.id) }}">{{ military.name }}</a>
+                <a href="{{ url_for('militaries.detail_military', military_id=military.id) }}">{{ military.full_name }}</a>
                 {% if military.notes %}
                   <span class="muted">{{ military.notes | truncate(60) }}</span>
                 {% endif %}
               </td>
-              <td>{{ military.nim }}</td>
-              <td>{{ military.functional_type }}</td>
+              <td>{{ military.functional_type_label }}</td>
               <td>
                 {% if military.functional_type != "PATRULHEIRO" %}
                   Não aplicável
@@ -88,8 +89,11 @@
                   Sem equipa
                 {% endif %}
               </td>
-              <td>{{ military.start_date.isoformat() }}</td>
-              <td>{{ military.end_date.isoformat() if military.end_date else "-" }}</td>
+              <td>{{ military.phone_number or "-" }}</td>
+              <td>{{ military.paid_service_volunteer_label }}</td>
+              <td>
+                <a href="{{ url_for('military_restrictions.military_restrictions', military_id=military.id) }}">{{ military.active_restrictions | length }}</a>
+              </td>
               <td>
                 <span class="status {{ 'status--active' if military.is_active else 'status--inactive' }}">
                   {{ "Ativo" if military.is_active else "Inativo" }}
@@ -100,6 +104,9 @@
               </td>
               <td>
                 <a href="{{ url_for('militaries.edit_military_form', military_id=military.id) }}">Editar</a>
+                <span class="muted">
+                  <a href="{{ url_for('military_restrictions.new_restriction_form', military_id=military.id) }}">Restrição</a>
+                </span>
                 {% if military.functional_type == "PATRULHEIRO" %}
                   <span class="muted">
                     <a href="{{ url_for('military_teams.show_military_team', military_id=military.id) }}">Equipa</a>

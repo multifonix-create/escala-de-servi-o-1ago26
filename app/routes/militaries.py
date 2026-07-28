@@ -1,7 +1,8 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from app.models import FunctionalType
-from app.services import military_service, team_service, unavailability_service
+from app.models.military import FUNCTIONAL_TYPE_LABELS
+from app.services import military_service, restriction_service, team_service, unavailability_service
 from app.services.military_service import MilitaryServiceError
 from app.validators import validate_military_payload
 
@@ -41,6 +42,7 @@ def list_militaries():
         militaries=militaries,
         counts=military_service.count_militaries(),
         functional_types=FunctionalType,
+        functional_type_labels=FUNCTIONAL_TYPE_LABELS,
         teams=team_service.list_teams(),
         filters={
             "status": valid_status or "",
@@ -58,6 +60,8 @@ def create_military_form():
         form_data={"is_active": True},
         errors={},
         functional_types=FunctionalType,
+        functional_type_labels=FUNCTIONAL_TYPE_LABELS,
+        teams=team_service.list_teams(),
     )
 
 
@@ -73,15 +77,19 @@ def create_military():
         return _render_create_form(error.errors), 400
 
     flash("Militar criado com sucesso.", "success")
+    if request.form.get("action") == "save_and_add_restriction":
+        return redirect(url_for("military_restrictions.new_restriction_form", military_id=military.id))
     return redirect(url_for("militaries.detail_military", military_id=military.id))
 
 
 @militaries_bp.get("/<int:military_id>")
 def detail_military(military_id: int):
     military = military_service.get_military_or_404(military_id)
+    restrictions = restriction_service.list_restrictions_for_military(military.id)
     return render_template(
         "militaries/detail.html",
         military=military,
+        restriction_summary=_restriction_summary(restrictions),
         future_unavailabilities_count=unavailability_service.count_future_unavailabilities_for_military(military.id),
         next_unavailability=unavailability_service.next_unavailability_for_military(military.id),
     )
@@ -96,6 +104,8 @@ def edit_military_form(military_id: int):
         form_data=_form_data_from_military(military),
         errors={},
         functional_types=FunctionalType,
+        functional_type_labels=FUNCTIONAL_TYPE_LABELS,
+        teams=team_service.list_teams(),
     )
 
 
@@ -143,6 +153,8 @@ def _render_create_form(errors: dict):
         form_data=_form_data_from_request(),
         errors=errors,
         functional_types=FunctionalType,
+        functional_type_labels=FUNCTIONAL_TYPE_LABELS,
+        teams=team_service.list_teams(),
     )
 
 
@@ -153,15 +165,21 @@ def _render_edit_form(military, errors: dict):
         form_data=_form_data_from_request(),
         errors=errors,
         functional_types=FunctionalType,
+        functional_type_labels=FUNCTIONAL_TYPE_LABELS,
+        teams=team_service.list_teams(),
     )
 
 
 def _form_data_from_request() -> dict:
     return {
-        "name": request.form.get("name", ""),
+        "first_name": request.form.get("first_name", ""),
+        "last_name": request.form.get("last_name", ""),
         "nim": request.form.get("nim", ""),
+        "phone_number": request.form.get("phone_number", ""),
         "functional_type": request.form.get("functional_type", ""),
+        "team_id": request.form.get("team_id", ""),
         "is_active": "is_active" in request.form,
+        "is_paid_service_volunteer": "is_paid_service_volunteer" in request.form,
         "start_date": request.form.get("start_date", ""),
         "end_date": request.form.get("end_date", ""),
         "notes": request.form.get("notes", ""),
@@ -170,11 +188,31 @@ def _form_data_from_request() -> dict:
 
 def _form_data_from_military(military) -> dict:
     return {
-        "name": military.name,
+        "first_name": military.first_name or "",
+        "last_name": military.last_name or "",
         "nim": military.nim,
+        "phone_number": military.phone_number or "",
         "functional_type": military.functional_type,
+        "team_id": str(military.current_team.id) if military.current_team else "",
         "is_active": military.is_active,
+        "is_paid_service_volunteer": military.is_paid_service_volunteer,
         "start_date": military.start_date.isoformat(),
         "end_date": military.end_date.isoformat() if military.end_date else "",
         "notes": military.notes or "",
+    }
+
+
+def _restriction_summary(restrictions: list) -> dict[str, int]:
+    from datetime import date
+
+    today = date.today()
+    return {
+        "total": len(restrictions),
+        "active": sum(1 for item in restrictions if item.is_active),
+        "future": sum(1 for item in restrictions if item.start_date > today),
+        "expired": sum(
+            1
+            for item in restrictions
+            if item.end_date is not None and item.end_date < today
+        ),
     }

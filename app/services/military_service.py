@@ -1,7 +1,7 @@
 from sqlalchemy import func, or_
 
 from app.extensions import db
-from app.models import Military
+from app.models import FunctionalType, Military, MilitaryTeamHistory, Team
 
 
 class MilitaryServiceError(Exception):
@@ -30,7 +30,12 @@ def list_militaries(
     if query:
         search = f"%{query.strip()}%"
         statement = statement.filter(
-            or_(Military.name.ilike(search), Military.nim.ilike(search))
+            or_(
+                Military.name.ilike(search),
+                Military.first_name.ilike(search),
+                Military.last_name.ilike(search),
+                Military.nim.ilike(search),
+            )
         )
 
     militaries = statement.order_by(Military.name.asc(), Military.nim.asc()).all()
@@ -68,21 +73,48 @@ def get_military_or_404(military_id: int) -> Military:
 
 
 def create_military(data: dict) -> Military:
-    _raise_for_duplicate_nim(data["nim"])
-    military = Military(**data)
-    db.session.add(military)
-    db.session.commit()
+    payload = dict(data)
+    team_supplied = "team_id" in payload
+    team_id = payload.pop("team_id", None)
+    _raise_for_duplicate_nim(payload["nim"])
+    team = _get_valid_team(team_id) if team_id else None
+    if team_supplied:
+        _raise_for_missing_or_invalid_team(payload["functional_type"], team)
+    military = Military(**payload)
+    military.sync_name_from_parts()
+    try:
+        db.session.add(military)
+        db.session.flush()
+        _upsert_current_team(military, team, military.start_date)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
     return military
 
 
 def update_military(military: Military, data: dict) -> Military:
-    _raise_for_duplicate_nim(data["nim"], excluded_id=military.id)
-    _raise_for_invalid_functional_type_change(military, data["functional_type"])
+    payload = dict(data)
+    team_supplied = "team_id" in payload
+    team_id = payload.pop("team_id", None)
+    _raise_for_duplicate_nim(payload["nim"], excluded_id=military.id)
+    _raise_for_invalid_functional_type_change(military, payload["functional_type"])
+    team = _get_valid_team(team_id) if team_id else None
+    if team_supplied:
+        _raise_for_missing_or_invalid_team(payload["functional_type"], team)
 
-    for field, value in data.items():
+    for field, value in payload.items():
         setattr(military, field, value)
+    military.sync_name_from_parts()
 
-    db.session.commit()
+    try:
+        db.session.flush()
+        if team_supplied:
+            _upsert_current_team(military, team, military.start_date)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
     return military
 
 
@@ -129,3 +161,44 @@ def _raise_for_invalid_functional_type_change(
                     )
                 }
             )
+
+
+def _get_valid_team(team_id: int | None) -> Team | None:
+    team = db.session.get(Team, team_id) if team_id else None
+    if team is None or not team.is_active:
+        raise MilitaryServiceError({"team_id": "Selecione uma equipa operacional válida."})
+    return team
+
+
+def _raise_for_missing_or_invalid_team(functional_type: str, team: Team | None) -> None:
+    if functional_type == FunctionalType.PATRULHEIRO.value and team is None:
+        raise MilitaryServiceError({"team_id": "Patrulheiro exige equipa operacional A-E."})
+    if functional_type != FunctionalType.PATRULHEIRO.value and team is not None:
+        raise MilitaryServiceError({"team_id": "Apenas Patrulheiro pode ter equipa operacional A-E."})
+
+
+def _upsert_current_team(military: Military, team: Team | None, start_date) -> None:
+    if military.functional_type != FunctionalType.PATRULHEIRO.value or team is None:
+        return
+
+    current = military.current_team_membership
+    if current and current.team_id == team.id:
+        return
+    if current and current.start_date >= start_date:
+        current.team_id = team.id
+        current.start_date = start_date
+        current.reason = "Atualização de dados do militar."
+        return
+    if current:
+        from datetime import timedelta
+
+        current.end_date = start_date - timedelta(days=1)
+
+    db.session.add(
+        MilitaryTeamHistory(
+            military_id=military.id,
+            team_id=team.id,
+            start_date=start_date,
+            reason="Dados iniciais do militar.",
+        )
+    )

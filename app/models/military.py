@@ -11,8 +11,21 @@ class FunctionalType(StrEnum):
     CMD = "CMD"
 
 
+FUNCTIONAL_TYPE_LABELS = {
+    FunctionalType.CMD.value: "Comandante",
+    FunctionalType.SEC.value: "Secretaria",
+    FunctionalType.SI.value: "Serviço de Inquérito",
+    FunctionalType.PATRULHEIRO.value: "Patrulheiro",
+}
+
+
 def utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def build_full_name(first_name: str | None, last_name: str | None, fallback: str = "") -> str:
+    parts = [part.strip() for part in (first_name or "", last_name or "") if part and part.strip()]
+    return " ".join(parts) or fallback.strip()
 
 
 class Military(db.Model):
@@ -20,8 +33,12 @@ class Military(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(180), nullable=False)
+    first_name = db.Column(db.String(90), nullable=True, index=True)
+    last_name = db.Column(db.String(120), nullable=True, index=True)
     nim = db.Column(db.String(30), nullable=False, unique=True, index=True)
+    phone_number = db.Column(db.String(20), nullable=True)
     functional_type = db.Column(db.String(30), nullable=False, index=True)
+    is_paid_service_volunteer = db.Column(db.Boolean, nullable=False, default=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True, index=True)
     start_date = db.Column(db.Date, nullable=False, index=True)
     end_date = db.Column(db.Date, nullable=True, index=True)
@@ -52,6 +69,21 @@ class Military(db.Model):
     def has_inactive_date_warning(self, today=None) -> bool:
         reference_date = today or utc_now().date()
         return self.is_active and self.end_date is not None and self.end_date < reference_date
+
+    @property
+    def full_name(self) -> str:
+        return build_full_name(self.first_name, self.last_name, self.name)
+
+    @property
+    def functional_type_label(self) -> str:
+        return FUNCTIONAL_TYPE_LABELS.get(self.functional_type, self.functional_type)
+
+    @property
+    def paid_service_volunteer_label(self) -> str:
+        return "Sim" if self.is_paid_service_volunteer else "Não"
+
+    def sync_name_from_parts(self) -> None:
+        self.name = self.full_name
 
     @property
     def current_team_membership(self):

@@ -159,6 +159,11 @@ Estes dados não podem ser introduzidos na base real.
 | MIL-013 | CMD | ESCALA_RULES 8 | Validação | Crítica | CMD não pode executar AT, PO ou PT. |
 | MIL-014 | Eliminar versus desativar | ESCALA_RULES 161-163 | Segurança | Crítica | Eliminação definitiva deve ser excecional; desativação é fluxo normal. |
 | MIL-015 | Eliminar militar com histórico | ESCALA_RULES 163 | Validação | Crítica | Tentativa deve ser bloqueada, preservando histórico e auditoria. |
+| MIL-016 | Nome e sobrenome obrigatórios | Melhoria pós-v1.9 | Validação | Alta | Criação/edição exige `nome` e `sobrenome`, gerando `full_name` central. |
+| MIL-017 | Contacto português obrigatório | Melhoria pós-v1.9 | Validação | Alta | Contacto aceita `912345678` ou `+351912345678`, normaliza como texto e rejeita formato inválido. |
+| MIL-018 | Voluntário remunerados informativo | Melhoria pós-v1.9 | Funcional | Média | Checkbox fica persistida, mas não altera geração, FF, FC, diagnósticos ou exportações. |
+| MIL-019 | Acesso direto a restrições | Melhoria pós-v1.9 | Interface | Alta | Criar/editar/detalhe/lista permitem chegar às restrições do militar sem duplicar sistema de restrições. |
+| MIL-020 | Compatibilidade de nome legado | Melhoria pós-v1.9 | Regressão | Alta | Registos antigos com apenas `name` continuam a apresentar nome completo por `full_name`. |
 
 ---
 

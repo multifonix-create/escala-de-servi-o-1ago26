@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}{{ military.name }}{% endblock %}
+{% block title %}{{ military.full_name }}{% endblock %}
 
 {% block content %}
   <section class="page-header">
     <div>
       <p class="eyebrow">Ficha individual</p>
-      <h1>{{ military.name }}</h1>
+      <h1>{{ military.full_name }}</h1>
     </div>
     <div class="toolbar">
       <a class="button button--secondary" href="{{ url_for('militaries.list_militaries') }}">Voltar</a>
@@ -18,50 +18,70 @@
     <p class="message message--warning">Este militar está ativo, mas a data de fim já passou.</p>
   {% endif %}
 
-  <section class="detail-grid">
-    <div><dt>NIM</dt><dd>{{ military.nim }}</dd></div>
-    <div><dt>Tipo funcional</dt><dd>{{ military.functional_type }}</dd></div>
-    <div><dt>Estado</dt><dd>{{ "Ativo" if military.is_active else "Inativo" }}</dd></div>
-    <div>
-      <dt>Restrições ativas</dt>
-      <dd>
-        {{ military.active_restrictions | length }}
-        {% if military.active_restrictions %}
-          <span class="muted">Existem restrições individuais ativas.</span>
-        {% endif %}
-      </dd>
-    </div>
-    <div>
-      <dt>Equipa atual</dt>
-      <dd>
-        {% if military.functional_type != "PATRULHEIRO" %}
-          Não aplicável
-        {% elif military.current_team %}
-          Equipa {{ military.current_team.code }}
-          <span class="muted">Desde {{ military.current_team_membership.start_date.isoformat() }}</span>
-        {% else %}
-          Sem equipa
-        {% endif %}
-      </dd>
-    </div>
-    <div><dt>Indisponibilidades futuras</dt><dd>{{ future_unavailabilities_count }}</dd></div>
-    <div><dt>Data de início</dt><dd>{{ military.start_date.isoformat() }}</dd></div>
-    <div><dt>Data de fim</dt><dd>{{ military.end_date.isoformat() if military.end_date else "Sem data definida" }}</dd></div>
-    <div><dt>Criado em</dt><dd>{{ military.created_at.strftime("%Y-%m-%d %H:%M") }}</dd></div>
-    <div><dt>Atualizado em</dt><dd>{{ military.updated_at.strftime("%Y-%m-%d %H:%M") }}</dd></div>
+  <section class="content-section">
+    <h2>Identificação</h2>
+    <dl class="detail-grid">
+      <div><dt>NIM</dt><dd>{{ military.nim }}</dd></div>
+      <div><dt>Nome</dt><dd>{{ military.first_name or "-" }}</dd></div>
+      <div><dt>Sobrenome</dt><dd>{{ military.last_name or "-" }}</dd></div>
+      <div><dt>Contacto</dt><dd>{{ military.phone_number or "-" }}</dd></div>
+      <div><dt>Função</dt><dd>{{ military.functional_type_label }}</dd></div>
+      <div><dt>Estado</dt><dd>{{ "Ativo" if military.is_active else "Inativo" }}</dd></div>
+      <div>
+        <dt>Equipa atual</dt>
+        <dd>
+          {% if military.functional_type != "PATRULHEIRO" %}
+            Não aplicável
+          {% elif military.current_team %}
+            Equipa {{ military.current_team.code }}
+            <span class="muted">Desde {{ military.current_team_membership.start_date.isoformat() }}</span>
+          {% else %}
+            Sem equipa
+          {% endif %}
+        </dd>
+      </div>
+    </dl>
   </section>
 
   <section class="content-section">
-    <h2>Indisponibilidades</h2>
+    <h2>Serviços remunerados</h2>
+    <dl class="detail-grid">
+      <div><dt>Voluntário</dt><dd>{{ military.paid_service_volunteer_label }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="content-section">
+    <h2>Restrições</h2>
+    <dl class="summary-grid">
+      <div><dt>Total</dt><dd>{{ restriction_summary.total }}</dd></div>
+      <div><dt>Ativas</dt><dd>{{ restriction_summary.active }}</dd></div>
+      <div><dt>Futuras</dt><dd>{{ restriction_summary.future }}</dd></div>
+      <div><dt>Expiradas</dt><dd>{{ restriction_summary.expired }}</dd></div>
+    </dl>
+    <div class="toolbar">
+      <a class="button" href="{{ url_for('military_restrictions.military_restrictions', military_id=military.id) }}">Ver restrições</a>
+      <a class="button button--secondary" href="{{ url_for('military_restrictions.new_restriction_form', military_id=military.id) }}">Adicionar restrição</a>
+      <a class="button button--secondary" href="{{ url_for('military_restrictions.test_restrictions_form', military_id=military.id) }}">Testar compatibilidade</a>
+    </div>
+  </section>
+
+  <section class="content-section">
+    <h2>Datas</h2>
+    <dl class="detail-grid">
+      <div><dt>Data de início</dt><dd>{{ military.start_date.isoformat() }}</dd></div>
+      <div><dt>Data de fim</dt><dd>{{ military.end_date.isoformat() if military.end_date else "Sem data definida" }}</dd></div>
+      <div><dt>Criado em</dt><dd>{{ military.created_at.strftime("%Y-%m-%d %H:%M") }}</dd></div>
+      <div><dt>Atualizado em</dt><dd>{{ military.updated_at.strftime("%Y-%m-%d %H:%M") }}</dd></div>
+      <div><dt>Indisponibilidades futuras</dt><dd>{{ future_unavailabilities_count }}</dd></div>
+    </dl>
     {% if next_unavailability %}
       <p>Próxima indisponibilidade: {{ next_unavailability.code }} de {{ next_unavailability.start_date.isoformat() }} a {{ next_unavailability.end_date.isoformat() }}.</p>
     {% else %}
       <p>Sem indisponibilidades futuras registadas.</p>
     {% endif %}
     <div class="toolbar">
-      <a class="button" href="{{ url_for('military_unavailabilities.military_unavailabilities', military_id=military.id) }}">Consultar histórico</a>
+      <a class="button button--secondary" href="{{ url_for('military_unavailabilities.military_unavailabilities', military_id=military.id) }}">Consultar indisponibilidades</a>
       <a class="button button--secondary" href="{{ url_for('military_unavailabilities.new_unavailability_form', military_id=military.id) }}">Adicionar indisponibilidade</a>
-      <a class="button button--secondary" href="{{ url_for('military_unavailabilities.test_availability_form', military_id=military.id) }}">Testar disponibilidade</a>
     </div>
   </section>
 
@@ -71,19 +91,8 @@
   </section>
 
   <section class="content-section">
-    <h2>Restrições individuais</h2>
-    <p>As restrições são configuradas e consultadas nesta versão; ainda não criam serviços nem escala.</p>
-    <div class="toolbar">
-      <a class="button" href="{{ url_for('military_restrictions.military_restrictions', military_id=military.id) }}">Consultar restrições</a>
-      <a class="button button--secondary" href="{{ url_for('military_restrictions.new_restriction_form', military_id=military.id) }}">Adicionar restrição</a>
-      <a class="button button--secondary" href="{{ url_for('military_restrictions.test_restrictions_form', military_id=military.id) }}">Testar compatibilidade</a>
-    </div>
-  </section>
-
-  <section class="content-section">
     <h2>Equipa</h2>
     {% if military.functional_type == "PATRULHEIRO" %}
-      <p>A pertença operacional a equipas e o respetivo histórico estão disponíveis nesta versão.</p>
       <div class="toolbar">
         {% if military.current_team %}
           <a class="button" href="{{ url_for('military_teams.change_military_team_form', military_id=military.id) }}">Mudar equipa</a>
@@ -96,13 +105,8 @@
         {% endif %}
       </div>
     {% else %}
-      <p>Este tipo funcional não tem pertença a equipa operacional nesta versão.</p>
+      <p>Este tipo funcional não tem pertença a equipa operacional.</p>
     {% endif %}
-  </section>
-
-  <section class="content-section">
-    <h2>Funcionalidades futuras</h2>
-    <p>Grelha mensal e geração de escala serão implementadas em versões posteriores.</p>
   </section>
 
   <section class="danger-zone">

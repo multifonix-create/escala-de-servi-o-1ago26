@@ -10,13 +10,17 @@ from sqlalchemy import func
 from app.extensions import db
 from app.models import FunctionalType, Military, MilitaryTeamHistory, Team
 from app.services.backup_service import BackupResult, create_database_backup
+from app.validators.military_validator import normalize_phone_number
 
 
 CSV_HEADERS = (
     "nim",
     "nome",
+    "sobrenome",
     "tipo_funcional",
     "equipa",
+    "contacto",
+    "voluntario_remunerados",
     "ativo",
     "data_inicio",
     "data_fim",
@@ -99,9 +103,12 @@ def preview_military_import(path_value: str | Path) -> ImportPreview:
         row_warnings: list[str] = []
         changes: list[str] = []
         nim = _clean(raw.get("nim"))
-        name = _clean(raw.get("nome"))
+        first_name = _clean(raw.get("nome"))
+        last_name = _clean(raw.get("sobrenome"))
+        phone_number, phone_error = normalize_phone_number(raw.get("contacto"))
         functional_type = _clean(raw.get("tipo_funcional")).upper()
         team_code = _clean(raw.get("equipa")).upper()
+        _parse_bool(raw.get("voluntario_remunerados"), row_errors, "voluntario_remunerados", allow_empty_false=True)
         active = _parse_bool(raw.get("ativo"), row_errors, "ativo")
         start_date = _parse_date(raw.get("data_inicio"), row_errors, "data_inicio")
         end_date = _parse_optional_date(raw.get("data_fim"), row_errors, "data_fim")
@@ -113,8 +120,12 @@ def preview_military_import(path_value: str | Path) -> ImportPreview:
             blockers.append(f"Linha {index}: NIM duplicado no ficheiro ({nim}).")
         seen_nims.add(nim)
 
-        if not name:
+        if not first_name:
             row_errors.append("Nome obrigatorio.")
+        if not last_name:
+            row_errors.append("Sobrenome obrigatorio.")
+        if phone_error:
+            row_errors.append(phone_error)
         if functional_type not in {item.value for item in FunctionalType}:
             row_errors.append("Tipo funcional invalido.")
         if start_date and end_date and end_date < start_date:
@@ -229,10 +240,22 @@ def _read_rows(path: Path) -> list[dict[str, str]]:
 
 
 def _military_data(raw: dict[str, str]) -> dict:
+    first_name = _clean(raw.get("nome"))
+    last_name = _clean(raw.get("sobrenome"))
+    phone_number, _ = normalize_phone_number(raw.get("contacto"))
     return {
         "nim": _clean(raw.get("nim")),
-        "name": _clean(raw.get("nome")),
+        "name": f"{first_name} {last_name}".strip(),
+        "first_name": first_name,
+        "last_name": last_name,
+        "phone_number": phone_number,
         "functional_type": _clean(raw.get("tipo_funcional")).upper(),
+        "is_paid_service_volunteer": _parse_bool(
+            raw.get("voluntario_remunerados"),
+            [],
+            "voluntario_remunerados",
+            allow_empty_false=True,
+        ),
         "is_active": _parse_bool(raw.get("ativo"), [], "ativo"),
         "start_date": date.fromisoformat(_clean(raw.get("data_inicio"))),
         "end_date": _parse_optional_date(raw.get("data_fim"), [], "data_fim"),
@@ -295,11 +318,18 @@ def _clean(value: str | None) -> str:
     return (value or "").strip()
 
 
-def _parse_bool(value: str | None, errors: list[str], field_name: str) -> bool:
+def _parse_bool(
+    value: str | None,
+    errors: list[str],
+    field_name: str,
+    allow_empty_false: bool = False,
+) -> bool:
     normalized = _clean(value).lower()
+    if allow_empty_false and not normalized:
+        return False
     if normalized in {"1", "true", "sim", "s", "yes", "y"}:
         return True
-    if normalized in {"0", "false", "nao", "n", "no"}:
+    if normalized in {"0", "false", "nao", "não", "n", "no"}:
         return False
     errors.append(f"{field_name} deve ser sim/nao.")
     return False

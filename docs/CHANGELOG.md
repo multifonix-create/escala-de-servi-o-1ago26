@@ -1,5 +1,29 @@
 # Changelog
 
+## Melhoria controlada pós-v1.9 - 2026-07-28
+
+### Adicionado
+- Acrescentados dados completos do militar: `first_name`, `last_name`, `phone_number` e `is_paid_service_volunteer`.
+- Mantido `name` como campo legado/cache de compatibilidade, com apresentação central por `full_name`.
+- Adicionado acesso direto a restrições no formulário, lista e ficha do militar.
+- Atualizada importação CSV operacional para o cabeçalho `nim,nome,sobrenome,tipo_funcional,equipa,contacto,voluntario_remunerados,ativo,data_inicio,data_fim,apto_cr,notas`.
+- Adicionados testes para validação de contacto, NIM textual, voluntariado remunerado, equipa obrigatória para Patrulheiro e compatibilidade de nome legado.
+
+### Regras
+- Patrulheiro exige equipa operacional A-E.
+- CMD, SEC e SI não recebem equipa operacional A-E.
+- Contacto telefónico é obrigatório na interface/importação, normalizado como texto português e não é exportado em escalas, diagnósticos ou logs.
+- O campo de voluntário para serviços remunerados é apenas informativo nesta melhoria e não altera o motor.
+
+### Migração
+- Criada migração `3d500fe2d57a_add_complete_military_data_fields.py`.
+- Revisão Alembic atual: `3d500fe2d57a (head)`.
+- Migrações anteriores não foram alteradas.
+
+### Base de dados
+- Criado backup pré-migração em `instance/backups/escala_20260728_215135_complete_military_data_pre_migration.db`.
+- Não foram criados militares, contactos, escalas ou dados fictícios na base real.
+
 ## v1.9 - 2026-07-28
 
 ### Adicionado

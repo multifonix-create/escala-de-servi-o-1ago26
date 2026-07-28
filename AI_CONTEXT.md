@@ -16,9 +16,11 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v1.9 - Teste Operacional com Dados Reais e Afinacao do Gerador`.
+Versão atual: `v1.9 - Teste Operacional com Dados Reais e Afinacao do Gerador`, com melhoria controlada posterior de dados completos do militar e acesso direto a restrições.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
+
+Revisão Alembic atual após a melhoria controlada: `3d500fe2d57a (head)`.
 
 ## Infraestrutura Existente
 
@@ -709,6 +711,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 * A FC por R/CR ou decisao de comando existe como credito funcional autonomo e separado de FF/FR.
 * A exportacao Excel operacional existe como download direto em memoria e nao persiste ficheiros ou auditoria funcional.
 * A exportacao PDF A3 operacional existe como download direto em memoria e nao persiste ficheiros ou auditoria funcional.
+* A melhoria controlada pós-v1.9 acrescentou `first_name`, `last_name`, `phone_number` e `is_paid_service_volunteer` a `militaries`.
+* `name` continua no modelo como campo legado/cache de compatibilidade; a apresentação deve usar `Military.full_name`.
+* Contactos telefónicos de militares não devem ser incluídos em escalas, diagnósticos, exportações Excel/PDF ou logs técnicos.
+* O campo `is_paid_service_volunteer` é apenas informativo e não implementa serviços remunerados nem altera o motor.
+* O CSV operacional de militares espera o cabeçalho `nim,nome,sobrenome,tipo_funcional,equipa,contacto,voluntario_remunerados,ativo,data_inicio,data_fim,apto_cr,notas`.
 * Não foi implementada autenticação completa.
 * Não foi implementada CSRF; os formulários usam POST e estão preparados para integração futura.
 * Auditoria funcional genérica fica para versão futura.
@@ -721,7 +728,7 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-250 passed
+268 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.

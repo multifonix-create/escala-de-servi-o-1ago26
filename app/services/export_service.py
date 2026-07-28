@@ -205,7 +205,7 @@ class ScheduleExcelExportService:
             values = [
                 grid_row.group_label,
                 team_code,
-                grid_row.military.name,
+                grid_row.military.full_name,
                 grid_row.military.nim,
                 grid_row.military.functional_type,
             ]
@@ -311,7 +311,7 @@ class ScheduleExcelExportService:
                 issue.category,
                 issue.code,
                 issue.assignment_date.isoformat() if issue.assignment_date else "",
-                issue.military.name if issue.military else "",
+                issue.military.full_name if issue.military else "",
                 issue.title,
                 issue.description,
             ]
@@ -337,7 +337,7 @@ class ScheduleExcelExportService:
         for row_number, assignment in enumerate(assignments, start=2):
             values = [
                 assignment.assignment_date.isoformat(),
-                assignment.military.name,
+                assignment.military.full_name,
                 assignment.military.nim,
                 assignment.code or "",
                 "Sim" if assignment.is_locked else "Nao",
@@ -512,7 +512,7 @@ class SchedulePdfExportService:
             base_values = [
                 row.group_label,
                 _team_code_from_group(row.group_label),
-                row.military.name,
+                row.military.full_name,
                 row.military.nim,
                 row.military.functional_type,
             ]
@@ -613,7 +613,7 @@ class SchedulePdfExportService:
                     issue.category,
                     issue.code,
                     issue.assignment_date.isoformat() if issue.assignment_date else "",
-                    issue.military.name if issue.military else "",
+                    issue.military.full_name if issue.military else "",
                     issue.title,
                     issue.description,
                 ]
@@ -634,7 +634,7 @@ class SchedulePdfExportService:
             rows.append(
                 [
                     assignment.assignment_date.isoformat(),
-                    assignment.military.name,
+                    assignment.military.full_name,
                     assignment.military.nim,
                     assignment.code or "",
                     "Sim" if assignment.is_locked else "Nao",

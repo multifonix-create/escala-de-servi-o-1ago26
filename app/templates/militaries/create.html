@@ -13,7 +13,8 @@
     {% include "militaries/_form.html" %}
     <div class="form-actions">
       <a class="button button--secondary" href="{{ url_for('militaries.list_militaries') }}">Cancelar</a>
-      <button class="button" type="submit">Criar militar</button>
+      <button class="button button--secondary" type="submit" name="action" value="save_and_add_restriction">Guardar e adicionar restrição</button>
+      <button class="button" type="submit" name="action" value="save">Guardar</button>
     </div>
   </form>
 {% endblock %}

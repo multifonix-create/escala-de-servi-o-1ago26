@@ -281,6 +281,19 @@ CMD
 * A saída do efetivo deve ser representada através de `end_date` e `active = false`.
 * Um militar inativo pode continuar visível nas escalas históricas.
 
+### Implementação atual pós-v1.9
+
+Na aplicação atual, a tabela `militaries` mantém compatibilidade histórica com o campo `name` e acrescenta:
+
+* `first_name` para nome;
+* `last_name` para sobrenome;
+* `phone_number` para contacto telefónico português normalizado como texto;
+* `is_paid_service_volunteer` para indicação informativa de voluntariado em serviços remunerados.
+
+`Military.full_name` é a propriedade central de apresentação e usa `first_name` + `last_name`, recorrendo a `name` apenas como compatibilidade com registos legados.
+
+O contacto telefónico não deve ser usado em grelhas de escala, diagnósticos, logs técnicos ou exportações operacionais Excel/PDF.
+
 ### Índices
 
 ```text

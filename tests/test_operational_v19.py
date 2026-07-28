@@ -45,8 +45,8 @@ def test_readiness_requires_patrols_and_cycle_references(app):
 def test_preview_military_import_validates_without_writing(tmp_path, app):
     csv_path = tmp_path / "militares.csv"
     csv_path.write_text(
-        "nim,nome,tipo_funcional,equipa,ativo,data_inicio,data_fim,apto_cr,notas\n"
-        "900001,Operacional Um,PATRULHEIRO,A,sim,2026-01-01,,,\n",
+        "nim,nome,sobrenome,tipo_funcional,equipa,contacto,voluntario_remunerados,ativo,data_inicio,data_fim,apto_cr,notas\n"
+        "900001,Operacional,Um,PATRULHEIRO,A,912345678,sim,sim,2026-01-01,,,\n",
         encoding="utf-8",
     )
     with app.app_context():
@@ -60,8 +60,8 @@ def test_preview_military_import_validates_without_writing(tmp_path, app):
 def test_import_military_data_requires_confirmation(tmp_path, app):
     csv_path = tmp_path / "militares.csv"
     csv_path.write_text(
-        "nim,nome,tipo_funcional,equipa,ativo,data_inicio,data_fim,apto_cr,notas\n"
-        "900002,Operacional Dois,PATRULHEIRO,A,sim,2026-01-01,,,\n",
+        "nim,nome,sobrenome,tipo_funcional,equipa,contacto,voluntario_remunerados,ativo,data_inicio,data_fim,apto_cr,notas\n"
+        "900002,Operacional,Dois,PATRULHEIRO,A,+351912345678,0,sim,2026-01-01,,,\n",
         encoding="utf-8",
     )
     with app.app_context(), pytest.raises(Exception):
@@ -71,8 +71,8 @@ def test_import_military_data_requires_confirmation(tmp_path, app):
 def test_import_military_data_is_idempotent_with_backup(monkeypatch, tmp_path, app):
     csv_path = tmp_path / "militares.csv"
     csv_path.write_text(
-        "nim,nome,tipo_funcional,equipa,ativo,data_inicio,data_fim,apto_cr,notas\n"
-        "900003,Operacional Tres,PATRULHEIRO,A,sim,2026-01-01,,,\n",
+        "nim,nome,sobrenome,tipo_funcional,equipa,contacto,voluntario_remunerados,ativo,data_inicio,data_fim,apto_cr,notas\n"
+        "900003,Operacional,Tres,PATRULHEIRO,A,912345678,,sim,2026-01-01,,,\n",
         encoding="utf-8",
     )
 
@@ -93,6 +93,7 @@ def test_import_military_data_is_idempotent_with_backup(monkeypatch, tmp_path, a
         assert second.ignored == 1
         assert Military.query.count() == 1
         assert Military.query.one().current_team.code == "A"
+        assert Military.query.one().phone_number == "+351912345678"
 
 
 def test_operational_test_version_cannot_be_published(app):

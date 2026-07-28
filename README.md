@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v1.9 - Teste Operacional com Dados Reais e Afinacao do Gerador
+v1.9 - Teste Operacional com Dados Reais e Afinacao do Gerador, com melhoria controlada de dados completos do militar
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT, gestão funcional inicial de FF por trabalho em feriado, gestão funcional de FC e folgas reagendadas FR, exportacao operacional para Excel e exportacao operacional para PDF A3.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais, indisponibilidades dos militares, consulta mensal da grelha, edição manual controlada das células, diagnóstico inicial, geração automática AT/PO, regeneração segura de automáticos numa nova versão, otimizações de desempenho, geração automática opcional de PT, gestão funcional inicial de FF por trabalho em feriado, gestão funcional de FC e folgas reagendadas FR, exportacao operacional para Excel, exportacao operacional para PDF A3 e dados completos do militar com acesso direto a restrições.
 
 ## Requisitos
 
@@ -151,7 +151,15 @@ flask preview-military-import templates\importacao_militares.csv
 flask import-military-data caminho\para\militares.csv --confirm
 ```
 
-O ficheiro `templates/importacao_militares.csv` contem apenas o cabecalho esperado. A importacao confirmada cria backup automatico da base real antes de escrever.
+A importacao confirmada cria backup automatico da base real antes de escrever.
+
+Cabecalho CSV esperado:
+
+```text
+nim,nome,sobrenome,tipo_funcional,equipa,contacto,voluntario_remunerados,ativo,data_inicio,data_fim,apto_cr,notas
+```
+
+O campo `contacto` e normalizado como texto. `voluntario_remunerados` aceita `1`, `true`, `sim`, `yes`, `0`, `false`, `nao`, `não`, `no` ou vazio.
 
 ## Estado da v1.9
 

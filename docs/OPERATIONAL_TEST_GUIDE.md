@@ -4,15 +4,17 @@ Este guia descreve o fluxo local para testar a aplicacao com dados reais forneci
 
 ## 1. Preparar dados
 
-1. Preencher um CSV com o cabecalho de `templates/importacao_militares.csv`.
+1. Preencher um CSV com o cabecalho esperado indicado abaixo.
 2. Usar apenas dados reais autorizados.
 3. Nao inserir linhas de exemplo, nomes ficticios ou equipas ficticias.
 
 Campos esperados:
 
 ```text
-nim,nome,tipo_funcional,equipa,ativo,data_inicio,data_fim,apto_cr,notas
+nim,nome,sobrenome,tipo_funcional,equipa,contacto,voluntario_remunerados,ativo,data_inicio,data_fim,apto_cr,notas
 ```
+
+O contacto aceita formato nacional ou `+351` e é normalizado antes de gravar. O campo `voluntario_remunerados` é informativo nesta fase e não altera o motor da escala.
 
 ## 2. Pre-visualizar importacao
 

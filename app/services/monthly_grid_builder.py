@@ -274,7 +274,7 @@ def _apply_cycle(
     context: dict,
 ) -> None:
     if team is None:
-        message = f"{military.name} sem equipa valida em {current.isoformat()}."
+        message = f"{military.full_name} sem equipa valida em {current.isoformat()}."
         cell.warnings.append(message)
         global_warnings.append(message)
         return
@@ -468,7 +468,7 @@ def _row_sort_key(row: MonthlyGridRow) -> tuple[int, str, str, str]:
         group_order = 10 + ord(row.group_label[-1])
     else:
         group_order = 99
-    return group_order, row.group_label, row.military.name.lower(), row.military.nim
+    return group_order, row.group_label, row.military.full_name.lower(), row.military.nim
 
 
 def _build_legend(rows: list[MonthlyGridRow]) -> list[str]:
