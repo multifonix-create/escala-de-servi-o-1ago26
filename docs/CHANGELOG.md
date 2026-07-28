@@ -1,5 +1,53 @@
 # Changelog
 
+## v0.6 - 2026-07-28
+
+### Adicionado
+- Criada gestão de indisponibilidades concretas dos militares.
+- Adicionados modelos `Unavailability` e `UnavailabilityEvent`.
+- Adicionados serviços `app/services/unavailability_service.py`, `app/services/unavailability_evaluator.py` e `app/services/availability_evaluator.py`.
+- Criadas páginas para listagem geral, listagem por militar, criação, detalhe, edição, confirmação, cancelamento, reativação e teste manual de compatibilidade.
+- Integrado resumo de indisponibilidades na ficha do militar.
+
+### Regras
+- Códigos suportados: `LF`, `LP`, `BM`, `LC`, `LN`, `DIL`, `TRIB`, `INQ`, `FORMACAO`, `TIRO` e `OUTRA`.
+- Estados suportados: `PLANNED`, `CONFIRMED` e `CANCELLED`.
+- Estados de compensação: `NOT_APPLICABLE`, `PENDING_DECISION`, `GENERATES_CREDIT` e `DOES_NOT_GENERATE_CREDIT`.
+- Apenas indisponibilidades confirmadas, ativas e não canceladas bloqueiam intervalos de serviço.
+- Indisponibilidade confirmada prevalece sobre restrições individuais.
+- Dia completo ocupa todos os dias do período.
+- Indisponibilidade parcial multi-dia representa um intervalo contínuo entre data/hora inicial e data/hora final.
+- Deslocações antes e depois alargam o intervalo efetivo.
+- Duplicados exatos são bloqueados; sobreposições legítimas geram aviso.
+- Coincidência com DS/DC é calculada por consulta ao `CycleCalculator`, sem alterar o ciclo.
+- Compensação é apenas registada; não cria FF nem FC.
+
+### Migração
+- Criada e aplicada a migração `b67e7ed6d0f7_create_unavailabilities.py`.
+- Criadas apenas as tabelas `unavailabilities` e `unavailability_events`.
+- Não foram alteradas migrações anteriores.
+- Não foram criados militares, indisponibilidades, eventos fictícios, escalas, FF ou FC.
+- Criada cópia de segurança prévia da base real em `instance/backups/escala_20260728_0907_v06_pre_migration.db`.
+
+### Testes
+- Adicionados testes de modelo, validação, estados, sobreposições, intervalos, deslocações, integração com restrições, integração com ciclo, compensação, caso real prioritário, rotas e isolamento.
+- Suite completa validada com `149 passed`.
+- `compileall` executado com sucesso.
+
+### Base de dados
+- A base real ficou com `5` equipas oficiais.
+- A base real ficou com `0` militares.
+- A base real ficou com `0` pertenças.
+- A base real ficou com `0` referências do ciclo.
+- A base real ficou com `0` restrições individuais.
+- A base real ficou com `0` indisponibilidades.
+- A base real ficou com `0` eventos de indisponibilidade.
+- Revisão Alembic atual: `b67e7ed6d0f7`.
+- Não foram criados dados fictícios ou demonstrativos.
+
+### Limitações
+- Sem grelha mensal, geração de escala, atribuições AT/PO/PT, descanso entre serviços, diagnósticos globais, FF, FC, Ronda, CR, remunerados, exportações, autenticação completa e auditoria funcional genérica.
+
 ## v0.5 - 2026-07-27
 
 ### Adicionado

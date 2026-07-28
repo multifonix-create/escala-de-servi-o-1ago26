@@ -3,6 +3,7 @@ from app.routes.main import main_bp
 from app.routes.militaries import militaries_bp
 from app.routes.restrictions import military_restrictions_bp, restrictions_bp
 from app.routes.teams import military_teams_bp, teams_bp
+from app.routes.unavailabilities import military_unavailabilities_bp, unavailabilities_bp
 
 
 __all__ = [
@@ -11,7 +12,9 @@ __all__ = [
     "militaries_bp",
     "military_teams_bp",
     "military_restrictions_bp",
+    "military_unavailabilities_bp",
     "restrictions_bp",
     "team_cycle_bp",
     "teams_bp",
+    "unavailabilities_bp",
 ]

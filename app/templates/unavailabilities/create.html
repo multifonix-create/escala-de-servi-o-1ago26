@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Nova indisponibilidade{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Indisponibilidades</p>
+      <h1>Nova indisponibilidade de {{ military.name }}</h1>
+    </div>
+  </section>
+  <form method="post">
+    {% include "unavailabilities/_form.html" %}
+  </form>
+{% endblock %}

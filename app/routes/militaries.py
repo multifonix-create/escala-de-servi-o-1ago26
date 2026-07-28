@@ -1,7 +1,7 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from app.models import FunctionalType
-from app.services import military_service, team_service
+from app.services import military_service, team_service, unavailability_service
 from app.services.military_service import MilitaryServiceError
 from app.validators import validate_military_payload
 
@@ -79,7 +79,12 @@ def create_military():
 @militaries_bp.get("/<int:military_id>")
 def detail_military(military_id: int):
     military = military_service.get_military_or_404(military_id)
-    return render_template("militaries/detail.html", military=military)
+    return render_template(
+        "militaries/detail.html",
+        military=military,
+        future_unavailabilities_count=unavailability_service.count_future_unavailabilities_for_military(military.id),
+        next_unavailability=unavailability_service.next_unavailability_for_military(military.id),
+    )
 
 
 @militaries_bp.get("/<int:military_id>/editar")

@@ -16,7 +16,7 @@ O projeto não está vazio.
 
 A infraestrutura existente deve ser sempre reutilizada. É proibido recriar a aplicação ou substituir a estrutura atual por uma nova.
 
-Versão atual: `v0.5 - Restrições Individuais dos Militares`.
+Versão atual: `v0.6 - Indisponibilidades dos Militares`.
 
 Antes de migrações reais, deve ser criada cópia de segurança de `instance/escala.db`.
 
@@ -139,6 +139,43 @@ Rotas principais da v0.5:
 * `GET /militares/<id>/restricoes/testar`;
 * `POST /militares/<id>/restricoes/testar`.
 
+## v0.6 - Indisponibilidades dos Militares
+
+A v0.6 está concluída com:
+
+* modelo `Unavailability`;
+* modelo `UnavailabilityEvent`;
+* tabelas `unavailabilities` e `unavailability_events`;
+* migração `b67e7ed6d0f7_create_unavailabilities.py`;
+* códigos `LF`, `LP`, `BM`, `LC`, `LN`, `DIL`, `TRIB`, `INQ`, `FORMACAO`, `TIRO` e `OUTRA`;
+* estados `PLANNED`, `CONFIRMED` e `CANCELLED`;
+* estados de compensação `NOT_APPLICABLE`, `PENDING_DECISION`, `GENERATES_CREDIT` e `DOES_NOT_GENERATE_CREDIT`;
+* indisponibilidades de dia completo, intervalos parciais e intervalos contínuos multi-dia;
+* deslocações antes e depois consideradas no intervalo efetivo;
+* deteção de duplicados exatos e avisos de sobreposição;
+* cancelamento sem eliminação física;
+* eventos mínimos de histórico para criação, edição e transições;
+* serviço central `app/services/unavailability_evaluator.py`;
+* serviço combinado `app/services/availability_evaluator.py` para indisponibilidades e restrições;
+* consulta ao ciclo via `CycleCalculator` para identificar coincidências com DS/DC;
+* registo de compensação sem criação automática de FF ou FC;
+* testador manual de compatibilidade.
+
+Rotas principais da v0.6:
+
+* `GET /indisponibilidades`;
+* `GET /militares/<id>/indisponibilidades`;
+* `GET /militares/<id>/indisponibilidades/nova`;
+* `POST /militares/<id>/indisponibilidades/nova`;
+* `GET /militares/<id>/indisponibilidades/<unavailability_id>`;
+* `GET /militares/<id>/indisponibilidades/<unavailability_id>/editar`;
+* `POST /militares/<id>/indisponibilidades/<unavailability_id>/editar`;
+* `POST /militares/<id>/indisponibilidades/<unavailability_id>/confirmar`;
+* `POST /militares/<id>/indisponibilidades/<unavailability_id>/cancelar`;
+* `POST /militares/<id>/indisponibilidades/<unavailability_id>/reativar`;
+* `GET /militares/<id>/indisponibilidades/testar`;
+* `POST /militares/<id>/indisponibilidades/testar`.
+
 ## Ainda Não Existe
 
 Ainda não existem:
@@ -151,7 +188,6 @@ Ainda não existem:
 * atribuição de DS/DC por militar;
 * registos diários;
 * motor de geração;
-* indisponibilidades;
 * autenticação completa;
 * auditoria funcional genérica;
 * diagnósticos completos;
@@ -218,14 +254,15 @@ Todas as alterações futuras devem respeitar esta ordem:
 
 ## Decisões e Limitações Atuais
 
-* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references` e `military_restrictions`.
+* A base real contém as tabelas `militaries`, `teams`, `military_team_history`, `team_cycle_references`, `military_restrictions`, `unavailabilities` e `unavailability_events`.
 * A base real contém apenas dados estruturais oficiais das equipas `A-E`.
-* A base real não contém militares, pertenças de equipa, referências de ciclo nem restrições individuais após a v0.5.
+* A base real não contém militares, pertenças de equipa, referências de ciclo, restrições individuais, indisponibilidades nem eventos de indisponibilidade após a v0.6.
 * As referências do ciclo devem ser configuradas manualmente pelo utilizador.
 * As equipas oficiais não têm rotas de criação, edição, desativação ou eliminação.
 * Não foi implementada eliminação definitiva.
 * Restrições individuais não são ainda usadas por um motor de geração de escala.
-* Indisponibilidades operacionais como LF, BM, DIL, tribunal ou inquérito ainda não foram implementadas.
+* Indisponibilidades já são registáveis, mas ainda não alimentam geração automática de escala.
+* A compensação por DS/DC é apenas registada; não cria FF nem FC.
 * Não foi implementada autenticação completa.
 * Não foi implementada CSRF; os formulários usam POST e estão preparados para integração futura.
 * Auditoria funcional genérica fica para versão futura.
@@ -238,11 +275,11 @@ Todas as alterações futuras devem respeitar esta ordem:
 Suite atual:
 
 ```text
-120 passed
+149 passed
 ```
 
 Os testes usam base SQLite em memória e não utilizam `instance/escala.db`.
 
 ## Próxima Etapa Recomendada
 
-`v0.6 - Indisponibilidades dos Militares`.
+`v0.7 - Grelha Mensal da Escala`.

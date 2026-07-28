@@ -4,9 +4,9 @@ Aplicação local Flask para gestão progressiva da Escala de Serviço.
 
 ## Versão atual
 
-v0.5 - Restrições Individuais dos Militares
+v0.6 - Indisponibilidades dos Militares
 
-Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas e restrições individuais dos militares.
+Esta versão inclui a infraestrutura inicial, a gestão segura de militares, equipas oficiais A-E, histórico de pertença, referências do ciclo de folgas, restrições individuais e indisponibilidades dos militares.
 
 ## Requisitos
 
@@ -68,6 +68,7 @@ Rotas principais:
 /ciclo/configurar
 /ciclo/pre-visualizar
 /restricoes
+/indisponibilidades
 /equipas/<id>/ciclo
 /equipas/<id>/ciclo/nova-referencia
 /equipas/<id>/ciclo/historico
@@ -77,6 +78,9 @@ Rotas principais:
 /militares/<id>/restricoes
 /militares/<id>/restricoes/nova
 /militares/<id>/restricoes/testar
+/militares/<id>/indisponibilidades
+/militares/<id>/indisponibilidades/nova
+/militares/<id>/indisponibilidades/testar
 ```
 
 ## Testes
@@ -85,7 +89,7 @@ Rotas principais:
 pytest
 ```
 
-## Estado da v0.5
+## Estado da v0.6
 
 - Equipas oficiais A-E criadas como dados estruturais.
 - Referências do ciclo configuráveis manualmente por equipa.
@@ -93,11 +97,16 @@ pytest
 - Restrições individuais configuráveis por militar.
 - Tipos de restrição suportados: indisponível, disponível apenas e disponibilidade especial.
 - Avaliador central de compatibilidade com datas, dias da semana e janelas horárias.
+- Indisponibilidades concretas configuráveis por militar.
+- Códigos suportados: LF, LP, BM, LC, LN, DIL, TRIB, INQ, FORMACAO, TIRO e OUTRA.
+- Estados suportados: PLANNED, CONFIRMED e CANCELLED.
+- Compensação em DS/DC apenas registada, sem criação automática de FF ou FC.
 - Sem militares fictícios.
 - Sem pertenças de equipa fictícias.
 - Sem referências fictícias do ciclo.
 - Sem restrições fictícias.
+- Sem indisponibilidades fictícias.
 - Sem escalas.
 - Sem motor de geração.
-- Sem indisponibilidades operacionais LF, BM, DIL, tribunal ou inquérito.
+- Sem grelha mensal.
 - Sem autenticação completa.

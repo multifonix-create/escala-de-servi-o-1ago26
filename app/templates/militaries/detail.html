@@ -44,10 +44,25 @@
         {% endif %}
       </dd>
     </div>
+    <div><dt>Indisponibilidades futuras</dt><dd>{{ future_unavailabilities_count }}</dd></div>
     <div><dt>Data de início</dt><dd>{{ military.start_date.isoformat() }}</dd></div>
     <div><dt>Data de fim</dt><dd>{{ military.end_date.isoformat() if military.end_date else "Sem data definida" }}</dd></div>
     <div><dt>Criado em</dt><dd>{{ military.created_at.strftime("%Y-%m-%d %H:%M") }}</dd></div>
     <div><dt>Atualizado em</dt><dd>{{ military.updated_at.strftime("%Y-%m-%d %H:%M") }}</dd></div>
+  </section>
+
+  <section class="content-section">
+    <h2>Indisponibilidades</h2>
+    {% if next_unavailability %}
+      <p>Próxima indisponibilidade: {{ next_unavailability.code }} de {{ next_unavailability.start_date.isoformat() }} a {{ next_unavailability.end_date.isoformat() }}.</p>
+    {% else %}
+      <p>Sem indisponibilidades futuras registadas.</p>
+    {% endif %}
+    <div class="toolbar">
+      <a class="button" href="{{ url_for('military_unavailabilities.military_unavailabilities', military_id=military.id) }}">Consultar histórico</a>
+      <a class="button button--secondary" href="{{ url_for('military_unavailabilities.new_unavailability_form', military_id=military.id) }}">Adicionar indisponibilidade</a>
+      <a class="button button--secondary" href="{{ url_for('military_unavailabilities.test_availability_form', military_id=military.id) }}">Testar disponibilidade</a>
+    </div>
   </section>
 
   <section class="content-section">
@@ -87,7 +102,7 @@
 
   <section class="content-section">
     <h2>Funcionalidades futuras</h2>
-    <p>Restrições, indisponibilidades e geração de escala serão implementadas em versões posteriores.</p>
+    <p>Grelha mensal e geração de escala serão implementadas em versões posteriores.</p>
   </section>
 
   <section class="danger-zone">

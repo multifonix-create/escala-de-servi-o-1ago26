@@ -43,6 +43,11 @@ class Military(db.Model):
         back_populates="military",
         order_by="MilitaryRestriction.start_date.desc()",
     )
+    unavailabilities = db.relationship(
+        "Unavailability",
+        back_populates="military",
+        order_by="Unavailability.start_date.desc()",
+    )
 
     def has_inactive_date_warning(self, today=None) -> bool:
         reference_date = today or utc_now().date()
@@ -68,3 +73,11 @@ class Military(db.Model):
     @property
     def active_restrictions(self):
         return [restriction for restriction in self.restrictions if restriction.is_active]
+
+    @property
+    def active_unavailabilities(self):
+        return [
+            unavailability
+            for unavailability in self.unavailabilities
+            if unavailability.is_active and unavailability.status != "CANCELLED"
+        ]

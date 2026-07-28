@@ -1,0 +1,74 @@
+<div class="form-panel">
+  <div class="form-grid">
+    <label>Código
+      <select name="code" required>
+        <option value="">Selecionar</option>
+        {% for item in codes %}
+          <option value="{{ item.value }}" {% if form_data.code == item.value %}selected{% endif %}>{{ item.value }}</option>
+        {% endfor %}
+      </select>
+      {% if errors.code %}<span class="field-error">{{ errors.code }}</span>{% endif %}
+    </label>
+    <label>Estado
+      <select name="status" required>
+        {% for item in statuses %}
+          <option value="{{ item.value }}" {% if form_data.status == item.value %}selected{% endif %}>{{ item.value }}</option>
+        {% endfor %}
+      </select>
+      {% if errors.status %}<span class="field-error">{{ errors.status }}</span>{% endif %}
+    </label>
+    <label class="checkbox-field">
+      <input type="checkbox" name="is_full_day" value="1" {% if form_data.is_full_day %}checked{% endif %}>
+      Dia completo
+    </label>
+    <label>Data inicial
+      <input type="date" name="start_date" value="{{ form_data.start_date or '' }}" required>
+      {% if errors.start_date %}<span class="field-error">{{ errors.start_date }}</span>{% endif %}
+    </label>
+    <label>Data final
+      <input type="date" name="end_date" value="{{ form_data.end_date or '' }}">
+      {% if errors.end_date %}<span class="field-error">{{ errors.end_date }}</span>{% endif %}
+    </label>
+    <label>Hora inicial
+      <input type="time" name="start_time" value="{{ form_data.start_time or '' }}">
+      {% if errors.start_time %}<span class="field-error">{{ errors.start_time }}</span>{% endif %}
+    </label>
+    <label>Hora final
+      <input type="time" name="end_time" value="{{ form_data.end_time or '' }}">
+      {% if errors.end_time %}<span class="field-error">{{ errors.end_time }}</span>{% endif %}
+    </label>
+    <label>Deslocação antes (min)
+      <input type="number" min="0" max="1440" name="travel_minutes_before" value="{{ form_data.travel_minutes_before or '0' }}">
+      {% if errors.travel_minutes_before %}<span class="field-error">{{ errors.travel_minutes_before }}</span>{% endif %}
+    </label>
+    <label>Deslocação depois (min)
+      <input type="number" min="0" max="1440" name="travel_minutes_after" value="{{ form_data.travel_minutes_after or '0' }}">
+      {% if errors.travel_minutes_after %}<span class="field-error">{{ errors.travel_minutes_after }}</span>{% endif %}
+    </label>
+    <label class="full-width">Motivo
+      <input name="reason" value="{{ form_data.reason or '' }}" maxlength="500" required>
+      {% if errors.reason %}<span class="field-error">{{ errors.reason }}</span>{% endif %}
+    </label>
+    <label>Local
+      <input name="location" value="{{ form_data.location or '' }}" maxlength="250">
+      {% if errors.location %}<span class="field-error">{{ errors.location }}</span>{% endif %}
+    </label>
+    <label>Compensação
+      <select name="compensation_status" required>
+        {% for item in compensation_statuses %}
+          <option value="{{ item.value }}" {% if form_data.compensation_status == item.value %}selected{% endif %}>{{ item.value }}</option>
+        {% endfor %}
+      </select>
+      {% if errors.compensation_status %}<span class="field-error">{{ errors.compensation_status }}</span>{% endif %}
+    </label>
+    <label class="full-width">Observação de compensação
+      <textarea name="compensation_notes" rows="4">{{ form_data.compensation_notes or '' }}</textarea>
+      {% if errors.compensation_notes %}<span class="field-error">{{ errors.compensation_notes }}</span>{% endif %}
+    </label>
+  </div>
+  <p class="notice">Dia completo ocupa todos os dias do período. Um intervalo parcial de vários dias é contínuo entre a data/hora inicial e a data/hora final; as deslocações alargam o intervalo efetivo. A compensação não cria FF nem FC nesta versão.</p>
+  <div class="form-actions">
+    <button class="button" type="submit">Guardar</button>
+    <a class="button button--secondary" href="{{ url_for('military_unavailabilities.military_unavailabilities', military_id=military.id) }}">Cancelar</a>
+  </div>
+</div>

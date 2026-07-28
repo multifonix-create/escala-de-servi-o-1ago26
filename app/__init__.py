@@ -11,10 +11,12 @@ from app.routes import (
     main_bp,
     militaries_bp,
     military_restrictions_bp,
+    military_unavailabilities_bp,
     military_teams_bp,
     restrictions_bp,
     team_cycle_bp,
     teams_bp,
+    unavailabilities_bp,
 )
 
 
@@ -53,6 +55,8 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(team_cycle_bp)
     app.register_blueprint(restrictions_bp)
     app.register_blueprint(military_restrictions_bp)
+    app.register_blueprint(unavailabilities_bp)
+    app.register_blueprint(military_unavailabilities_bp)
 
 
 def _register_error_handlers(app: Flask) -> None:

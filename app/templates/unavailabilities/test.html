@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Testar disponibilidade{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Compatibilidade</p>
+      <h1>Testar disponibilidade de {{ military.name }}</h1>
+    </div>
+  </section>
+  <form class="form-panel" method="post">
+    <div class="form-grid">
+      <label>Data inicial <input type="date" name="start_date" value="{{ form_data.start_date or '' }}" required>{% if errors.start_date %}<span class="field-error">{{ errors.start_date }}</span>{% endif %}</label>
+      <label>Hora inicial <input type="time" name="start_time" value="{{ form_data.start_time or '' }}" required>{% if errors.start_time %}<span class="field-error">{{ errors.start_time }}</span>{% endif %}</label>
+      <label>Data final <input type="date" name="end_date" value="{{ form_data.end_date or '' }}" required>{% if errors.end_date %}<span class="field-error">{{ errors.end_date }}</span>{% endif %}</label>
+      <label>Hora final <input type="time" name="end_time" value="{{ form_data.end_time or '' }}" required>{% if errors.end_time %}<span class="field-error">{{ errors.end_time }}</span>{% endif %}</label>
+      <label class="full-width">Descrição opcional <input name="description" value="{{ form_data.description or '' }}"></label>
+    </div>
+    <button class="button" type="submit">Testar</button>
+  </form>
+  {% if evaluation %}
+    <section class="content-section">
+      <h2>{{ "Permitido" if evaluation.allowed else "Bloqueado" }}</h2>
+      <p>{{ evaluation.reason }}</p>
+      <p class="muted">Prioridade: {{ evaluation.priority }}. Intervalo: {{ evaluation.interval_start }} a {{ evaluation.interval_end }}.</p>
+      <p>{{ evaluation.explanation }}</p>
+      <p>Indisponibilidades aplicáveis: {{ evaluation.applicable_unavailabilities|length }}</p>
+      <p>Restrições aplicáveis: {{ evaluation.applicable_restrictions|length }}</p>
+    </section>
+  {% endif %}
+{% endblock %}

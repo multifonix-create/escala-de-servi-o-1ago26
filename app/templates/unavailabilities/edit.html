@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Editar indisponibilidade{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Indisponibilidades</p>
+      <h1>Editar indisponibilidade</h1>
+    </div>
+  </section>
+  <form method="post">
+    {% include "unavailabilities/_form.html" %}
+  </form>
+{% endblock %}

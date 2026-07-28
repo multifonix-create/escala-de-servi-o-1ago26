@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Indisponibilidade{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Indisponibilidade</p>
+      <h1>{{ unavailability.code }} - {{ format_code(unavailability.code) }}</h1>
+    </div>
+    <div class="toolbar">
+      <a class="button" href="{{ url_for('military_unavailabilities.edit_unavailability_form', military_id=military.id, unavailability_id=unavailability.id) }}">Editar</a>
+      <a class="button button--secondary" href="{{ url_for('military_unavailabilities.military_unavailabilities', military_id=military.id) }}">Voltar</a>
+    </div>
+  </section>
+  <section class="detail-grid">
+    <div><dt>Militar</dt><dd>{{ military.name }}</dd></div>
+    <div><dt>Estado</dt><dd>{{ unavailability.status }}</dd></div>
+    <div><dt>Período</dt><dd>{{ unavailability.start_date.isoformat() }} a {{ unavailability.end_date.isoformat() }}</dd></div>
+    <div><dt>Horário</dt><dd>{% if unavailability.is_full_day %}Dia completo{% else %}{{ unavailability.start_time.strftime("%H:%M") }}-{{ unavailability.end_time.strftime("%H:%M") }}{% endif %}</dd></div>
+    <div><dt>Deslocação</dt><dd>{{ unavailability.travel_minutes_before }} min antes; {{ unavailability.travel_minutes_after }} min depois</dd></div>
+    <div><dt>Compensação</dt><dd>{{ unavailability.compensation_status }}</dd></div>
+  </section>
+  <section class="content-section"><h2>Motivo</h2><p>{{ unavailability.reason }}</p><p class="muted">{{ unavailability.location or "Sem local registado." }}</p></section>
+  <section class="content-section">
+    <h2>Coincidência com DS/DC</h2>
+    {% for item in cycle_coincidences %}
+      <p>{{ item.day.isoformat() }}: {{ item.code or item.detail }}</p>
+    {% endfor %}
+  </section>
+  <section class="content-section">
+    <h2>Eventos</h2>
+    {% for event in unavailability.events %}
+      <p>{{ event.created_at.strftime("%Y-%m-%d %H:%M") }} - {{ event.event_type }}{% if event.previous_status or event.new_status %}: {{ event.previous_status or "-" }} → {{ event.new_status or "-" }}{% endif %}</p>
+    {% endfor %}
+  </section>
+  <section class="danger-zone">
+    <h2>Estado</h2>
+    <div class="toolbar">
+      <form method="post" action="{{ url_for('military_unavailabilities.confirm_unavailability', military_id=military.id, unavailability_id=unavailability.id) }}"><button class="button" type="submit">Confirmar</button></form>
+      <form method="post" action="{{ url_for('military_unavailabilities.cancel_unavailability', military_id=military.id, unavailability_id=unavailability.id) }}" onsubmit="return confirm('Cancelar esta indisponibilidade? O registo será preservado.');"><button class="button button--danger" type="submit">Cancelar</button></form>
+      <form method="post" action="{{ url_for('military_unavailabilities.reactivate_unavailability', military_id=military.id, unavailability_id=unavailability.id) }}"><button class="button button--secondary" type="submit">Reativar</button></form>
+    </div>
+  </section>
+{% endblock %}

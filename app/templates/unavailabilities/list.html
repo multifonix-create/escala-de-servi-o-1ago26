@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Indisponibilidades{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <div>
+      <p class="eyebrow">Gestão</p>
+      <h1>Indisponibilidades</h1>
+    </div>
+  </section>
+  <form class="filters" method="get">
+    <label>Militar
+      <select name="military_id">
+        <option value="">Todos</option>
+        {% for military in militaries %}
+          <option value="{{ military.id }}" {% if filters.military_id == military.id|string %}selected{% endif %}>{{ military.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Código
+      <select name="code">
+        <option value="">Todos</option>
+        {% for item in codes %}
+          <option value="{{ item.value }}" {% if filters.code == item.value %}selected{% endif %}>{{ item.value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Estado
+      <select name="status">
+        <option value="">Todos</option>
+        {% for item in statuses %}
+          <option value="{{ item.value }}" {% if filters.status == item.value %}selected{% endif %}>{{ item.value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>De <input type="date" name="start_date" value="{{ filters.start_date }}"></label>
+    <label>Até <input type="date" name="end_date" value="{{ filters.end_date }}"></label>
+    <button class="button" type="submit">Filtrar</button>
+  </form>
+  {% if unavailabilities %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Militar</th><th>Código</th><th>Período</th><th>Estado</th><th>Compensação</th><th>DS/DC</th><th>Ações</th></tr></thead>
+        <tbody>
+          {% for item in unavailabilities %}
+            <tr>
+              <td>{{ item.military.name }}</td>
+              <td>{{ item.code }}<span class="muted">{{ format_code(item.code) }}</span></td>
+              <td>{{ item.start_date.isoformat() }} a {{ item.end_date.isoformat() }}<span class="muted">{% if item.is_full_day %}Dia completo{% else %}{{ item.start_time.strftime("%H:%M") }}-{{ item.end_time.strftime("%H:%M") }}{% endif %}</span></td>
+              <td><span class="status status--{{ item.status|lower }}">{{ item.status }}</span></td>
+              <td>{{ item.compensation_status }}</td>
+              <td>{% for day in cycle_coincidences_for(item) if day.code %}{{ day.day.isoformat() }} {{ day.code }}<br>{% else %}<span class="muted">Sem coincidência calculável</span>{% endfor %}</td>
+              <td><a href="{{ url_for('military_unavailabilities.detail_unavailability', military_id=item.military_id, unavailability_id=item.id) }}">Detalhe</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <section class="empty-state"><h2>Sem indisponibilidades</h2><p>Não existem indisponibilidades registadas com estes filtros.</p></section>
+  {% endif %}
+{% endblock %}
